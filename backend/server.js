@@ -6,9 +6,9 @@ require('dotenv').config();
 
 const authRoutes = require('./src/routes/auth');
 const dialysisRoutes = require('./src/routes/dialysis');
-const medicationRoutes = require('./src/routes/medications');
-const doctorRoutes = require('./src/routes/doctor');
-const documentRoutes = require('./src/routes/documents');
+// const medicationRoutes = require('./src/routes/medications');
+// const doctorRoutes = require('./src/routes/doctor');
+// const documentRoutes = require('./src/routes/documents');
 
 const app = express();
 
@@ -33,9 +33,9 @@ app.use(express.urlencoded({ extended: true }));
 // Rotas
 app.use('/api/auth', authRoutes);
 app.use('/api/dialysis', dialysisRoutes);
-app.use('/api/medications', medicationRoutes);
-app.use('/api/doctor', doctorRoutes);
-app.use('/api/documents', documentRoutes);
+// app.use('/api/medications', medicationRoutes);
+// app.use('/api/doctor', doctorRoutes);
+// app.use('/api/documents', documentRoutes);
 
 // Rota de saúde
 app.get('/api/health', (req, res) => {
