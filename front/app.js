@@ -1,11 +1,11 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import PatientDashboard from './components/patient/Dashboard';
-import DoctorDashboard from './components/doctor/Dashboard';
-import Header from './components/common/Header';
+import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import Login from './src/pages/Login';
+import Register from './src/pages/Register';
+import PatientDashboard from './src/components/patient/Dashboard';
+import DoctorDashboard from './src/components/doctor/Dashboard';
+import Header from './src/components/common/Header';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const PrivateRoute = ({ children, allowedRoles }) => {
