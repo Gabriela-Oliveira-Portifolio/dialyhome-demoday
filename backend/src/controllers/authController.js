@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/database');
+const blacklistedTokens = [];
 
 const register = async (req, res) => {
   try {
@@ -80,4 +81,39 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { register, login };
+const logout = async (req, res) => {
+   try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(400).json({ error: "Token não fornecido" });
+
+    blacklistedTokens.push(token); // Adiciona à blacklist
+    res.json({ message: "Logout realizado com sucesso" });
+  } catch (error) {
+    console.error("Erro no logout:", error);
+    res.status(500).json({ error: "Erro interno do servidor" });
+  }
+};
+
+const refreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) return res.status(400).json({ error: "Refresh token não fornecido" });
+
+    // Validar refreshToken
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+
+    // Gerar novo accessToken
+    const newAccessToken = jwt.sign(
+      { userId: decoded.userId, tipo_usuario: decoded.tipo_usuario },
+      process.env.JWT_SECRET,
+      { expiresIn: "15m" }
+    );
+
+    res.json({ accessToken: newAccessToken });
+  } catch (error) {
+    console.error("Erro no refreshToken:", error);
+    res.status(401).json({ error: "Refresh token inválido ou expirado" });
+  }
+};
+
+module.exports = { register, login, logout, refreshToken };
