@@ -18,6 +18,10 @@ app.get('/health', (req, res) => {
     res.json({ message: 'DialyHome API está funcionando!' });
 });
 
+app.get('/healtha', (req, res) => {
+    res.json({ message: 'DialyHome API está funcionandaaaaaaao!' });
+});
+
 app.listen(port, () => {
     console.log(`Servidor rodando na porta ${port}`);
 });
