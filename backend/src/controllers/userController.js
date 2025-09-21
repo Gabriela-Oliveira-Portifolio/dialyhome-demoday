@@ -28,37 +28,37 @@ const { checkAdmin } = require("../middleware/auth"); // middleware para verific
   };
 
   // PUT /api/users/profile
-  updateProfile: async (req, res) => {
-    try {
-      const userId = req.user.id;
-      const { nome, email, telefone, endereco } = req.body;
+  const updateProfile = async (req, res) => {
+        try {
+        const userId = req.user.id;
+        const { nome, email, telefone, endereco } = req.body;
 
-      // Atualiza tabela usuarios
-      await db.query(
-        "UPDATE usuarios SET nome = $1, email = $2, telefone = $3 WHERE id = $4",
-        [nome, email, telefone, userId]
-      );
+        // Atualiza tabela usuarios
+        await db.query(
+            "UPDATE usuarios SET nome = $1, email = $2, telefone = $3 WHERE id = $4",
+            [nome, email, telefone, userId]
+        );
 
-      // Atualiza tabela específica
-      if (req.user.tipo === "paciente") {
-        const { convenio } = req.body;
-        await db.query("UPDATE pacientes SET convenio = $1 WHERE usuario_id = $2", [convenio, userId]);
-      } else if (req.user.tipo === "medico") {
-        const { crm } = req.body;
-        await db.query("UPDATE medicos SET crm = $1 WHERE usuario_id = $2", [crm, userId]);
-      }
+        // Atualiza tabela específica
+        if (req.user.tipo === "paciente") {
+            const { convenio } = req.body;
+            await db.query("UPDATE pacientes SET convenio = $1 WHERE usuario_id = $2", [convenio, userId]);
+        } else if (req.user.tipo === "medico") {
+            const { crm } = req.body;
+            await db.query("UPDATE medicos SET crm = $1 WHERE usuario_id = $2", [crm, userId]);
+        }
 
-      // Retorna dados atualizados
-      const updated = await db.query("SELECT * FROM usuarios WHERE id = $1", [userId]);
-      res.json(updated.rows[0]);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erro ao atualizar perfil" });
-    }
-  },
+        // Retorna dados atualizados
+        const updated = await db.query("SELECT * FROM usuarios WHERE id = $1", [userId]);
+        res.json(updated.rows[0]);
+        } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Erro ao atualizar perfil" });
+        }
+  };
 
   // PUT /api/users/change-password
-  changePassword: async (req, res) => {
+  const changePassword = async (req, res) => {
     try {
       const userId = req.user.id;
       const { currentPassword, newPassword } = req.body;
@@ -77,10 +77,10 @@ const { checkAdmin } = require("../middleware/auth"); // middleware para verific
       console.error(error);
       res.status(500).json({ error: "Erro ao alterar senha" });
     }
-  },
+  };
 
   // GET /api/users/:id (admin only)
-  getUserById: async (req, res) => {
+  const getUserById = async (req, res) => {
     try {
       if (!checkAdmin(req.user)) return res.status(403).json({ error: "Acesso negado" });
 
@@ -93,10 +93,10 @@ const { checkAdmin } = require("../middleware/auth"); // middleware para verific
       console.error(error);
       res.status(500).json({ error: "Erro ao buscar usuário" });
     }
-  },
+  };
 
   // PUT /api/users/:id/toggle-status (admin only)
-  toggleUserStatus: async (req, res) => {
+  const toggleUserStatus = async (req, res) => {
     try {
       if (!checkAdmin(req.user)) return res.status(403).json({ error: "Acesso negado" });
 
@@ -112,10 +112,10 @@ const { checkAdmin } = require("../middleware/auth"); // middleware para verific
       console.error(error);
       res.status(500).json({ error: "Erro ao alterar status do usuário" });
     }
-  },
+  };
 
   // DELETE /api/users/:id (admin only)
-  deleteUser: async (req, res) => {
+  const deleteUser =  async (req, res) => {
     try {
       if (!checkAdmin(req.user)) return res.status(403).json({ error: "Acesso negado" });
 
@@ -128,7 +128,6 @@ const { checkAdmin } = require("../middleware/auth"); // middleware para verific
       console.error(error);
       res.status(500).json({ error: "Erro ao deletar usuário" });
     }
-  }
-};
+  };
 
-module.exports = { getProfile, login, logout, refreshToken };
+module.exports = { getProfile, updateProfile, changePassword, getUserById, toggleUserStatus, deleteUser };

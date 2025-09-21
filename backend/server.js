@@ -5,6 +5,8 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const authRoutes = require('./src/routes/auth');
+// const usersRoutes = require('./src/routes/users');
+
 const dialysisRoutes = require('./src/routes/dialysis');
 // const medicationRoutes = require('./src/routes/medications');
 // const doctorRoutes = require('./src/routes/doctor');
@@ -32,6 +34,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // Rotas
 app.use('/api/auth', authRoutes);
+// app.use('/api/users', usersRoutes);
+
+
 app.use('/api/dialysis', dialysisRoutes);
 // app.use('/api/medications', medicationRoutes);
 // app.use('/api/doctor', doctorRoutes);
