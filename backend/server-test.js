@@ -24,3 +24,31 @@ app.post('/api/test/register', (req, res) => {
     received: req.body 
   });
 });
+
+
+const jwt = require('jsonwebtoken');
+
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Token necessário' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, 'test_secret');
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(403).json({ error: 'Token inválido' });
+  }
+};
+
+// Rota protegida de teste
+app.get('/api/test/protected', authenticateToken, (req, res) => {
+  res.json({ 
+    message: 'Acesso autorizado!', 
+    user: req.user 
+  });
+});
