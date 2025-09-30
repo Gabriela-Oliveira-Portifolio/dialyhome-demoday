@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/database');
+
 const blacklistedTokens = [];
 
 const register = async (req, res) => {
@@ -81,18 +82,42 @@ const login = async (req, res) => {
   }
 };
 
+// const logout = async (req, res) => {
+//    try {
+//     const token = req.headers.authorization?.split(" ")[1];
+//     if (!token) return res.status(400).json({ error: "Token não fornecido" });
+
+//     blacklistedTokens.push(token); // Adiciona à blacklist
+//     res.json({ message: "Logout realizado com sucesso" });
+//   } catch (error) {
+//     console.error("Erro no logout:", error);
+//     res.status(500).json({ error: "Erro interno do servidor" });
+//   }
+// };
+
 const logout = async (req, res) => {
-   try {
+  try {
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) return res.status(400).json({ error: "Token não fornecido" });
 
-    blacklistedTokens.push(token); // Adiciona à blacklist
-    res.json({ message: "Logout realizado com sucesso" });
+    // Verifica se já está na blacklist
+    if (blacklistedTokens.includes(token)) {
+      return res.status(400).json({ error: "Token já foi invalidado" });
+    }
+
+    // Verifica se o token é válido (não expirou ou não foi adulterado)
+    jwt.verify(token, process.env.JWT_SECRET, (err) => {
+      if (err) return res.status(401).json({ error: "Token inválido ou expirado" });
+
+      blacklistedTokens.push(token); // só entra aqui se o token for válido
+      return res.json({ message: "Logout realizado com sucesso" });
+    });
   } catch (error) {
     console.error("Erro no logout:", error);
     res.status(500).json({ error: "Erro interno do servidor" });
   }
 };
+
 
 const refreshToken = async (req, res) => {
   try {
