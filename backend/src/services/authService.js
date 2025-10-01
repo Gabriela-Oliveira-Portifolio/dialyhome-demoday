@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/database');
 
+
 const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS, 10) || 10;
 
 // Blacklist em memória (poderia ser no Redis para produção)
@@ -32,9 +33,11 @@ const verifyToken = (token) => {
   return jwt.verify(token, process.env.JWT_SECRET);
 };
 
+
 // Criar usuário
-const createUser = async (userData) => {
-  const client = await db.connect();
+const createUseraaaa = async (userData) => {
+  const client = db; // usar pool direto
+
   try {
     await client.query('BEGIN');
 
@@ -79,7 +82,57 @@ const createUser = async (userData) => {
   }
 };
 
-// Autenticar usuário
+// // Autenticar usuário
+const createUser = async (userData) => {
+  try {
+    const { nome, email, senha, tipo_usuario, ...extra } = userData;
+
+    // Verifica se o email já existe
+    const existing = await db.query('SELECT id FROM usuarios WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
+      throw new Error(`O email ${email} já está em uso`);
+    }
+
+    // Hash da senha
+    const senhaHash = await hashPassword(senha);
+
+    // Inserir usuário
+    const userResult = await db.query(
+      `INSERT INTO usuarios (nome, email, senha_hash, tipo_usuario)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, nome, email, tipo_usuario`,
+      [nome, email, senhaHash, tipo_usuario]
+    );
+
+    const user = userResult.rows[0];
+
+    // Inserir dados específicos
+    if (tipo_usuario === 'paciente') {
+      const { cpf, data_nascimento, telefone, endereco, peso_inicial, altura } = extra;
+      await db.query(
+        `INSERT INTO pacientes (usuario_id, cpf, data_nascimento, telefone, endereco, peso_inicial, altura)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [user.id, cpf, data_nascimento, telefone, endereco, peso_inicial, altura]
+      );
+    } else if (tipo_usuario === 'medico') {
+      const { crm, especialidade, local_atendimento, telefone_contato } = extra;
+      await db.query(
+        `INSERT INTO medicos (usuario_id, crm, especialidade, local_atendimento, telefone_contato)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [user.id, crm, especialidade, local_atendimento, telefone_contato]
+      );
+    }
+
+    return user; // retorna apenas os dados do usuário
+
+  } catch (error) {
+    console.error('Erro ao criar usuário:', error.message);
+    throw new Error(`Falha ao criar usuário: ${error.message}`);
+  }
+};
+
+
+
 const authenticateUser = async (email, senha) => {
   const result = await db.query('SELECT * FROM usuarios WHERE email = $1', [email]);
   if (result.rows.length === 0) throw new Error('Credenciais inválidas');
