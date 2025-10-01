@@ -32,6 +32,14 @@ const logout = async (req, res) => {
     if (!token) return res.status(400).json({ error: "Token não fornecido" });
 
     AuthService.logoutUser(token);
+
+    // Adiciona o token na blacklist
+    await db.query(
+      "INSERT INTO tokens_invalidados (token, usuario_id, expira_em) VALUES ($1, $2, $3)",
+      [token, req.user.id, expiraEm]
+    );
+
+    
     res.json({ message: "Logout realizado com sucesso" });
   } catch (error) {
     res.status(400).json({ error: error.message });

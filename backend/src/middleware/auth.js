@@ -4,7 +4,14 @@ const db = require('../config/database');
 const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
-
+// Verifica se o token está na blacklist
+    const blacklisted = await db.query(
+      "SELECT id FROM tokens_invalidados WHERE token = $1 AND expira_em > NOW()",
+      [token]
+    );
+    if (blacklisted.rows.length > 0) {
+      return res.status(401).json({ error: "Token inválido ou expirado" });
+    }
   if (!token) {
     return res.status(401).json({ error: 'Token de acesso necessário' });
   }
