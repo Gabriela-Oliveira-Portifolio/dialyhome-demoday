@@ -127,21 +127,20 @@ const updateProfile = async (req, res) => {
     }
   };
 
-  // GET /api/users/:id (admin only)
+// // GET /api/users/:id (admin only)
   const getUserById = async (req, res) => {
-    try {
-      if (!checkAdmin(req.user)) return res.status(403).json({ error: "Acesso negado" });
+  try {
+    const userId = req.params.id;
+    const user = await db.query("SELECT * FROM usuarios WHERE id = $1", [userId]);
 
-      const userId = req.params.id;
-      const user = await db.query("SELECT * FROM usuarios WHERE id = $1", [userId]);
-      if (!user.rows.length) return res.status(404).json({ error: "Usuário não encontrado" });
+    if (!user.rows.length) return res.status(404).json({ error: "Usuário não encontrado" });
 
-      res.json(user.rows[0]);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erro ao buscar usuário" });
-    }
-  };
+    res.json(user.rows[0]);
+  } catch (error) {
+    console.error("Erro ao buscar usuário:", error.message);
+    res.status(500).json({ error: "Erro ao buscar usuário", details: error.message });
+  }
+};
 
   // PUT /api/users/:id/toggle-status (admin only)
   const toggleUserStatus = async (req, res) => {

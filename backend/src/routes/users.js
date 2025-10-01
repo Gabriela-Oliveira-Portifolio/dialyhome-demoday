@@ -34,6 +34,8 @@ router.put('/changePassword', authenticateToken, changePassword);
 
 // 🔒 Rotas só para administradores
 router.get('/:id', authenticateToken, authorizeRole(['admin']), getUserById);
+// router.get('/:id', getUserById);
+
 router.put('/:id/toggle-status', authenticateToken, authorizeRole(['admin']), toggleUserStatus);
 router.delete('/:id', authenticateToken, authorizeRole(['admin']), deleteUser);
 
