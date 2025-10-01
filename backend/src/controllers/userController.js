@@ -142,24 +142,71 @@ const updateProfile = async (req, res) => {
   }
 };
 
-  // PUT /api/users/:id/toggle-status (admin only)
-  const toggleUserStatus = async (req, res) => {
-    try {
-      if (!checkAdmin(req.user)) return res.status(403).json({ error: "Acesso negado" });
-
-      const userId = req.params.id;
-      const user = await db.query("SELECT ativo FROM usuarios WHERE id = $1", [userId]);
-      if (!user.rows.length) return res.status(404).json({ error: "Usuário não encontrado" });
-
-      const newStatus = !user.rows[0].ativo;
-      await db.query("UPDATE usuarios SET ativo = $1 WHERE id = $2", [newStatus, userId]);
-
-      res.json({ message: `Usuário ${newStatus ? "ativado" : "desativado"} com sucesso` });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erro ao alterar status do usuário" });
+// PUT /api/users/:id/toggle-status (admin only)
+const toggleUserStatus = async (req, res) => {
+  try {
+    // Verifica se o usuário está autenticado
+    if (!req.user) {
+      return res.status(401).json({ error: "Não autenticado" });
     }
-  };
+
+    // Verifica se é admin
+    if (req.user.tipo_usuario !== 'admin') {
+      return res.status(403).json({ error: "Acesso negado" });
+    }
+
+    const userId = parseInt(req.params.id);
+    
+    // Valida se o ID é válido
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: "ID inválido" });
+    }
+
+    // Impede que o admin desative a si mesmo
+    if (userId === req.user.id) {
+      return res.status(400).json({ error: "Você não pode desativar sua própria conta" });
+    }
+
+    const user = await db.query("SELECT ativo FROM usuarios WHERE id = $1", [userId]);
+    
+    if (!user.rows.length) {
+      return res.status(404).json({ error: "Usuário não encontrado" });
+    }
+
+    // Garante conversão correta do boolean
+    const currentStatus = user.rows[0].ativo;
+    const newStatus = !currentStatus;
+    
+    await db.query("UPDATE usuarios SET ativo = $1 WHERE id = $2", [newStatus, userId]);
+
+    res.json({ 
+      message: `Usuário ${newStatus ? "ativado" : "desativado"} com sucesso`,
+      ativo: newStatus
+    });
+  } catch (error) {
+    console.error("Erro ao alterar status:", error);
+    res.status(500).json({ error: "Erro ao alterar status do usuário" });
+  }
+};
+
+  // // PUT /api/users/:id/toggle-status (admin only)
+  // const toggleUserStatus = async (req, res) => {
+  //   try {
+  //     if (!checkAdmin(req.user)) return res.status(403).json({ error: "Acesso negado" });
+
+  //     const userId = req.params.id;
+  //     const user = await db.query("SELECT ativo FROM usuarios WHERE id = $1", [userId]);
+  //     if (!user.rows.length) return res.status(404).json({ error: "Usuário não encontrado" });
+
+  //     const newStatus = !user.rows[0].ativo;
+  //     await db.query("UPDATE usuarios SET ativo = $1 WHERE id = $2", [newStatus, userId]);
+
+  //     res.json({ message: `Usuário ${newStatus ? "ativado" : "desativado"} com sucesso` });
+  //   } catch (error) {
+  //     console.error(error);
+  //     res.status(500).json({ error: "Erro ao alterar status do usuário" });
+  //   }
+  // };
 
   // DELETE /api/users/:id (admin only)
   const deleteUser =  async (req, res) => {
