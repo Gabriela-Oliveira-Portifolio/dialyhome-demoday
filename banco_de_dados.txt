@@ -1,3 +1,242 @@
+-- Banco de Dados MVP - DialyHome
+-- Sistema para controle de diálise peritoneal domiciliar
+
+-- Tabela de Usuários (base para todos os tipos)
+CREATE TABLE usuarios (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    senha_hash VARCHAR(255) NOT NULL,
+    tipo_usuario VARCHAR(20) NOT NULL CHECK (tipo_usuario IN ('paciente', 'medico', 'admin')),
+    ativo BOOLEAN DEFAULT true,
+    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    data_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabela específica para Pacientes
+CREATE TABLE pacientes (
+    id SERIAL PRIMARY KEY,
+    usuario_id INTEGER UNIQUE REFERENCES usuarios(id) ON DELETE CASCADE,
+    cpf VARCHAR(14) UNIQUE,
+    data_nascimento DATE,
+    telefone VARCHAR(20),
+    endereco TEXT,
+    peso_inicial DECIMAL(5,2),
+    altura DECIMAL(3,2),
+    data_inicio_tratamento DATE,
+    observacoes_medicas TEXT,
+    medico_responsavel_id INTEGER -- será referenciado depois
+);
+
+-- Tabela específica para Médicos
+CREATE TABLE medicos (
+    id SERIAL PRIMARY KEY,
+    usuario_id INTEGER UNIQUE REFERENCES usuarios(id) ON DELETE CASCADE,
+    crm VARCHAR(20) UNIQUE NOT NULL,
+    especialidade VARCHAR(100),
+    local_atendimento TEXT,
+    telefone_contato VARCHAR(20)
+);
+
+-- Adicionar a foreign key depois que a tabela médicos existe
+ALTER TABLE pacientes
+    ADD CONSTRAINT fk_medico_responsavel 
+    FOREIGN KEY (medico_responsavel_id) REFERENCES medicos(id);
+
+-- Tabela de Medicamentos
+CREATE TABLE medicamentos (
+    id SERIAL PRIMARY KEY,
+    paciente_id INTEGER REFERENCES pacientes(id) ON DELETE CASCADE,
+    nome VARCHAR(255) NOT NULL,
+    dosagem VARCHAR(100),
+    frequencia VARCHAR(100), -- ex: "2x ao dia", "a cada 8h"
+    horario_principal TIME, -- horário principal de administração
+    observacoes TEXT,
+    ativo BOOLEAN DEFAULT true,
+    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabela de Registros de Diálise (core do sistema)
+CREATE TABLE registros_dialise (
+    id SERIAL PRIMARY KEY,
+    paciente_id INTEGER REFERENCES pacientes(id) ON DELETE CASCADE,
+    data_registro DATE NOT NULL,
+    horario_inicio TIME,
+    horario_fim TIME,
+    
+    -- Parâmetros vitais
+    pressao_arterial_sistolica INTEGER,
+    pressao_arterial_diastolica INTEGER,
+    peso_pre_dialise DECIMAL(5,2),
+    peso_pos_dialise DECIMAL(5,2),
+    
+    -- Parâmetros da diálise
+    drenagem_inicial INTEGER, -- em mL
+    uf_total INTEGER, -- ultrafiltração total em mL
+    tempo_permanencia INTEGER, -- em minutos
+    concentracao_glicose DECIMAL(4,2), -- concentração da solução
+    concentracao_dextrose DECIMAL(4,2),
+    
+    -- Observações e sintomas
+    sintomas TEXT,
+    observacoes TEXT,
+    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabela de Sintomas pré-definidos (para facilitar o registro)
+CREATE TABLE sintomas_predefinidos (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    categoria VARCHAR(50), -- ex: "respiratório", "gastrointestinal", "circulatório"
+    severidade_padrao VARCHAR(20) DEFAULT 'leve' -- leve, moderado, grave
+);
+
+-- Tabela de relação entre registros e sintomas
+CREATE TABLE registro_sintomas (
+    id SERIAL PRIMARY KEY,
+    registro_dialise_id INTEGER REFERENCES registros_dialise(id) ON DELETE CASCADE,
+    sintoma_id INTEGER REFERENCES sintomas_predefinidos(id),
+    severidade VARCHAR(20) DEFAULT 'leve',
+    observacoes TEXT
+);
+
+-- Tabela de Documentos/Exames
+CREATE TABLE documentos (
+    id SERIAL PRIMARY KEY,
+    paciente_id INTEGER REFERENCES pacientes(id) ON DELETE CASCADE,
+    nome_arquivo VARCHAR(255) NOT NULL,
+    tipo_documento VARCHAR(50), -- ex: "exame_sangue", "ultrassom", "receita"
+    caminho_arquivo TEXT NOT NULL,
+    tamanho_arquivo INTEGER,
+    data_upload TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    observacoes TEXT
+);
+
+-- Tabela de Notificações/Alertas
+CREATE TABLE notificacoes (
+    id SERIAL PRIMARY KEY,
+    usuario_destinatario_id INTEGER REFERENCES usuarios(id),
+    tipo VARCHAR(50) NOT NULL, -- "alerta_medico", "lembrete_medicacao", "lembrete_dialise"
+    titulo VARCHAR(255) NOT NULL,
+    mensagem TEXT NOT NULL,
+    lida BOOLEAN DEFAULT false,
+    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    data_leitura TIMESTAMP
+);
+
+-- Tabela de Lembretes
+CREATE TABLE lembretes (
+    id SERIAL PRIMARY KEY,
+    paciente_id INTEGER REFERENCES pacientes(id) ON DELETE CASCADE,
+    tipo VARCHAR(50) NOT NULL, -- "medicacao", "dialise", "consulta"
+    titulo VARCHAR(255) NOT NULL,
+    descricao TEXT,
+    data_hora TIMESTAMP NOT NULL,
+    recorrente BOOLEAN DEFAULT false,
+    frequencia_recorrencia VARCHAR(50), -- "diario", "semanal", etc.
+    ativo BOOLEAN DEFAULT true,
+    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabela de Logs de Auditoria
+CREATE TABLE logs_auditoria (
+    id SERIAL PRIMARY KEY,
+    usuario_id INTEGER REFERENCES usuarios(id),
+    tabela_afetada VARCHAR(100),
+    operacao VARCHAR(20), -- INSERT, UPDATE, DELETE
+    dados_anteriores JSONB,
+    dados_novos JSONB,
+    ip_address INET,
+    user_agent TEXT,
+    data_operacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Índices para performance
+CREATE INDEX idx_usuarios_email ON usuarios(email);
+CREATE INDEX idx_usuarios_tipo ON usuarios(tipo_usuario);
+CREATE INDEX idx_registros_dialise_paciente_data ON registros_dialise(paciente_id, data_registro);
+CREATE INDEX idx_notificacoes_usuario_lida ON notificacoes(usuario_destinatario_id, lida);
+CREATE INDEX idx_lembretes_paciente_ativo ON lembretes(paciente_id, ativo);
+
+-- Views úteis para o sistema
+CREATE VIEW view_pacientes_completo AS
+SELECT 
+    p.id as paciente_id,
+    u.nome,
+    u.email,
+    p.cpf,
+    p.data_nascimento,
+    p.telefone,
+    p.data_inicio_tratamento,
+    m.nome as nome_medico,
+    m_user.email as email_medico
+FROM pacientes p
+JOIN usuarios u ON p.usuario_id = u.id
+LEFT JOIN medicos m ON p.medico_responsavel_id = m.id
+LEFT JOIN usuarios m_user ON m.usuario_id = m_user.id
+WHERE u.ativo = true;
+
+-- View para últimos registros de diálise
+CREATE VIEW view_ultimos_registros AS
+SELECT 
+    rd.*,
+    p.nome as nome_paciente,
+    EXTRACT(EPOCH FROM (rd.horario_fim - rd.horario_inicio))/60 as duracao_minutos
+FROM registros_dialise rd
+JOIN pacientes pac ON rd.paciente_id = pac.id
+JOIN usuarios p ON pac.usuario_id = p.id
+ORDER BY rd.data_registro DESC, rd.horario_inicio DESC;
+
+-- Inserção de dados iniciais
+INSERT INTO sintomas_predefinidos (nome, categoria, severidade_padrao) VALUES
+    ('Náusea', 'gastrointestinal', 'leve'),
+    ('Vômito', 'gastrointestinal', 'moderado'),
+    ('Dor abdominal', 'gastrointestinal', 'leve'),
+    ('Falta de ar', 'respiratório', 'moderado'),
+    ('Tontura', 'neurológico', 'leve'),
+    ('Inchaço', 'circulatório', 'leve'),
+    ('Cansaço excessivo', 'geral', 'leve'),
+    ('Febre', 'geral', 'moderado'),
+    ('Dor de cabeça', 'neurológico', 'leve'),
+    ('Alteração do líquido drenado', 'dialise', 'grave');
+
+-- Função para atualizar timestamp de atualização
+CREATE OR REPLACE FUNCTION update_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.data_atualizacao = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger para atualizar timestamp automaticamente
+CREATE TRIGGER trigger_update_timestamp
+    BEFORE UPDATE ON usuarios
+    FOR EACH ROW
+    EXECUTE FUNCTION update_timestamp();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 -- Banco de Dados MVP - DialyHome -- Sistema para controle de diálise peritoneal domiciliar 
 -- Tabela de Usuários (base para todos os tipos)
  CREATE TABLE usuarios 
@@ -29,4 +268,26 @@
  crm VARCHAR(20) UNIQUE NOT NULL, 
  especialidade VARCHAR(100), 
  local_atendimento TEXT, 
- telefone_contato VARCHAR(20) ); -- Adicionar a foreign key depois que a tabela médicos existe ALTER TABLE pacientes ADD CONSTRAINT fk_medico_responsavel FOREIGN KEY (medico_responsavel_id) REFERENCES medicos(id); -- Tabela de Medicamentos CREATE TABLE medicamentos ( id SERIAL PRIMARY KEY, paciente_id INTEGER REFERENCES pacientes(id) ON DELETE CASCADE, nome VARCHAR(255) NOT NULL, dosagem VARCHAR(100), frequencia VARCHAR(100), -- ex: "2x ao dia", "a cada 8h" horario_principal TIME, -- horário principal de administração observacoes TEXT, ativo BOOLEAN DEFAULT true, data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP ); -- Tabela de Registros de Diálise (core do sistema) CREATE TABLE registros_dialise ( id SERIAL PRIMARY KEY, paciente_id INTEGER REFERENCES pacientes(id) ON DELETE CASCADE, data_registro DATE NOT NULL, horario_inicio TIME, horario_fim TIME, -- Parâmetros vitais pressao_arterial_sistolica INTEGER, pressao_arterial_diastolica INTEGER, peso_pre_dialise DECIMAL(5,2), peso_pos_dialise DECIMAL(5,2), -- Parâmetros da diálise drenagem_inicial INTEGER, -- em mL uf_total INTEGER, -- ultrafiltração total em mL tempo_permanencia INTEGER, -- em minutos concentracao_glicose DECIMAL(4,2), -- concentração da solução concentracao_dextrose DECIMAL(4,2), -- Observações e sintomas sintomas TEXT, observacoes TEXT, data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP ); -- Tabela de Sintomas pré-definidos (para facilitar o registro) CREATE TABLE sintomas_predefinidos ( id SERIAL PRIMARY KEY, nome VARCHAR(100) NOT NULL, categoria VARCHAR(50), -- ex: "respiratório", "gastrointestinal", "circulatório" severidade_padrao VARCHAR(20) DEFAULT 'leve' -- leve, moderado, grave ); -- Tabela de relação entre registros e sintomas CREATE TABLE registro_sintomas ( id SERIAL PRIMARY KEY, registro_dialise_id INTEGER REFERENCES registros_dialise(id) ON DELETE CASCADE, sintoma_id INTEGER REFERENCES sintomas_predefinidos(id), severidade VARCHAR(20) DEFAULT 'leve', observacoes TEXT ); -- Tabela de Documentos/Exames CREATE TABLE documentos ( id SERIAL PRIMARY KEY, paciente_id INTEGER REFERENCES pacientes(id) ON DELETE CASCADE, nome_arquivo VARCHAR(255) NOT NULL, tipo_documento VARCHAR(50), -- ex: "exame_sangue", "ultrassom", "receita" caminho_arquivo TEXT NOT NULL, tamanho_arquivo INTEGER, data_upload TIMESTAMP DEFAULT CURRENT_TIMESTAMP, observacoes TEXT ); -- Tabela de Notificações/Alertas CREATE TABLE notificacoes ( id SERIAL PRIMARY KEY, usuario_destinatario_id INTEGER REFERENCES usuarios(id), tipo VARCHAR(50) NOT NULL, -- "alerta_medico", "lembrete_medicacao", "lembrete_dialise" titulo VARCHAR(255) NOT NULL, mensagem TEXT NOT NULL, lida BOOLEAN DEFAULT false, data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP, data_leitura TIMESTAMP ); -- Tabela de Lembretes CREATE TABLE lembretes ( id SERIAL PRIMARY KEY, paciente_id INTEGER REFERENCES pacientes(id) ON DELETE CASCADE, tipo VARCHAR(50) NOT NULL, -- "medicacao", "dialise", "consulta" titulo VARCHAR(255) NOT NULL, descricao TEXT, data_hora TIMESTAMP NOT NULL, recorrente BOOLEAN DEFAULT false, frequencia_recorrencia VARCHAR(50), -- "diario", "semanal", etc. ativo BOOLEAN DEFAULT true, data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP ); -- Tabela de Logs de Auditoria CREATE TABLE logs_auditoria ( id SERIAL PRIMARY KEY, usuario_id INTEGER REFERENCES usuarios(id), tabela_afetada VARCHAR(100), operacao VARCHAR(20), -- INSERT, UPDATE, DELETE dados_anteriores JSONB, dados_novos JSONB, ip_address INET, user_agent TEXT, data_operacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP ); -- Índices para performance CREATE INDEX idx_usuarios_email ON usuarios(email); CREATE INDEX idx_usuarios_tipo ON usuarios(tipo_usuario); CREATE INDEX idx_registros_dialise_paciente_data ON registros_dialise(paciente_id, data_registro); CREATE INDEX idx_notificacoes_usuario_lida ON notificacoes(usuario_destinatario_id, lida); CREATE INDEX idx_lembretes_paciente_ativo ON lembretes(paciente_id, ativo); -- Views úteis para o sistema CREATE VIEW view_pacientes_completo AS SELECT p.id as paciente_id, u.nome, u.email, p.cpf, p.data_nascimento, p.telefone, p.data_inicio_tratamento, m.nome as nome_medico, m_user.email as email_medico FROM pacientes p JOIN usuarios u ON p.usuario_id = u.id LEFT JOIN medicos m ON p.medico_responsavel_id = m.id LEFT JOIN usuarios m_user ON m.usuario_id = m_user.id WHERE u.ativo = true; -- View para últimos registros de diálise CREATE VIEW view_ultimos_registros AS SELECT rd.*, p.nome as nome_paciente, EXTRACT(EPOCH FROM (rd.horario_fim - rd.horario_inicio))/60 as duracao_minutos FROM registros_dialise rd JOIN pacientes pac ON rd.paciente_id = pac.id JOIN usuarios p ON pac.usuario_id = p.id ORDER BY rd.data_registro DESC, rd.horario_inicio DESC; -- Inserção de dados iniciais INSERT INTO sintomas_predefinidos (nome, categoria, severidade_padrao) VALUES ('Náusea', 'gastrointestinal', 'leve'), ('Vômito', 'gastrointestinal', 'moderado'), ('Dor abdominal', 'gastrointestinal', 'leve'), ('Falta de ar', 'respiratório', 'moderado'), ('Tontura', 'neurológico', 'leve'), ('Inchaço', 'circulatório', 'leve'), ('Cansaço excessivo', 'geral', 'leve'), ('Febre', 'geral', 'moderado'), ('Dor de cabeça', 'neurológico', 'leve'), ('Alteração do líquido drenado', 'dialise', 'grave'); -- Função para atualizar timestamp de atualização CREATE OR REPLACE FUNCTION update_timestamp() RETURNS TRIGGER AS $$ BEGIN NEW.data_atualizacao = CURRENT_TIMESTAMP; RETURN NEW; END; $$ LANGUAGE plpgsql; -- Trigger para atualizar timestamp automaticamente CREATE TRIGGER trigger_update_timestamp BEFORE UPDATE ON usuarios FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+ telefone_contato VARCHAR(20) ); 
+ 
+ -- Adicionar a foreign key depois que a tabela médicos existe 
+ ALTER TABLE pacientes 
+ ADD CONSTRAINT fk_medico_responsavel FOREIGN KEY (medico_responsavel_id) REFERENCES medicos(id); 
+ -- Tabela de Medicamentos 
+ CREATE TABLE medicamentos 
+ ( id SERIAL PRIMARY KEY, 
+ paciente_id INTEGER REFERENCES pacientes(id) ON DELETE CASCADE, 
+ nome VARCHAR(255) NOT NULL, dosagem VARCHAR(100), 
+ frequencia VARCHAR(100), -- ex: "2x ao dia", "a cada 8h" 
+ horario_principal TIME, -- horário principal de administração 
+ observacoes TEXT, 
+ ativo BOOLEAN DEFAULT true, 
+ data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP );
+ -- Tabela de Registros de Diálise (core do sistema) 
+ CREATE TABLE registros_dialise 
+ ( id SERIAL PRIMARY KEY, 
+ paciente_id INTEGER REFERENCES pacientes(id) ON DELETE CASCADE, 
+ data_registro DATE NOT NULL, 
+ horario_inicio TIME, 
+ horario_fim TIME, 
+ -- Parâmetros vitais pressao_arterial_sistolica INTEGER, pressao_arterial_diastolica INTEGER, peso_pre_dialise DECIMAL(5,2), peso_pos_dialise DECIMAL(5,2), -- Parâmetros da diálise drenagem_inicial INTEGER, -- em mL uf_total INTEGER, -- ultrafiltração total em mL tempo_permanencia INTEGER, -- em minutos concentracao_glicose DECIMAL(4,2), -- concentração da solução concentracao_dextrose DECIMAL(4,2), -- Observações e sintomas sintomas TEXT, observacoes TEXT, data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP ); -- Tabela de Sintomas pré-definidos (para facilitar o registro) CREATE TABLE sintomas_predefinidos ( id SERIAL PRIMARY KEY, nome VARCHAR(100) NOT NULL, categoria VARCHAR(50), -- ex: "respiratório", "gastrointestinal", "circulatório" severidade_padrao VARCHAR(20) DEFAULT 'leve' -- leve, moderado, grave ); -- Tabela de relação entre registros e sintomas CREATE TABLE registro_sintomas ( id SERIAL PRIMARY KEY, registro_dialise_id INTEGER REFERENCES registros_dialise(id) ON DELETE CASCADE, sintoma_id INTEGER REFERENCES sintomas_predefinidos(id), severidade VARCHAR(20) DEFAULT 'leve', observacoes TEXT ); -- Tabela de Documentos/Exames CREATE TABLE documentos ( id SERIAL PRIMARY KEY, paciente_id INTEGER REFERENCES pacientes(id) ON DELETE CASCADE, nome_arquivo VARCHAR(255) NOT NULL, tipo_documento VARCHAR(50), -- ex: "exame_sangue", "ultrassom", "receita" caminho_arquivo TEXT NOT NULL, tamanho_arquivo INTEGER, data_upload TIMESTAMP DEFAULT CURRENT_TIMESTAMP, observacoes TEXT ); -- Tabela de Notificações/Alertas CREATE TABLE notificacoes ( id SERIAL PRIMARY KEY, usuario_destinatario_id INTEGER REFERENCES usuarios(id), tipo VARCHAR(50) NOT NULL, -- "alerta_medico", "lembrete_medicacao", "lembrete_dialise" titulo VARCHAR(255) NOT NULL, mensagem TEXT NOT NULL, lida BOOLEAN DEFAULT false, data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP, data_leitura TIMESTAMP ); -- Tabela de Lembretes CREATE TABLE lembretes ( id SERIAL PRIMARY KEY, paciente_id INTEGER REFERENCES pacientes(id) ON DELETE CASCADE, tipo VARCHAR(50) NOT NULL, -- "medicacao", "dialise", "consulta" titulo VARCHAR(255) NOT NULL, descricao TEXT, data_hora TIMESTAMP NOT NULL, recorrente BOOLEAN DEFAULT false, frequencia_recorrencia VARCHAR(50), -- "diario", "semanal", etc. ativo BOOLEAN DEFAULT true, data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP ); -- Tabela de Logs de Auditoria CREATE TABLE logs_auditoria ( id SERIAL PRIMARY KEY, usuario_id INTEGER REFERENCES usuarios(id), tabela_afetada VARCHAR(100), operacao VARCHAR(20), -- INSERT, UPDATE, DELETE dados_anteriores JSONB, dados_novos JSONB, ip_address INET, user_agent TEXT, data_operacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP ); -- Índices para performance CREATE INDEX idx_usuarios_email ON usuarios(email); CREATE INDEX idx_usuarios_tipo ON usuarios(tipo_usuario); CREATE INDEX idx_registros_dialise_paciente_data ON registros_dialise(paciente_id, data_registro); CREATE INDEX idx_notificacoes_usuario_lida ON notificacoes(usuario_destinatario_id, lida); CREATE INDEX idx_lembretes_paciente_ativo ON lembretes(paciente_id, ativo); -- Views úteis para o sistema CREATE VIEW view_pacientes_completo AS SELECT p.id as paciente_id, u.nome, u.email, p.cpf, p.data_nascimento, p.telefone, p.data_inicio_tratamento, m.nome as nome_medico, m_user.email as email_medico FROM pacientes p JOIN usuarios u ON p.usuario_id = u.id LEFT JOIN medicos m ON p.medico_responsavel_id = m.id LEFT JOIN usuarios m_user ON m.usuario_id = m_user.id WHERE u.ativo = true; -- View para últimos registros de diálise CREATE VIEW view_ultimos_registros AS SELECT rd.*, p.nome as nome_paciente, EXTRACT(EPOCH FROM (rd.horario_fim - rd.horario_inicio))/60 as duracao_minutos FROM registros_dialise rd JOIN pacientes pac ON rd.paciente_id = pac.id JOIN usuarios p ON pac.usuario_id = p.id ORDER BY rd.data_registro DESC, rd.horario_inicio DESC; -- Inserção de dados iniciais INSERT INTO sintomas_predefinidos (nome, categoria, severidade_padrao) VALUES ('Náusea', 'gastrointestinal', 'leve'), ('Vômito', 'gastrointestinal', 'moderado'), ('Dor abdominal', 'gastrointestinal', 'leve'), ('Falta de ar', 'respiratório', 'moderado'), ('Tontura', 'neurológico', 'leve'), ('Inchaço', 'circulatório', 'leve'), ('Cansaço excessivo', 'geral', 'leve'), ('Febre', 'geral', 'moderado'), ('Dor de cabeça', 'neurológico', 'leve'), ('Alteração do líquido drenado', 'dialise', 'grave'); -- Função para atualizar timestamp de atualização CREATE OR REPLACE FUNCTION update_timestamp() RETURNS TRIGGER AS $$ BEGIN NEW.data_atualizacao = CURRENT_TIMESTAMP; RETURN NEW; END; $$ LANGUAGE plpgsql; -- Trigger para atualizar timestamp automaticamente CREATE TRIGGER trigger_update_timestamp BEFORE UPDATE ON usuarios FOR EACH ROW EXECUTE FUNCTION update_timestamp();
