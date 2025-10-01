@@ -1,7 +1,7 @@
 // userController.js
 const bcrypt = require("bcrypt");
 const db = require('../config/database');
-const { checkAdmin } = require("../middleware/auth"); // middleware para verificar admin
+const {checkAdmin } = require("../middleware/auth"); // middleware para verificar admin
   // GET /api/users/profile
     const  getProfile =  async (req, res) => {
         try {
@@ -211,17 +211,29 @@ const toggleUserStatus = async (req, res) => {
   // DELETE /api/users/:id (admin only)
   const deleteUser =  async (req, res) => {
     try {
-      if (!checkAdmin(req.user)) return res.status(403).json({ error: "Acesso negado" });
-
+      // if (!checkAdmin(req.user)) return res.status(403).json({ error: "Acesso negado" });
+      // Verifica se é admin
+          if (req.user.tipo_usuario !== 'admin') {
+            return res.status(403).json({ error: "Acesso negado" });
+          }
       const userId = req.params.id;
       // Soft delete
-      await db.query("UPDATE usuarios SET ativo = false, email = NULL, senha = NULL WHERE id = $1", [userId]);
+        // Soft delete com anonimização
+    await db.query(
+      `UPDATE usuarios 
+       SET ativo = false,
+           email = CONCAT('deleted_', id, '@anonimizado.com'),
+           nome = 'Usuário Removido',
+           data_atualizacao = CURRENT_TIMESTAMP 
+       WHERE id = $1`,
+      [userId]
+    );
 
-      res.json({ message: "Usuário removido (soft delete) com sucesso" });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erro ao deletar usuário" });
-    }
-  };
+    res.json({ message: "Usuário removido e dados anonimizados com sucesso" });
+  } catch (error) {
+    console.error("Erro ao deletar usuário:", error);
+    res.status(500).json({ error: "Erro ao deletar usuário" });
+  }
+};
 
 module.exports = { getProfile, updateProfile, changePassword, getUserById, toggleUserStatus, deleteUser };

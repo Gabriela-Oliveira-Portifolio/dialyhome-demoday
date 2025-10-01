@@ -217,7 +217,15 @@ CREATE TRIGGER trigger_update_timestamp
 
 
 
+CREATE TABLE tokens_invalidados (
+    id SERIAL PRIMARY KEY,
+    token TEXT NOT NULL,
+    usuario_id INTEGER REFERENCES usuarios(id),
+    data_invalidacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expira_em TIMESTAMP NOT NULL
+);
 
+CREATE INDEX idx_tokens_invalidados_token ON tokens_invalidados(token);
 
 
 
