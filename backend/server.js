@@ -14,6 +14,12 @@ const dialysisRoutes = require('./src/routes/dialysis');
 
 const app = express();
 
+const cors = require('cors');
+
+app.use(cors({
+  origin: 'http://localhost:5173', // ou a porta do seu React
+  credentials: true
+}));
 // Middlewares de segurança
 app.use(helmet());
 app.use(cors({
