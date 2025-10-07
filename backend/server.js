@@ -14,18 +14,25 @@ const dialysisRoutes = require('./src/routes/dialysis');
 
 const app = express();
 
-const cors = require('cors');
+// const cors = require('cors');
+
+// app.use(cors({
+//   origin: 'http://localhost:5173', // ou a porta do seu React
+//   credentials: true
+// }));
 
 app.use(cors({
-  origin: 'http://localhost:5173', // ou a porta do seu React
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true
 }));
+
+
 // Middlewares de segurança
 app.use(helmet());
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
-}));
+// app.use(cors({
+//   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+//   credentials: true
+// }));
 
 // Rate limiting
 const limiter = rateLimit({

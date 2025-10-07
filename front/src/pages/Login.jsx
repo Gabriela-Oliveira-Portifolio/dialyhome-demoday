@@ -5,6 +5,8 @@ import WelcomeSection from '../components/login/WelcomeSection';
 import LoginCard from '../components/ui/LoginCard';
 import RoleTabs from '../components/ui/RoleTabs';
 import LoginForm from '../components/forms/LoginForm';
+import { login } from '../services/auth';
+
 
 const Login = () => {
   const [role, setRole] = useState('Paciente');
@@ -26,10 +28,33 @@ const Login = () => {
     }
   ];
 
-  const handleLogin = () => {
-    alert(`Login como ${role}: ${email}`);
-    // Aqui você chamaria a API via Axios
-  };
+  // const handleLogin = () => {
+  //   alert(`Login como ${role}: ${email}`);
+  //   // Aqui você chamaria a API via Axios
+  // };
+  const handleLogin = async () => {
+    try {
+      const data = await login(email, password);
+      console.log('Resposta do backend:', data);
+
+      // Salva os tokens no localStorage
+      localStorage.setItem('accessToken', data.accessToken);
+      localStorage.setItem('refreshToken', data.refreshToken);
+
+      // Salva dados do usuário
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      alert(`Login bem-sucedido como ${role}: ${data.user.email}`);
+
+      // Redireciona para dashboard
+      window.location.href = '/dashboard';
+    } catch (err) {
+      console.error(err);
+      alert(err.error || 'Falha ao fazer login');
+    }
+};
+
+
 
   return (
     <PageContainer>
