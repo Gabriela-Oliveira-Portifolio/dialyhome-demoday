@@ -1,6 +1,8 @@
 import React from 'react';
 import Login from './pages/Login';
 
+import PatientDashboard from './pages/ladingpagePaciente';
+
 function App() {
   return <Login />;
 }

@@ -13,7 +13,7 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const roles = ['Paciente', 'Médico', 'Admin'];
+  const roles = ['Paciente'];
 
   const features = [
     {
