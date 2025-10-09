@@ -1,10 +1,12 @@
 import React from 'react';
 import Login from './pages/Login';
 
-import PatientDashboard from './pages/ladingpagePaciente';
+// import PatientDashboard from './pages/ladingpagePaciente';
+import PatientDashboard from './pages/paciente';
+
 
 function App() {
-  return <Login />;
+  return <PatientDashboard />;
 }
 
 export default App;
