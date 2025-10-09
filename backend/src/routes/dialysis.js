@@ -1,13 +1,50 @@
 const express = require('express');
-const { createDialysisRecord, getDialysisHistory } = require('../controllers/dialysisController');
-const { authenticateToken, authorizeRole } = require('../middleware/auth');
-const db = require('../config/database');
 const router = express.Router();
+const { authenticateToken, authorizeRole } = require('../middleware/auth');
+const {
+  createRecord,
+  getRecords,
+  getStats,
+  getRecordById,
+  updateRecord,
+  deleteRecord
+} = require('../controllers/dialysisController');
 
-router.post('/', authenticateToken, authorizeRole(['paciente']), createDialysisRecord);
-router.get('/history', authenticateToken, authorizeRole(['paciente']), getDialysisHistory);
+// Todas as rotas requerem autenticação e role de paciente
+router.use(authenticateToken);
+router.use(authorizeRole(['paciente']));
+
+// POST /api/dialysis/records - Criar novo registro
+router.post('/records', createRecord);
+
+// GET /api/dialysis/records - Buscar registros do paciente
+router.get('/records', getRecords);
+
+// GET /api/dialysis/stats - Buscar estatísticas
+router.get('/stats', getStats);
+
+// GET /api/dialysis/records/:id - Buscar registro específico
+router.get('/records/:id', getRecordById);
+
+// PUT /api/dialysis/records/:id - Atualizar registro
+router.put('/records/:id', updateRecord);
+
+// DELETE /api/dialysis/records/:id - Deletar registro
+router.delete('/records/:id', deleteRecord);
 
 module.exports = router;
+
+
+// const express = require('express');
+// const { createDialysisRecord, getDialysisHistory } = require('../controllers/dialysisController');
+// const { authenticateToken, authorizeRole } = require('../middleware/auth');
+// const db = require('../config/database');
+// const router = express.Router();
+
+// router.post('/', authenticateToken, authorizeRole(['paciente']), createDialysisRecord);
+// router.get('/history', authenticateToken, authorizeRole(['paciente']), getDialysisHistory);
+
+// module.exports = router;
 // // PUT /api/users/profile
 // const updateProfile = async (req, res) => {
 //       try {

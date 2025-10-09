@@ -1,15 +1,64 @@
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
-
-// import PatientDashboard from './pages/ladingpagePaciente';
 import PatientDashboard from './pages/paciente';
 
+// Componente de rota protegida
+const ProtectedRoute = ({ children, allowedRoles }) => {
+  const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+  const token = sessionStorage.getItem('accessToken');
+
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(user.tipo_usuario)) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+};
 
 function App() {
-  return <PatientDashboard />;
+  return (
+    <Router>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute allowedRoles={['paciente']}>
+              <PatientDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Redireciona para login por padrão */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        
+        {/* Rota 404 */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </Router>
+  );
 }
 
 export default App;
+
+
+// import React from 'react';
+// import Login from './pages/Login';
+
+// // import PatientDashboard from './pages/ladingpagePaciente';
+// import PatientDashboard from './pages/paciente';
+
+
+// function App() {
+//   return <Login />;
+// }
+
+// export default App;
 
 // import { useState } from 'react'
 // import reactLogo from './assets/react.svg'
