@@ -1,9 +1,271 @@
 const db = require('../config/database');
 // patientController.js
-const db = require("../config/db"); // conexão com o banco
 const { checkAdmin, checkDoctor } = require("../middleware/auth"); // middleware para verificar permissões
 
-const patientController = {
+
+// / Buscar perfil completo do paciente
+const getProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const result = await db.query(
+      `SELECT 
+        u.id as usuario_id,
+        u.nome,
+        u.email,
+        u.tipo_usuario,
+        p.id as paciente_id,
+        p.cpf,
+        p.data_nascimento,
+        p.telefone,
+        p.endereco,
+        p.peso_inicial,
+        p.altura,
+        p.data_inicio_tratamento,
+        p.observacoes_medicas,
+        EXTRACT(YEAR FROM AGE(p.data_nascimento)) as idade,
+        m.id as medico_id,
+        u_medico.nome as nome_medico,
+        u_medico.email as email_medico,
+        med.crm,
+        med.especialidade
+      FROM usuarios u
+      JOIN pacientes p ON u.id = p.usuario_id
+      LEFT JOIN medicos m ON p.medico_responsavel_id = m.id
+      LEFT JOIN usuarios u_medico ON m.usuario_id = u_medico.id
+      LEFT JOIN medicos med ON m.id = med.id
+      WHERE u.id = $1`,
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Paciente não encontrado' });
+    }
+
+    const patient = result.rows[0];
+
+    // Calcular dias em tratamento
+    let diasTratamento = null;
+    if (patient.data_inicio_tratamento) {
+      const inicio = new Date(patient.data_inicio_tratamento);
+      const hoje = new Date();
+      diasTratamento = Math.floor((hoje - inicio) / (1000 * 60 * 60 * 24));
+    }
+
+    res.json({
+      patient: {
+        ...patient,
+        dias_tratamento: diasTratamento
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao buscar perfil:', error);
+    res.status(500).json({ error: 'Erro ao buscar perfil do paciente' });
+  }
+};
+
+// Buscar estatísticas detalhadas
+const getStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const days = parseInt(req.query.days) || 30;
+
+    // Buscar paciente_id
+    const patientResult = await db.query(
+      'SELECT id FROM pacientes WHERE usuario_id = $1',
+      [userId]
+    );
+
+    if (patientResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Paciente não encontrado' });
+    }
+
+    const pacienteId = patientResult.rows[0].id;
+
+    // Estatísticas do período especificado
+    const stats = await db.query(
+      `SELECT 
+        COUNT(*) as total_registros,
+        AVG(pressao_arterial_sistolica) as media_sistolica,
+        AVG(pressao_arterial_diastolica) as media_diastolica,
+        MIN(pressao_arterial_sistolica) as min_sistolica,
+        MAX(pressao_arterial_sistolica) as max_sistolica,
+        MIN(pressao_arterial_diastolica) as min_diastolica,
+        MAX(pressao_arterial_diastolica) as max_diastolica,
+        AVG(uf_total) as media_uf,
+        AVG(concentracao_glicose) as media_glicose,
+        AVG(tempo_permanencia) as media_tempo,
+        MIN(data_registro) as primeira_sessao,
+        MAX(data_registro) as ultima_sessao
+      FROM registros_dialise
+      WHERE paciente_id = $1
+        AND data_registro >= CURRENT_DATE - INTERVAL '${days} days'`,
+      [pacienteId]
+    );
+
+    // Último registro
+    const lastRecord = await db.query(
+      `SELECT 
+        pressao_arterial_sistolica,
+        pressao_arterial_diastolica,
+        uf_total,
+        concentracao_glicose,
+        tempo_permanencia,
+        data_registro
+      FROM registros_dialise
+      WHERE paciente_id = $1
+      ORDER BY data_registro DESC, data_criacao DESC
+      LIMIT 1`,
+      [pacienteId]
+    );
+
+    // Tendências (comparar últimos 7 dias com 7 dias anteriores)
+    const trends = await db.query(
+      `SELECT 
+        CASE 
+          WHEN data_registro >= CURRENT_DATE - INTERVAL '7 days' THEN 'recent'
+          ELSE 'previous'
+        END as period,
+        AVG(pressao_arterial_sistolica) as avg_sistolica,
+        AVG(pressao_arterial_diastolica) as avg_diastolica,
+        AVG(uf_total) as avg_uf,
+        AVG(concentracao_glicose) as avg_glicose
+      FROM registros_dialise
+      WHERE paciente_id = $1
+        AND data_registro >= CURRENT_DATE - INTERVAL '14 days'
+      GROUP BY period`,
+      [pacienteId]
+    );
+
+    const statsData = stats.rows[0];
+    const last = lastRecord.rows[0] || {};
+    
+    // Calcular tendências
+    const recentTrends = trends.rows.find(t => t.period === 'recent') || {};
+    const previousTrends = trends.rows.find(t => t.period === 'previous') || {};
+
+    const calculateTrend = (recent, previous) => {
+      if (!recent || !previous) return 'stable';
+      const diff = ((recent - previous) / previous) * 100;
+      if (diff > 5) return 'up';
+      if (diff < -5) return 'down';
+      return 'stable';
+    };
+
+    res.json({
+      summary: {
+        total_registros: parseInt(statsData.total_registros) || 0,
+        dias_periodo: days,
+        primeira_sessao: statsData.primeira_sessao,
+        ultima_sessao: statsData.ultima_sessao
+      },
+      current: {
+        pressao_arterial: {
+          sistolica: last.pressao_arterial_sistolica || null,
+          diastolica: last.pressao_arterial_diastolica || null,
+          data: last.data_registro
+        },
+        uf_total: last.uf_total ? (last.uf_total / 1000).toFixed(1) : null,
+        glicose: last.concentracao_glicose || null,
+        tempo_permanencia: last.tempo_permanencia ? (last.tempo_permanencia / 60).toFixed(1) : null
+      },
+      averages: {
+        pressao_sistolica: {
+          value: statsData.media_sistolica ? Math.round(statsData.media_sistolica) : null,
+          min: statsData.min_sistolica || null,
+          max: statsData.max_sistolica || null,
+          trend: calculateTrend(recentTrends.avg_sistolica, previousTrends.avg_sistolica)
+        },
+        pressao_diastolica: {
+          value: statsData.media_diastolica ? Math.round(statsData.media_diastolica) : null,
+          min: statsData.min_diastolica || null,
+          max: statsData.max_diastolica || null,
+          trend: calculateTrend(recentTrends.avg_diastolica, previousTrends.avg_diastolica)
+        },
+        uf_total: {
+          value: statsData.media_uf ? (statsData.media_uf / 1000).toFixed(1) : null,
+          trend: calculateTrend(recentTrends.avg_uf, previousTrends.avg_uf)
+        },
+        glicose: {
+          value: statsData.media_glicose ? Math.round(statsData.media_glicose) : null,
+          trend: calculateTrend(recentTrends.avg_glicose, previousTrends.avg_glicose)
+        },
+        tempo_permanencia: {
+          value: statsData.media_tempo ? (statsData.media_tempo / 60).toFixed(1) : null
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao buscar estatísticas:', error);
+    res.status(500).json({ error: 'Erro ao buscar estatísticas' });
+  }
+}
+
+
+
+
+const patientController = {  
+// Buscar perfil completo do paciente
+getProfile: async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const result = await db.query(
+      `SELECT 
+        u.id as usuario_id,
+        u.nome,
+        u.email,
+        u.tipo_usuario,
+        p.id as paciente_id,
+        p.cpf,
+        p.data_nascimento,
+        p.telefone,
+        p.endereco,
+        p.peso_inicial,
+        p.altura,
+        p.data_inicio_tratamento,
+        p.observacoes_medicas,
+        EXTRACT(YEAR FROM AGE(p.data_nascimento)) as idade,
+        m.id as medico_id,
+        u_medico.nome as nome_medico,
+        u_medico.email as email_medico,
+        med.crm,
+        med.especialidade
+      FROM usuarios u
+      JOIN pacientes p ON u.id = p.usuario_id
+      LEFT JOIN medicos m ON p.medico_responsavel_id = m.id
+      LEFT JOIN usuarios u_medico ON m.usuario_id = u_medico.id
+      LEFT JOIN medicos med ON m.id = med.id
+      WHERE u.id = $1`,
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Paciente não encontrado' });
+    }
+
+    const patient = result.rows[0];
+
+    // Calcular dias em tratamento
+    let diasTratamento = null;
+    if (patient.data_inicio_tratamento) {
+      const inicio = new Date(patient.data_inicio_tratamento);
+      const hoje = new Date();
+      diasTratamento = Math.floor((hoje - inicio) / (1000 * 60 * 60 * 24));
+    }
+
+    res.json({
+      patient: {
+        ...patient,
+        dias_tratamento: diasTratamento
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao buscar perfil:', error);
+    res.status(500).json({ error: 'Erro ao buscar perfil do paciente' });
+  }
+},
+
 
   // GET /api/patients (médicos/admin)
   getAllPatients: async (req, res) => {
@@ -226,7 +488,10 @@ const patientController = {
   }
 };
 
-module.exports = patientController;
+module.exports = {
+  patientController, 
+  getProfile,
+  getStats};
 
 
 // const createMedication = async (req, res) => {
