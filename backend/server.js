@@ -4,10 +4,12 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
+const remindersRoutes = require('./src/routes/reminder');
 const authRoutes = require('./src/routes/auth');
 const usersRoutes = require('./src/routes/users');
 const dialysisRoutes = require('./src/routes/dialysis');
 const patientRoutes = require('./src/routes/patients');
+const symptomsRoutes = require('./src/routes/symptoms');
 
 const app = express();
 
@@ -35,6 +37,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/dialysis', dialysisRoutes);
 app.use('/api/patients', patientRoutes);
+app.use('/api/reminders', remindersRoutes);
+app.use('/api/symptoms', symptomsRoutes);
+
+
 
 // Rota de saúde
 app.get('/api/health', (req, res) => {

@@ -10,6 +10,7 @@ const getAuthHeader = () => {
 
 // Buscar informações completas do paciente
 export const getPatientInfo = async () => {
+  
   try {
     const response = await axios.get(
       `${API_URL}/profile`,
