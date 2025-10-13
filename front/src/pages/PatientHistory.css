@@ -1,0 +1,17 @@
+/* PatientHistory.css */
+@media (max-width: 768px) {
+  .history-table {
+    font-size: 0.85rem;
+  }
+
+  .history-table th,
+  .history-table td {
+    padding: 0.5rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .history-table {
+    font-size: 0.75rem;
+  }
+}

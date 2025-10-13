@@ -10,6 +10,7 @@ const usersRoutes = require('./src/routes/users');
 const dialysisRoutes = require('./src/routes/dialysis');
 const patientRoutes = require('./src/routes/patients');
 const symptomsRoutes = require('./src/routes/symptoms');
+const adminRoutes = require('./src/routes/admin');
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use('/api/dialysis', dialysisRoutes);
 app.use('/api/patients', patientRoutes);
 app.use('/api/reminders', remindersRoutes);
 app.use('/api/symptoms', symptomsRoutes);
+app.use('/api/admin', adminRoutes);
 
 
 

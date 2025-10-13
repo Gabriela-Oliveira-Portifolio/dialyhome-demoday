@@ -34,7 +34,7 @@ const Login = () => {
       } else if (data.user.tipo_usuario === 'medico') {
         navigate('/dashboard-medico'); // Criar depois
       } else if (data.user.tipo_usuario === 'admin') {
-        navigate('/dashboard-admin'); // Criar depois
+        navigate('/admin'); // Criar depois
       }
     } catch (err) {
       console.error('Erro no login:', err);

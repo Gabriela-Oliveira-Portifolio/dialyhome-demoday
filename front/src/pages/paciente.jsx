@@ -7,6 +7,7 @@ import './PatientDashboard2.css';
 import RemindersModal from '../components/ui/RemindersModal';
 import { getUpcomingReminders } from '../services/reminder';
 import SymptomsModal from '../components/ui/SymptomsModal';
+import ChartsModal from '../components/ui/ChartsModal';
 
 
 const PatientDashboard = () => {
@@ -24,7 +25,7 @@ const PatientDashboard = () => {
   const [recentRecords, setRecentRecords] = useState([]);
   const [remindersData, setRemindersData] = useState([]);
   const [showSymptomsModal, setShowSymptomsModal] = useState(false);
-
+  const [showChartsModal, setShowChartsModal] = useState(false);
 
 
   
@@ -624,7 +625,14 @@ const PatientDashboard = () => {
                     </p>
                   )}
                 </div>
-                <button className="btn-outline">
+                {/* <button className="btn-outline">
+                  <FileText className="icon-small" />
+                  Ver Histórico Completoqqqqq
+                </button> */}
+                <button 
+                  className="action-button"
+                  onClick={() => navigate('/historico')}
+                >
                   <FileText className="icon-small" />
                   Ver Histórico Completo
                 </button>
@@ -662,14 +670,21 @@ const PatientDashboard = () => {
                       <Clock className="icon-small" />
                       Ver Lembretes
                     </button>
-                  <button className="action-button">
+                  {/* <button className="action-button">
                     <FileText className="icon-small" />
                     Upload de Exames
-                  </button>
-                  <button className="action-button">
+                  </button> */}
+                  <button 
+                    className="action-button"
+                    onClick={() => setShowChartsModal(true)}
+                  >
                     <TrendingUp className="icon-small" />
                     Visualizar Gráficos
                   </button>
+                  {/* <button className="action-button">
+                    <TrendingUp className="icon-small" />
+                    Visualizar Gráficos
+                  </button> */}
                 </div>
               </div>
             </div>
@@ -1040,6 +1055,13 @@ const PatientDashboard = () => {
           isOpen={showSymptomsModal}
           onClose={() => setShowSymptomsModal(false)}
           onSymptomRegistered={loadDashboardData}
+        />
+      )};
+
+      {showChartsModal && (
+        <ChartsModal
+          isOpen={showChartsModal}
+          onClose={() => setShowChartsModal(false)}
         />
       )};
     </div>
