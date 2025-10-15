@@ -11,7 +11,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleLogin = async () => {
+    const handleLogin = async () => {
     if (!email || !password) {
       setError('Por favor, preencha todos os campos');
       return;
@@ -24,17 +24,25 @@ const Login = () => {
       const data = await login(email, password);
       console.log('Resposta do backend:', data);
 
+      // ✅ MUDANÇA: Usar localStorage ao invés de sessionStorage
+      localStorage.setItem('accessToken', data.accessToken);
+      localStorage.setItem('refreshToken', data.refreshToken);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      // Também manter no sessionStorage para compatibilidade (opcional)
       sessionStorage.setItem('accessToken', data.accessToken);
       sessionStorage.setItem('refreshToken', data.refreshToken);
       sessionStorage.setItem('user', JSON.stringify(data.user));
+
+      console.log('✅ Token salvo:', data.accessToken.substring(0, 20) + '...');
 
       // Redireciona baseado no tipo de usuário
       if (data.user.tipo_usuario === 'paciente') {
         navigate('/dashboard');
       } else if (data.user.tipo_usuario === 'medico') {
-        navigate('/dashboard-medico'); // Criar depois
+        navigate('/dashboard-medico');
       } else if (data.user.tipo_usuario === 'admin') {
-        navigate('/admin'); // Criar depois
+        navigate('/admin');
       }
     } catch (err) {
       console.error('Erro no login:', err);
@@ -43,6 +51,39 @@ const Login = () => {
       setLoading(false);
     }
   };
+
+  // const handleLogin = async () => {
+  //   if (!email || !password) {
+  //     setError('Por favor, preencha todos os campos');
+  //     return;
+  //   }
+
+  //   setLoading(true);
+  //   setError('');
+
+  //   try {
+  //     const data = await login(email, password);
+  //     console.log('Resposta do backend:', data);
+
+  //     sessionStorage.setItem('accessToken', data.accessToken);
+  //     sessionStorage.setItem('refreshToken', data.refreshToken);
+  //     sessionStorage.setItem('user', JSON.stringify(data.user));
+
+  //     // Redireciona baseado no tipo de usuário
+  //     if (data.user.tipo_usuario === 'paciente') {
+  //       navigate('/dashboard');
+  //     } else if (data.user.tipo_usuario === 'medico') {
+  //       navigate('/dashboard-medico'); // Criar depois
+  //     } else if (data.user.tipo_usuario === 'admin') {
+  //       navigate('/admin'); // Criar depois
+  //     }
+  //   } catch (err) {
+  //     console.error('Erro no login:', err);
+  //     setError(err.error || 'Falha ao fazer login. Verifique suas credenciais.');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
