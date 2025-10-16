@@ -1464,6 +1464,417 @@ const AssignDoctorModal = ({ patient, doctors, onClose, onSave, loading, error }
   );
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+const LineChartComponent = ({ data }) => (
+  <div style={{ width: '100%', height: '250px', position: 'relative' }}>
+    <svg width="100%" height="100%" viewBox="0 0 500 250">
+      {/* Grid */}
+      {[0, 1, 2, 3, 4].map(i => (
+        <line
+          key={i}
+          x1="50"
+          y1={50 + i * 40}
+          x2="480"
+          y2={50 + i * 40}
+          stroke="#f3f4f6"
+          strokeWidth="1"
+        />
+      ))}
+      
+      {/* Linhas */}
+      <polyline
+        points={data.map((d, i) => `${70 + i * 70},${230 - (d.pacientes * 2)}`).join(' ')}
+        fill="none"
+        stroke="#f59e0b"
+        strokeWidth="3"
+      />
+      <polyline
+        points={data.map((d, i) => `${70 + i * 70},${230 - (d.medicos * 15)}`).join(' ')}
+        fill="none"
+        stroke="#3b82f6"
+        strokeWidth="3"
+      />
+      
+      {/* Labels */}
+      {data.map((d, i) => (
+        <text key={i} x={60 + i * 70} y="245" fontSize="12" fill="#6b7280" textAnchor="middle">
+          {d.mes}
+        </text>
+      ))}
+    </svg>
+    <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '0.5rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ width: '12px', height: '12px', background: '#f59e0b', borderRadius: '50%' }} />
+        <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>Pacientes</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ width: '12px', height: '12px', background: '#3b82f6', borderRadius: '50%' }} />
+        <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>Médicos</span>
+      </div>
+    </div>
+  </div>
+);
+
+const PieChartComponent = ({ data }) => {
+  const total = data.reduce((sum, d) => sum + d.value, 0);
+  let currentAngle = 0;
+  
+  return (
+    <div style={{ width: '100%', height: '250px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2rem' }}>
+      <svg width="200" height="200" viewBox="0 0 200 200">
+        {data.map((d, i) => {
+          const percentage = d.value / total;
+          const angle = percentage * 360;
+          const startAngle = currentAngle;
+          const endAngle = currentAngle + angle;
+          currentAngle = endAngle;
+          
+          const x1 = 100 + 80 * Math.cos((startAngle - 90) * Math.PI / 180);
+          const y1 = 100 + 80 * Math.sin((startAngle - 90) * Math.PI / 180);
+          const x2 = 100 + 80 * Math.cos((endAngle - 90) * Math.PI / 180);
+          const y2 = 100 + 80 * Math.sin((endAngle - 90) * Math.PI / 180);
+          const largeArc = angle > 180 ? 1 : 0;
+          
+          return (
+            <path
+              key={i}
+              d={`M 100 100 L ${x1} ${y1} A 80 80 0 ${largeArc} 1 ${x2} ${y2} Z`}
+              fill={d.color}
+            />
+          );
+        })}
+        <circle cx="100" cy="100" r="50" fill="white" />
+        <text x="100" y="105" fontSize="20" fontWeight="bold" fill="#1f2937" textAnchor="middle">
+          {total}
+        </text>
+      </svg>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        {data.map((d, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ width: '16px', height: '16px', background: d.color, borderRadius: '4px' }} />
+            <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+              {d.name}: <strong>{d.value}</strong>
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const BarChartComponent = ({ data }) => (
+  <div style={{ width: '100%', height: '250px' }}>
+    <svg width="100%" height="100%" viewBox="0 0 500 250">
+      {data.map((d, i) => (
+        <g key={i}>
+          {/* Meta (linha pontilhada) */}
+          <line
+            x1={60 + i * 60}
+            y1={230 - d.meta * 3}
+            x2={100 + i * 60}
+            y2={230 - d.meta * 3}
+            stroke="#ef4444"
+            strokeWidth="2"
+            strokeDasharray="4"
+          />
+          {/* Barra */}
+          <rect
+            x={60 + i * 60}
+            y={230 - d.registros * 3}
+            width="40"
+            height={d.registros * 3}
+            fill={d.registros >= d.meta ? '#10b981' : '#f59e0b'}
+            rx="4"
+          />
+          {/* Valor */}
+          <text
+            x={80 + i * 60}
+            y={220 - d.registros * 3}
+            fontSize="12"
+            fontWeight="bold"
+            fill="#1f2937"
+            textAnchor="middle"
+          >
+            {d.registros}
+          </text>
+          {/* Label */}
+          <text
+            x={80 + i * 60}
+            y="245"
+            fontSize="12"
+            fill="#6b7280"
+            textAnchor="middle"
+          >
+            {d.dia}
+          </text>
+        </g>
+      ))}
+    </svg>
+  </div>
+);
+
+const HorizontalBarChart = ({ data }) => (
+  <div style={{ width: '100%', height: '250px', padding: '1rem 0' }}>
+    {data.map((d, i) => (
+      <div key={i} style={{ marginBottom: '1rem' }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          marginBottom: '0.25rem',
+          fontSize: '0.875rem'
+        }}>
+          <span style={{ color: '#374151', fontWeight: '600' }}>{d.medico}</span>
+          <span style={{ color: '#6b7280' }}>{d.pacientes}/{d.capacidade}</span>
+        </div>
+        <div style={{ 
+          width: '100%', 
+          height: '24px', 
+          background: '#f3f4f6', 
+          borderRadius: '12px',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            width: `${(d.pacientes / d.capacidade) * 100}%`,
+            height: '100%',
+            background: d.pacientes >= d.capacidade 
+              ? 'linear-gradient(90deg, #ef4444 0%, #dc2626 100%)'
+              : 'linear-gradient(90deg, #14b8a6 0%, #10b981 100%)',
+            transition: 'width 0.3s ease'
+          }} />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+const AlertsBarChart = ({ data }) => (
+  <div style={{ width: '100%', height: '250px', padding: '1rem' }}>
+    {data.map((d, i) => (
+      <div key={i} style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '1rem',
+        marginBottom: '1rem'
+      }}>
+        <span style={{ 
+          minWidth: '120px',
+          fontSize: '0.875rem', 
+          color: '#374151',
+          fontWeight: '600'
+        }}>
+          {d.tipo}
+        </span>
+        <div style={{ flex: 1, position: 'relative' }}>
+          <div style={{ 
+            width: `${(d.quantidade / 20) * 100}%`,
+            height: '32px', 
+            background: d.cor, 
+            borderRadius: '6px',
+            display: 'flex',
+            alignItems: 'center',
+            paddingLeft: '0.75rem',
+            minWidth: '40px'
+          }}>
+            <span style={{ 
+              color: 'white', 
+              fontWeight: '700',
+              fontSize: '0.875rem'
+            }}>
+              {d.quantidade}
+            </span>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+const AreaChartComponent = ({ data }) => (
+  <div style={{ width: '100%', height: '250px' }}>
+    <svg width="100%" height="100%" viewBox="0 0 500 250">
+      {/* Área preenchida */}
+      <polygon
+        points={`50,230 ${data.map((d, i) => `${70 + i * 45},${230 - d.registros * 6}`).join(' ')} 470,230`}
+        fill="url(#areaGradient)"
+      />
+      {/* Linha */}
+      <polyline
+        points={data.map((d, i) => `${70 + i * 45},${230 - d.registros * 6}`).join(' ')}
+        fill="none"
+        stroke="#14b8a6"
+        strokeWidth="3"
+      />
+      {/* Pontos */}
+      {data.map((d, i) => (
+        <circle
+          key={i}
+          cx={70 + i * 45}
+          cy={230 - d.registros * 6}
+          r="4"
+          fill="#14b8a6"
+        />
+      ))}
+      {/* Labels */}
+      {data.map((d, i) => (
+        <text key={i} x={70 + i * 45} y="245" fontSize="11" fill="#6b7280" textAnchor="middle">
+          {d.hora}
+        </text>
+      ))}
+      {/* Gradiente */}
+      <defs>
+        <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#14b8a6" stopOpacity="0.3" />
+          <stop offset="100%" stopColor="#14b8a6" stopOpacity="0.05" />
+        </linearGradient>
+      </defs>
+    </svg>
+  </div>
+);
+
+// Componentes auxiliares
+const KPICard = ({ title, value, subtitle, icon: Icon, color, trend }) => (
+  <div style={{
+    background: 'white',
+    borderRadius: '16px',
+    padding: '1.5rem',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+    position: 'relative',
+    overflow: 'hidden'
+  }}>
+    <div style={{
+      position: 'absolute',
+      top: '-20px',
+      right: '-20px',
+      width: '100px',
+      height: '100px',
+      background: `${color}10`,
+      borderRadius: '50%'
+    }} />
+    <div style={{ position: 'relative', zIndex: 1 }}>
+      <div style={{
+        width: '48px',
+        height: '48px',
+        background: `${color}20`,
+        borderRadius: '12px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: '1rem'
+      }}>
+        <Icon size={24} color={color} />
+      </div>
+      <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0 0 0.5rem 0' }}>
+        {title}
+      </p>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+        <p style={{ fontSize: '2rem', fontWeight: '700', color: '#111827', margin: 0 }}>
+          {value}
+        </p>
+        {trend && (
+          <span style={{ 
+            fontSize: '0.875rem', 
+            fontWeight: '600',
+            color: trend.startsWith('+') ? '#10b981' : '#ef4444'
+          }}>
+            {trend}
+          </span>
+        )}
+      </div>
+      <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: '0.25rem 0 0 0' }}>
+        {subtitle}
+      </p>
+    </div>
+  </div>
+);
+
+const ChartCard = ({ title, subtitle, children }) => (
+  <div style={{
+    background: 'white',
+    borderRadius: '16px',
+    padding: '1.5rem',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
+  }}>
+    <div style={{ marginBottom: '1rem' }}>
+      <h3 style={{ fontSize: '1.125rem', fontWeight: '700', margin: '0 0 0.25rem 0', color: '#1f2937' }}>
+        {title}
+      </h3>
+      <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>
+        {subtitle}
+      </p>
+    </div>
+    {children}
+  </div>
+);
+
+const InsightCard = ({ type, title, message }) => {
+  const colors = {
+    success: { bg: '#ecfdf5', border: '#10b981', text: '#065f46', icon: '✅' },
+    warning: { bg: '#fef3c7', border: '#f59e0b', text: '#92400e', icon: '⚠️' },
+    info: { bg: '#dbeafe', border: '#3b82f6', text: '#1e40af', icon: 'ℹ️' },
+    alert: { bg: '#fee', border: '#ef4444', text: '#991b1b', icon: '🚨' }
+  };
+  
+  const style = colors[type];
+  
+  return (
+    <div style={{
+      padding: '1rem',
+      background: style.bg,
+      border: `2px solid ${style.border}`,
+      borderRadius: '10px',
+      display: 'flex',
+      gap: '1rem'
+    }}>
+      <span style={{ fontSize: '1.5rem' }}>{style.icon}</span>
+      <div>
+        <h4 style={{ 
+          fontSize: '0.95rem', 
+          fontWeight: '600', 
+          color: style.text, 
+          margin: '0 0 0.25rem 0' 
+        }}>
+          {title}
+        </h4>
+        <p style={{ fontSize: '0.875rem', color: style.text, margin: 0, opacity: 0.8 }}>
+          {message}
+        </p>
+      </div>
+    </div>
+  );
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const BackupView = () => {
   const [backups, setBackups] = useState([]);
   const [loading, setLoading] = useState(false);
