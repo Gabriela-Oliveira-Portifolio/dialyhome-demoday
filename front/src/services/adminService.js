@@ -193,6 +193,102 @@ const adminService = {
       console.error('Erro ao iniciar backup:', error);
       throw error.response?.data || { error: 'Erro ao iniciar backup' };
     }
+  },
+  getUserGrowthData: async (meses = 6) => {
+    try {
+      const response = await axios.get(
+        `${API_URL}/admin/analytics/user-growth?meses=${meses}`,
+        { headers: getAuthHeader() }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar crescimento de usuários:', error);
+      throw error.response?.data || { error: 'Erro ao buscar dados de crescimento' };
+    }
+  },
+
+  getDoctorWorkload: async () => {
+    try {
+      const response = await axios.get(`${API_URL}/admin/analytics/doctor-workload`, {
+        headers: getAuthHeader()
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar carga de trabalho:', error);
+      throw error.response?.data || { error: 'Erro ao buscar carga de trabalho' };
+    }
+  },
+
+  getDialysisWeeklyPattern: async () => {
+    try {
+      const response = await axios.get(`${API_URL}/admin/analytics/dialysis-pattern`, {
+        headers: getAuthHeader()
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar padrão semanal:', error);
+      throw error.response?.data || { error: 'Erro ao buscar padrão semanal' };
+    }
+  },
+
+  getCommonSymptoms: async () => {
+    try {
+      const response = await axios.get(`${API_URL}/admin/analytics/symptoms`, {
+        headers: getAuthHeader()
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar sintomas:', error);
+      throw error.response?.data || { error: 'Erro ao buscar sintomas' };
+    }
+  },
+
+  getTreatmentAdherence: async () => {
+    try {
+      const response = await axios.get(`${API_URL}/admin/analytics/adherence`, {
+        headers: getAuthHeader()
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar adesão:', error);
+      throw error.response?.data || { error: 'Erro ao buscar adesão ao tratamento' };
+    }
+  },
+
+  getBloodPressureAnalysis: async () => {
+    try {
+      const response = await axios.get(`${API_URL}/admin/analytics/blood-pressure`, {
+        headers: getAuthHeader()
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar análise de pressão:', error);
+      throw error.response?.data || { error: 'Erro ao buscar análise de pressão' };
+    }
+  },
+
+  getUltrafiltrationTrend: async () => {
+    try {
+      const response = await axios.get(`${API_URL}/admin/analytics/ultrafiltration`, {
+        headers: getAuthHeader()
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar UF:', error);
+      throw error.response?.data || { error: 'Erro ao buscar ultrafiltração' };
+    }
+  },
+
+  getSystemInsights: async () => {
+    try {
+      const response = await axios.get(`${API_URL}/admin/analytics/insights`, {
+        headers: getAuthHeader()
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar insights:', error);
+      throw error.response?.data || { error: 'Erro ao buscar insights' };
+    }
   }
 };
 

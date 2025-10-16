@@ -1093,32 +1093,567 @@ const AuditView = ({ logs }) => (
   </div>
 );
 
-const ReportsView = () => (
-  <div>
-    <h1 style={{
-      fontSize: '2rem',
-      fontWeight: '700',
-      background: 'linear-gradient(90deg, #0d9488 0%, #059669 100%)',
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
-      marginBottom: '2rem'
-    }}>
-      Relatórios do Sistema
-    </h1>
-    <div style={{
-      background: 'white',
-      borderRadius: '16px',
-      padding: '3rem',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-      textAlign: 'center'
-    }}>
-      <PieChart size={64} color="#d1d5db" style={{ margin: '0 auto 1rem' }} />
-      <p style={{ color: '#6b7280', fontSize: '1rem' }}>
-        Relatórios e análises serão implementados aqui
-      </p>
+
+
+
+
+
+
+
+
+
+
+
+// const ReportsView = () => (
+//   <div>
+//     <h1 style={{
+//       fontSize: '2rem',
+//       fontWeight: '700',
+//       background: 'linear-gradient(90deg, #0d9488 0%, #059669 100%)',
+//       WebkitBackgroundClip: 'text',
+//       WebkitTextFillColor: 'transparent',
+//       marginBottom: '2rem'
+//     }}>
+//       Relatórios do Sistema
+//     </h1>
+//     <div style={{
+//       background: 'white',
+//       borderRadius: '16px',
+//       padding: '3rem',
+//       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+//       textAlign: 'center'
+//     }}>
+//       <PieChart size={64} color="#d1d5db" style={{ margin: '0 auto 1rem' }} />
+//       <p style={{ color: '#6b7280', fontSize: '1rem' }}>
+//         Relatórios e análises serão implementados aqui
+//       </p>
+//     </div>
+//   </div>
+// );
+
+
+
+
+
+
+
+
+
+
+
+
+// ==================== REPORTS VIEW COM GRÁFICOS ====================
+
+const ReportsView = () => {
+  const [loading, setLoading] = useState(true);
+  const [analyticsData, setAnalyticsData] = useState({
+    userGrowth: [],
+    doctorWorkload: [],
+    dialysisPattern: [],
+    symptoms: [],
+    adherence: [],
+    bloodPressure: [],
+    ultrafiltration: [],
+    insights: []
+  });
+
+  useEffect(() => {
+    loadAnalytics();
+  }, []);
+
+  const loadAnalytics = async () => {
+    setLoading(true);
+    try {
+      const [
+        userGrowth,
+        doctorWorkload,
+        dialysisPattern,
+        symptoms,
+        adherence,
+        bloodPressure,
+        ultrafiltration,
+        insights
+      ] = await Promise.all([
+        adminService.getUserGrowthData(6),
+        adminService.getDoctorWorkload(),
+        adminService.getDialysisWeeklyPattern(),
+        adminService.getCommonSymptoms(),
+        adminService.getTreatmentAdherence(),
+        adminService.getBloodPressureAnalysis(),
+        adminService.getUltrafiltrationTrend(),
+        adminService.getSystemInsights()
+      ]);
+
+      setAnalyticsData({
+        userGrowth: userGrowth.data || [],
+        doctorWorkload: doctorWorkload.data || [],
+        dialysisPattern: dialysisPattern.data || [],
+        symptoms: symptoms.data || [],
+        adherence: adherence.data || [],
+        bloodPressure: bloodPressure.data || [],
+        ultrafiltration: ultrafiltration.data || [],
+        insights: insights.insights || []
+      });
+    } catch (error) {
+      console.error('Erro ao carregar análises:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <LoadingState />;
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <h1 style={{
+          fontSize: '2rem',
+          fontWeight: '700',
+          background: 'linear-gradient(90deg, #0d9488 0%, #059669 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent'
+        }}>
+          Análises e Relatórios
+        </h1>
+        <button
+          onClick={loadAnalytics}
+          style={{
+            padding: '0.75rem 1.5rem',
+            background: 'linear-gradient(90deg, #14b8a6 0%, #10b981 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '10px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            fontWeight: '600'
+          }}
+        >
+          <RefreshCw size={18} />
+          Atualizar Dados
+        </button>
+      </div>
+
+      {analyticsData.insights.length > 0 && (
+        <div style={{ marginBottom: '2rem' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem', color: '#374151' }}>
+            📊 Insights do Sistema
+          </h2>
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            {analyticsData.insights.map((insight, index) => (
+              <InsightCard
+                key={index}
+                type={insight.type}
+                title={insight.title}
+                message={insight.message}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gap: '1.5rem' }}>
+        <ChartCard
+          title="Crescimento de Usuários"
+          subtitle="Evolução nos últimos 6 meses"
+        >
+          <UserGrowthChart data={analyticsData.userGrowth} />
+        </ChartCard>
+
+        <ChartCard
+          title="Carga de Trabalho dos Médicos"
+          subtitle="Distribuição de pacientes por médico"
+        >
+          <HorizontalBarChart data={analyticsData.doctorWorkload} />
+        </ChartCard>
+
+        <ChartCard
+          title="Padrão Semanal de Diálise"
+          subtitle="Distribuição de registros por dia da semana"
+        >
+          <WeeklyPatternChart data={analyticsData.dialysisPattern} />
+        </ChartCard>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+          <ChartCard
+            title="Sintomas Mais Comuns"
+            subtitle="Top 10 sintomas relatados"
+          >
+            <SymptomsChart data={analyticsData.symptoms} />
+          </ChartCard>
+
+          <ChartCard
+            title="Taxa de Adesão ao Tratamento"
+            subtitle="Registros por paciente (últimos 30 dias)"
+          >
+            <AdherenceGauge data={analyticsData.adherence} />
+          </ChartCard>
+        </div>
+
+        <ChartCard
+          title="Análise de Pressão Arterial"
+          subtitle="Médias por paciente - últimos 30 dias"
+        >
+          <BloodPressureChart data={analyticsData.bloodPressure} />
+        </ChartCard>
+
+        <ChartCard
+          title="Tendência de Ultrafiltração"
+          subtitle="Média diária - últimos 30 dias"
+        >
+          <UltrafiltrationChart data={analyticsData.ultrafiltration} />
+        </ChartCard>
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
+// ==================== GRÁFICOS ESPECIALIZADOS ====================
+
+const UserGrowthChart = ({ data }) => {
+  const groupedData = {};
+  data.forEach(item => {
+    const month = new Date(item.mes).toLocaleDateString('pt-BR', { month: 'short' });
+    if (!groupedData[month]) {
+      groupedData[month] = { pacientes: 0, medicos: 0, admin: 0 };
+    }
+    groupedData[month][item.tipo_usuario] = parseInt(item.total);
+  });
+
+  const months = Object.keys(groupedData).slice(-6);
+  const maxValue = Math.max(...months.map(m => 
+    groupedData[m].pacientes + groupedData[m].medicos + groupedData[m].admin
+  )) || 10;
+
+  return (
+    <div style={{ width: '100%', height: '300px' }}>
+      <svg width="100%" height="100%" viewBox="0 0 800 300">
+        {[0, 1, 2, 3, 4, 5].map(i => (
+          <g key={i}>
+            <line x1="80" y1={50 + i * 40} x2="750" y2={50 + i * 40} stroke="#f3f4f6" strokeWidth="1" />
+            <text x="60" y={55 + i * 40} fontSize="11" fill="#9ca3af" textAnchor="end">
+              {Math.round(maxValue - (i * maxValue / 5))}
+            </text>
+          </g>
+        ))}
+        {months.map((month, i) => {
+          const x = 100 + i * 110;
+          const barWidth = 60;
+          const pacHeight = (groupedData[month].pacientes / maxValue) * 200;
+          const medHeight = (groupedData[month].medicos / maxValue) * 200;
+          const admHeight = (groupedData[month].admin / maxValue) * 200;
+          
+          return (
+            <g key={i}>
+              <rect x={x} y={250 - pacHeight} width={barWidth} height={pacHeight} fill="#fbbf24" rx="4" />
+              <rect x={x} y={250 - pacHeight - medHeight} width={barWidth} height={medHeight} fill="#3b82f6" rx="4" />
+              <rect x={x} y={250 - pacHeight - medHeight - admHeight} width={barWidth} height={admHeight} fill="#8b5cf6" rx="4" />
+              <text x={x + barWidth/2} y="275" fontSize="12" fill="#6b7280" textAnchor="middle">{month}</text>
+            </g>
+          );
+        })}
+      </svg>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginTop: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ width: '16px', height: '16px', background: '#fbbf24', borderRadius: '4px' }} />
+          <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>Pacientes</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ width: '16px', height: '16px', background: '#3b82f6', borderRadius: '4px' }} />
+          <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>Médicos</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ width: '16px', height: '16px', background: '#8b5cf6', borderRadius: '4px' }} />
+          <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>Admins</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const WeeklyPatternChart = ({ data }) => {
+  const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const sortedData = [...data].sort((a, b) => a.dia_num - b.dia_num);
+  const maxRegistros = Math.max(...sortedData.map(d => parseInt(d.registros))) || 10;
+
+  return (
+    <div style={{ width: '100%', height: '300px' }}>
+      <svg width="100%" height="100%" viewBox="0 0 800 300">
+        {sortedData.map((d, i) => {
+          const x = 100 + i * 100;
+          const barHeight = (parseInt(d.registros) / maxRegistros) * 200;
+          
+          return (
+            <g key={i}>
+              <rect
+                x={x}
+                y={240 - barHeight}
+                width={60}
+                height={barHeight}
+                fill="url(#barGradient)"
+                rx="6"
+              />
+              <text x={x + 30} y={225 - barHeight} fontSize="14" fontWeight="700" fill="#1f2937" textAnchor="middle">
+                {d.registros}
+              </text>
+              <text x={x + 30} y="265" fontSize="12" fontWeight="600" fill="#6b7280" textAnchor="middle">
+                {diasSemana[d.dia_num]}
+              </text>
+            </g>
+          );
+        })}
+        <defs>
+          <linearGradient id="barGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#14b8a6" stopOpacity="1" />
+            <stop offset="100%" stopColor="#0d9488" stopOpacity="1" />
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+  );
+};
+
+const SymptomsChart = ({ data }) => {
+  const topSymptoms = data.slice(0, 8);
+  const maxFreq = Math.max(...topSymptoms.map(s => parseInt(s.frequencia))) || 10;
+
+  const getCategoryColor = (categoria) => {
+    const colors = {
+      gastrointestinal: '#f59e0b',
+      respiratório: '#3b82f6',
+      neurológico: '#8b5cf6',
+      circulatório: '#ec4899',
+      dialise: '#ef4444',
+      geral: '#10b981'
+    };
+    return colors[categoria] || '#6b7280';
+  };
+
+  return (
+    <div style={{ width: '100%', padding: '1rem 0' }}>
+      {topSymptoms.map((symptom, i) => (
+        <div key={i} style={{ marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#374151' }}>
+              {symptom.nome}
+            </span>
+            <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+              {symptom.frequencia}x
+            </span>
+          </div>
+          <div style={{ width: '100%', height: '24px', background: '#f3f4f6', borderRadius: '12px', overflow: 'hidden' }}>
+            <div style={{
+              width: `${(parseInt(symptom.frequencia) / maxFreq) * 100}%`,
+              height: '100%',
+              background: getCategoryColor(symptom.categoria),
+              transition: 'width 0.3s ease',
+              display: 'flex',
+              alignItems: 'center',
+              paddingLeft: '0.5rem'
+            }}>
+              <span style={{ fontSize: '0.75rem', color: 'white', fontWeight: '600' }}>
+                {symptom.categoria}
+              </span>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const AdherenceGauge = ({ data }) => {
+  const adherenceStats = {
+    excelente: data.filter(d => d.classificacao === 'Excelente').length,
+    bom: data.filter(d => d.classificacao === 'Bom').length,
+    regular: data.filter(d => d.classificacao === 'Regular').length,
+    baixo: data.filter(d => d.classificacao === 'Baixo').length
+  };
+
+  const total = Object.values(adherenceStats).reduce((a, b) => a + b, 0) || 1;
+
+  return (
+    <div style={{ width: '100%', height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2rem' }}>
+      <svg width="200" height="200" viewBox="0 0 200 200">
+        {[
+          { data: adherenceStats.excelente, color: '#10b981', start: 0 },
+          { data: adherenceStats.bom, color: '#3b82f6', start: adherenceStats.excelente },
+          { data: adherenceStats.regular, color: '#f59e0b', start: adherenceStats.excelente + adherenceStats.bom },
+          { data: adherenceStats.baixo, color: '#ef4444', start: adherenceStats.excelente + adherenceStats.bom + adherenceStats.regular }
+        ].map((item, i) => {
+          const percentage = item.data / total;
+          const angle = percentage * 360;
+          const startAngle = (item.start / total) * 360;
+          const endAngle = startAngle + angle;
+          
+          const x1 = 100 + 80 * Math.cos((startAngle - 90) * Math.PI / 180);
+          const y1 = 100 + 80 * Math.sin((startAngle - 90) * Math.PI / 180);
+          const x2 = 100 + 80 * Math.cos((endAngle - 90) * Math.PI / 180);
+          const y2 = 100 + 80 * Math.sin((endAngle - 90) * Math.PI / 180);
+          const largeArc = angle > 180 ? 1 : 0;
+          
+          return item.data > 0 ? (
+            <path
+              key={i}
+              d={`M 100 100 L ${x1} ${y1} A 80 80 0 ${largeArc} 1 ${x2} ${y2} Z`}
+              fill={item.color}
+            />
+          ) : null;
+        })}
+        <circle cx="100" cy="100" r="50" fill="white" />
+        <text x="100" y="95" fontSize="24" fontWeight="700" fill="#1f2937" textAnchor="middle">{total}</text>
+        <text x="100" y="115" fontSize="12" fill="#6b7280" textAnchor="middle">Pacientes</text>
+      </svg>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        {[
+          { label: 'Excelente', value: adherenceStats.excelente, color: '#10b981' },
+          { label: 'Bom', value: adherenceStats.bom, color: '#3b82f6' },
+          { label: 'Regular', value: adherenceStats.regular, color: '#f59e0b' },
+          { label: 'Baixo', value: adherenceStats.baixo, color: '#ef4444' }
+        ].map((item, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ width: '16px', height: '16px', background: item.color, borderRadius: '4px' }} />
+            <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+              {item.label}: <strong>{item.value}</strong>
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const BloodPressureChart = ({ data }) => {
+  const topPatients = data.slice(0, 10);
+  
+  return (
+    <div style={{ width: '100%', overflowX: 'auto' }}>
+      <svg width="100%" height="300" viewBox="0 0 1000 300">
+        {[0, 1, 2, 3, 4, 5].map(i => (
+          <g key={i}>
+            <line x1="150" y1={50 + i * 40} x2="980" y2={50 + i * 40} stroke="#f3f4f6" strokeWidth="1" />
+            <text x="130" y={55 + i * 40} fontSize="11" fill="#9ca3af" textAnchor="end">
+              {180 - i * 30}
+            </text>
+          </g>
+        ))}
+        {topPatients.map((patient, i) => {
+          const x = 170 + i * 80;
+          const systolicHeight = (parseInt(patient.sistolica_media) / 180) * 200;
+          const diastolicHeight = (parseInt(patient.diastolica_media) / 180) * 200;
+          
+          const status = patient.status;
+          const color = status === 'Normal' ? '#10b981' : status === 'Monitorar' ? '#f59e0b' : '#ef4444';
+          
+          return (
+            <g key={i}>
+              <rect x={x - 12} y={250 - systolicHeight} width="12" height={systolicHeight} fill={color} opacity="0.8" rx="3" />
+              <rect x={x + 2} y={250 - diastolicHeight} width="12" height={diastolicHeight} fill={color} opacity="0.5" rx="3" />
+              <text x={x} y={240 - systolicHeight} fontSize="10" fontWeight="600" fill={color} textAnchor="middle">
+                {patient.sistolica_media}
+              </text>
+              <text x={x + 10} y={240 - diastolicHeight} fontSize="10" fontWeight="600" fill={color} textAnchor="middle">
+                {patient.diastolica_media}
+              </text>
+              <text
+                x={x}
+                y="275"
+                fontSize="10"
+                fill="#6b7280"
+                textAnchor="middle"
+                transform={`rotate(-45, ${x}, 275)`}
+              >
+                {patient.paciente.substring(0, 12)}
+              </text>
+            </g>
+          );
+        })}
+        <g transform="translate(800, 20)">
+          <text x="0" y="0" fontSize="11" fontWeight="600" fill="#374151">Legenda:</text>
+          <rect x="0" y="10" width="12" height="12" fill="#10b981" opacity="0.8" rx="2" />
+          <text x="18" y="20" fontSize="10" fill="#6b7280">Sistólica</text>
+          <rect x="0" y="28" width="12" height="12" fill="#10b981" opacity="0.5" rx="2" />
+          <text x="18" y="38" fontSize="10" fill="#6b7280">Diastólica</text>
+        </g>
+      </svg>
+    </div>
+  );
+};
+
+const UltrafiltrationChart = ({ data }) => {
+  const maxUF = Math.max(...data.map(d => parseFloat(d.uf_media))) || 1000;
+  
+  return (
+    <div style={{ width: '100%', height: '300px' }}>
+      <svg width="100%" height="100%" viewBox="0 0 1000 300">
+        {[0, 1, 2, 3, 4, 5].map(i => (
+          <g key={i}>
+            <line x1="80" y1={50 + i * 40} x2="950" y2={50 + i * 40} stroke="#f3f4f6" strokeWidth="1" />
+            <text x="60" y={55 + i * 40} fontSize="11" fill="#9ca3af" textAnchor="end">
+              {Math.round(maxUF - (i * maxUF / 5))}
+            </text>
+          </g>
+        ))}
+        <polygon
+          points={`80,250 ${data.map((d, i) => {
+            const x = 80 + (i * 870 / (data.length - 1));
+            const y = 250 - ((parseFloat(d.uf_media) / maxUF) * 200);
+            return `${x},${y}`;
+          }).join(' ')} 950,250`}
+          fill="url(#ufGradient)"
+        />
+        <polyline
+          points={data.map((d, i) => {
+            const x = 80 + (i * 870 / (data.length - 1));
+            const y = 250 - ((parseFloat(d.uf_media) / maxUF) * 200);
+            return `${x},${y}`;
+          }).join(' ')}
+          fill="none"
+          stroke="#14b8a6"
+          strokeWidth="3"
+        />
+        {data.map((d, i) => {
+          const x = 80 + (i * 870 / (data.length - 1));
+          const y = 250 - ((parseFloat(d.uf_media) / maxUF) * 200);
+          return (
+            <circle key={i} cx={x} cy={y} r="5" fill="#14b8a6" />
+          );
+        })}
+        {data.filter((_, i) => i % Math.ceil(data.length / 7) === 0).map((d, idx) => {
+          const originalIndex = data.indexOf(d);
+          const x = 80 + (originalIndex * 870 / (data.length - 1));
+          const date = new Date(d.data);
+          return (
+            <text key={originalIndex} x={x} y="275" fontSize="10" fill="#6b7280" textAnchor="middle">
+              {date.getDate()}/{date.getMonth() + 1}
+            </text>
+          );
+        })}
+        <defs>
+          <linearGradient id="ufGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#14b8a6" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#14b8a6" stopOpacity="0.05" />
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+  );
+};
+
+
+
+
+
+
+
+
+
+
+
+
 
 const AssignDoctorModal = ({ patient, doctors, onClose, onSave, loading, error }) => {
   const [selectedDoctor, setSelectedDoctor] = useState(patient.medico_id || '');

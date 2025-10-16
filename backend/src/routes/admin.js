@@ -31,4 +31,14 @@ router.get('/reports', adminController.getSystemReports);
 router.get('/backup/status', adminController.getBackupStatus);
 router.post('/backup/trigger', adminController.triggerBackup);
 
+// ==================== NOVAS ROTAS PARA GRÁFICOS ====================
+router.get('/analytics/user-growth', adminController.getUserGrowthData);
+router.get('/analytics/doctor-workload', adminController.getDoctorWorkload);
+router.get('/analytics/dialysis-pattern', adminController.getDialysisWeeklyPattern);
+router.get('/analytics/symptoms', adminController.getCommonSymptoms);
+router.get('/analytics/adherence', adminController.getTreatmentAdherence);
+router.get('/analytics/blood-pressure', adminController.getBloodPressureAnalysis);
+router.get('/analytics/ultrafiltration', adminController.getUltrafiltrationTrend);
+router.get('/analytics/insights', adminController.getSystemInsights);
+
 module.exports = router;

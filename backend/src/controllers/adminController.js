@@ -625,6 +625,283 @@ const adminController = {
       console.error('Erro ao iniciar backup:', error);
       res.status(500).json({ error: 'Erro ao iniciar backup' });
     }
+  },
+// Crescimento de usuários ao longo do tempo
+  getUserGrowthData: async (req, res) => {
+    try {
+      const { meses = 6 } = req.query;
+      
+      const result = await db.query(`
+        SELECT 
+          DATE_TRUNC('month', data_criacao) as mes,
+          tipo_usuario,
+          COUNT(*) as total
+        FROM usuarios
+        WHERE data_criacao >= CURRENT_DATE - INTERVAL '${meses} months'
+        GROUP BY DATE_TRUNC('month', data_criacao), tipo_usuario
+        ORDER BY mes ASC
+      `);
+
+      res.json({ data: result.rows });
+    } catch (error) {
+      console.error('Erro ao buscar crescimento de usuários:', error);
+      res.status(500).json({ error: 'Erro ao buscar dados de crescimento' });
+    }
+  },
+
+  // Distribuição de pacientes por médico (carga de trabalho)
+  getDoctorWorkload: async (req, res) => {
+    try {
+      const result = await db.query(`
+        SELECT 
+          u.nome as medico,
+          m.crm,
+          COUNT(p.id) as pacientes,
+          20 as capacidade
+        FROM medicos m
+        JOIN usuarios u ON m.usuario_id = u.id
+        LEFT JOIN pacientes p ON p.medico_responsavel_id = m.id
+        WHERE u.ativo = true
+        GROUP BY u.nome, m.crm
+        ORDER BY pacientes DESC
+      `);
+
+      res.json({ data: result.rows });
+    } catch (error) {
+      console.error('Erro ao buscar carga de trabalho:', error);
+      res.status(500).json({ error: 'Erro ao buscar carga de trabalho dos médicos' });
+    }
+  },
+
+  // Registros de diálise por dia da semana
+  getDialysisWeeklyPattern: async (req, res) => {
+    try {
+      const result = await db.query(`
+        SELECT 
+          TO_CHAR(data_registro, 'Day') as dia_semana,
+          EXTRACT(DOW FROM data_registro) as dia_num,
+          COUNT(*) as registros,
+          ROUND(AVG(uf_total)) as media_uf,
+          ROUND(AVG(peso_pos_dialise - peso_pre_dialise), 2) as media_perda_peso
+        FROM registros_dialise
+        WHERE data_registro >= CURRENT_DATE - INTERVAL '3 months'
+        GROUP BY TO_CHAR(data_registro, 'Day'), EXTRACT(DOW FROM data_registro)
+        ORDER BY dia_num
+      `);
+
+      res.json({ data: result.rows });
+    } catch (error) {
+      console.error('Erro ao buscar padrão semanal:', error);
+      res.status(500).json({ error: 'Erro ao buscar padrão semanal de diálise' });
+    }
+  },
+
+  // Tipos de sintomas mais comuns
+  getCommonSymptoms: async (req, res) => {
+    try {
+      const result = await db.query(`
+        SELECT 
+          sp.nome,
+          sp.categoria,
+          COUNT(rs.id) as frequencia,
+          ROUND(AVG(CASE 
+            WHEN rs.severidade = 'leve' THEN 1
+            WHEN rs.severidade = 'moderado' THEN 2
+            WHEN rs.severidade = 'grave' THEN 3
+          END), 2) as severidade_media
+        FROM registro_sintomas rs
+        JOIN sintomas_predefinidos sp ON rs.sintoma_id = sp.id
+        JOIN registros_dialise rd ON rs.registro_dialise_id = rd.id
+        WHERE rd.data_registro >= CURRENT_DATE - INTERVAL '3 months'
+        GROUP BY sp.nome, sp.categoria
+        ORDER BY frequencia DESC
+        LIMIT 10
+      `);
+
+      res.json({ data: result.rows });
+    } catch (error) {
+      console.error('Erro ao buscar sintomas comuns:', error);
+      res.status(500).json({ error: 'Erro ao buscar sintomas mais comuns' });
+    }
+  },
+
+  // Taxa de adesão ao tratamento (registros por paciente)
+  getTreatmentAdherence: async (req, res) => {
+    try {
+      const result = await db.query(`
+        SELECT 
+          u.nome as paciente,
+          COUNT(rd.id) as registros_mes,
+          ROUND(COUNT(rd.id)::numeric / 30 * 100, 1) as taxa_adesao,
+          CASE 
+            WHEN COUNT(rd.id) >= 25 THEN 'Excelente'
+            WHEN COUNT(rd.id) >= 20 THEN 'Bom'
+            WHEN COUNT(rd.id) >= 15 THEN 'Regular'
+            ELSE 'Baixo'
+          END as classificacao
+        FROM pacientes p
+        JOIN usuarios u ON p.usuario_id = u.id
+        LEFT JOIN registros_dialise rd ON rd.paciente_id = p.id 
+          AND rd.data_registro >= CURRENT_DATE - INTERVAL '30 days'
+        WHERE u.ativo = true
+        GROUP BY u.nome
+        ORDER BY registros_mes DESC
+      `);
+
+      res.json({ data: result.rows });
+    } catch (error) {
+      console.error('Erro ao buscar adesão ao tratamento:', error);
+      res.status(500).json({ error: 'Erro ao buscar taxa de adesão' });
+    }
+  },
+
+  // Análise de pressão arterial média por paciente
+  getBloodPressureAnalysis: async (req, res) => {
+    try {
+      const result = await db.query(`
+        SELECT 
+          u.nome as paciente,
+          ROUND(AVG(rd.pressao_arterial_sistolica)) as sistolica_media,
+          ROUND(AVG(rd.pressao_arterial_diastolica)) as diastolica_media,
+          COUNT(rd.id) as total_medicoes,
+          CASE 
+            WHEN AVG(rd.pressao_arterial_sistolica) > 140 OR AVG(rd.pressao_arterial_diastolica) > 90 
+            THEN 'Atenção'
+            WHEN AVG(rd.pressao_arterial_sistolica) > 130 OR AVG(rd.pressao_arterial_diastolica) > 80 
+            THEN 'Monitorar'
+            ELSE 'Normal'
+          END as status
+        FROM registros_dialise rd
+        JOIN pacientes p ON rd.paciente_id = p.id
+        JOIN usuarios u ON p.usuario_id = u.id
+        WHERE rd.data_registro >= CURRENT_DATE - INTERVAL '30 days'
+          AND rd.pressao_arterial_sistolica IS NOT NULL
+          AND rd.pressao_arterial_diastolica IS NOT NULL
+        GROUP BY u.nome
+        ORDER BY sistolica_media DESC
+      `);
+
+      res.json({ data: result.rows });
+    } catch (error) {
+      console.error('Erro ao buscar análise de pressão:', error);
+      res.status(500).json({ error: 'Erro ao buscar análise de pressão arterial' });
+    }
+  },
+
+  // Tendência de ultrafiltração
+  getUltrafiltrationTrend: async (req, res) => {
+    try {
+      const result = await db.query(`
+        SELECT 
+          DATE(data_registro) as data,
+          ROUND(AVG(uf_total)) as uf_media,
+          COUNT(*) as total_sessoes,
+          ROUND(MIN(uf_total)) as uf_min,
+          ROUND(MAX(uf_total)) as uf_max
+        FROM registros_dialise
+        WHERE data_registro >= CURRENT_DATE - INTERVAL '30 days'
+          AND uf_total IS NOT NULL
+        GROUP BY DATE(data_registro)
+        ORDER BY data ASC
+      `);
+
+      res.json({ data: result.rows });
+    } catch (error) {
+      console.error('Erro ao buscar tendência de UF:', error);
+      res.status(500).json({ error: 'Erro ao buscar tendência de ultrafiltração' });
+    }
+  },
+
+  // Insights e alertas do sistema
+  getSystemInsights: async (req, res) => {
+    try {
+      const insights = [];
+
+      // 1. Verificar pacientes sem registros recentes
+      const inactivePatients = await db.query(`
+        SELECT COUNT(*) as total
+        FROM pacientes p
+        JOIN usuarios u ON p.usuario_id = u.id
+        LEFT JOIN registros_dialise rd ON rd.paciente_id = p.id 
+          AND rd.data_registro >= CURRENT_DATE - INTERVAL '7 days'
+        WHERE u.ativo = true AND rd.id IS NULL
+      `);
+
+      if (parseInt(inactivePatients.rows[0].total) > 0) {
+        insights.push({
+          type: 'warning',
+          title: 'Pacientes Inativos',
+          message: `${inactivePatients.rows[0].total} paciente(s) sem registros nos últimos 7 dias`,
+          priority: 'high'
+        });
+      }
+
+      // 2. Verificar médicos sobrecarregados
+      const overloadedDoctors = await db.query(`
+        SELECT COUNT(*) as total
+        FROM (
+          SELECT COUNT(p.id) as pacientes
+          FROM medicos m
+          JOIN usuarios u ON m.usuario_id = u.id
+          LEFT JOIN pacientes p ON p.medico_responsavel_id = m.id
+          WHERE u.ativo = true
+          GROUP BY m.id
+          HAVING COUNT(p.id) > 15
+        ) sub
+      `);
+
+      if (parseInt(overloadedDoctors.rows[0].total) > 0) {
+        insights.push({
+          type: 'alert',
+          title: 'Médicos Sobrecarregados',
+          message: `${overloadedDoctors.rows[0].total} médico(s) com mais de 15 pacientes`,
+          priority: 'medium'
+        });
+      }
+
+      // 3. Verificar crescimento de usuários
+      const userGrowth = await db.query(`
+        SELECT 
+          COUNT(*) FILTER (WHERE data_criacao >= CURRENT_DATE - INTERVAL '30 days') as mes_atual,
+          COUNT(*) FILTER (WHERE data_criacao >= CURRENT_DATE - INTERVAL '60 days' 
+                           AND data_criacao < CURRENT_DATE - INTERVAL '30 days') as mes_anterior
+        FROM usuarios
+      `);
+
+      const currentMonth = parseInt(userGrowth.rows[0].mes_atual);
+      const previousMonth = parseInt(userGrowth.rows[0].mes_anterior);
+      
+      if (currentMonth > previousMonth * 1.2) {
+        insights.push({
+          type: 'success',
+          title: 'Crescimento Acelerado',
+          message: `Aumento de ${Math.round((currentMonth / previousMonth - 1) * 100)}% em novos usuários`,
+          priority: 'low'
+        });
+      }
+
+      // 4. Pacientes sem médico vinculado
+      const unassignedPatients = await db.query(`
+        SELECT COUNT(*) as total
+        FROM pacientes p
+        JOIN usuarios u ON p.usuario_id = u.id
+        WHERE p.medico_responsavel_id IS NULL AND u.ativo = true
+      `);
+
+      if (parseInt(unassignedPatients.rows[0].total) > 0) {
+        insights.push({
+          type: 'info',
+          title: 'Vinculações Pendentes',
+          message: `${unassignedPatients.rows[0].total} paciente(s) sem médico vinculado`,
+          priority: 'medium'
+        });
+      }
+
+      res.json({ insights });
+    } catch (error) {
+      console.error('Erro ao buscar insights:', error);
+      res.status(500).json({ error: 'Erro ao buscar insights do sistema' });
+    }
   }
 };
 
