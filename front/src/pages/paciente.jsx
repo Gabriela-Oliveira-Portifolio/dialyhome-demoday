@@ -8,6 +8,7 @@ import RemindersModal from '../components/ui/RemindersModal';
 import { getUpcomingReminders } from '../services/reminder';
 import SymptomsModal from '../components/ui/SymptomsModal';
 import ChartsModal from '../components/ui/ChartsModal';
+import MessagingComponent from '../components/ui/MessagingComponent';
 
 
 const PatientDashboard = () => {
@@ -1064,6 +1065,8 @@ const PatientDashboard = () => {
           onClose={() => setShowChartsModal(false)}
         />
       )};
+      <MessagingComponent userRole="paciente" />
+
     </div>
     
   );

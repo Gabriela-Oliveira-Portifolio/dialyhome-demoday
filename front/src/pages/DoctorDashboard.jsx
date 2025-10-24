@@ -14,6 +14,8 @@ import {
   markNotificationAsRead,
   getPatientDetails
 } from '../services/doctor';
+import MessagingComponent from '../components/ui/MessagingComponent';
+
 
 const DoctorDashboard = () => {
   const navigate = useNavigate();
@@ -935,6 +937,7 @@ const PatientDetailsModal = ({ patient, recentDialysis, medications, stats, onCl
         </button>
       </div>
     </div>
+    <MessagingComponent userRole="medico" />
   </div>
 );
 

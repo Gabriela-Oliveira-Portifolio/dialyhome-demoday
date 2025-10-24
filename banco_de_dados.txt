@@ -227,6 +227,73 @@ CREATE TABLE tokens_invalidados (
 
 CREATE INDEX idx_tokens_invalidados_token ON tokens_invalidados(token);
 
+-- backend/database/messaging-schema.sql
+
+-- Criar tabela de mensagens
+CREATE TABLE IF NOT EXISTS mensagens (
+  id SERIAL PRIMARY KEY,
+  remetente_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  destinatario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  assunto VARCHAR(255),
+  mensagem TEXT NOT NULL,
+  lida BOOLEAN DEFAULT false,
+  data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  data_leitura TIMESTAMP,
+  CONSTRAINT check_different_users CHECK (remetente_id != destinatario_id)
+);
+
+-- Índices para melhorar performance
+CREATE INDEX idx_mensagens_remetente ON mensagens(remetente_id);
+CREATE INDEX idx_mensagens_destinatario ON mensagens(destinatario_id);
+CREATE INDEX idx_mensagens_data_criacao ON mensagens(data_criacao DESC);
+CREATE INDEX idx_mensagens_lida ON mensagens(lida);
+CREATE INDEX idx_mensagens_conversa ON mensagens(remetente_id, destinatario_id, data_criacao DESC);
+
+-- Comentários nas colunas
+COMMENT ON TABLE mensagens IS 'Armazena as mensagens trocadas entre pacientes e médicos';
+COMMENT ON COLUMN mensagens.remetente_id IS 'ID do usuário que enviou a mensagem';
+COMMENT ON COLUMN mensagens.destinatario_id IS 'ID do usuário que recebeu a mensagem';
+COMMENT ON COLUMN mensagens.assunto IS 'Assunto da mensagem (opcional)';
+COMMENT ON COLUMN mensagens.mensagem IS 'Conteúdo da mensagem';
+COMMENT ON COLUMN mensagens.lida IS 'Indica se a mensagem foi lida pelo destinatário';
+COMMENT ON COLUMN mensagens.data_criacao IS 'Data e hora em que a mensagem foi enviada';
+COMMENT ON COLUMN mensagens.data_leitura IS 'Data e hora em que a mensagem foi lida';
+
+-- Dados de exemplo (opcional - apenas para testes)
+-- Substituir IDs pelos IDs reais do seu banco
+
+/*
+-- Exemplo: Mensagem do médico (usuario_id = 1) para paciente (usuario_id = 2)
+INSERT INTO mensagens (remetente_id, destinatario_id, assunto, mensagem, lida) 
+VALUES 
+  (1, 2, 'Consulta agendada', 'Olá! Sua próxima consulta está agendada para sexta-feira às 14h.', false),
+  (2, 1, NULL, 'Obrigado, doutor! Estarei lá.', false),
+  (1, 2, 'Resultados de exames', 'Seus exames chegaram e estão dentro do esperado. Continue com a medicação.', false);
+*/
+
+-- Verificar se a tabela foi criada
+SELECT 
+  table_name,
+  column_name,
+  data_type,
+  is_nullable
+FROM information_schema.columns
+WHERE table_name = 'mensagens'
+ORDER BY ordinal_position;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

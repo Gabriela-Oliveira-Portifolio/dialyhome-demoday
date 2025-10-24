@@ -12,6 +12,10 @@ const patientRoutes = require('./src/routes/patients');
 const symptomsRoutes = require('./src/routes/symptoms');
 const adminRoutes = require('./src/routes/admin');
 const doctorRoutes = require('./src/routes/doctor');
+const messagingRoutes = require('./src/routes/messaging');
+// const messagingRoutes = require('./src/routes/messaging');
+
+
 
 
 const app = express();
@@ -44,6 +48,9 @@ app.use('/api/reminders', remindersRoutes);
 app.use('/api/symptoms', symptomsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/doctor', doctorRoutes);
+// app.use('/api/messaging', messagingRoutes);
+app.use('/api/messaging', messagingRoutes);
+
 
 
 // Rota de saúde
