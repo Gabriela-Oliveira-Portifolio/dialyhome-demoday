@@ -1,0 +1,49 @@
+/* PatientProfile.css */
+
+/* Estilos adicionais se necessário - a maioria está inline */
+.profile-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f0fdfa 0%, #ffffff 50%, #ecfdf5 100%);
+}
+
+/* Animação de loading */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Hover effects para inputs */
+input:hover:not(:disabled),
+textarea:hover:not(:disabled),
+select:hover:not(:disabled) {
+  border-color: #14b8a6 !important;
+}
+
+/* Focus effects */
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: #14b8a6 !important;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+}
+
+/* Button hover effects */
+button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px -5px rgba(20, 184, 166, 0.5) !important;
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  main {
+    padding: 1rem !important;
+  }
+  
+  .grid-two-columns {
+    grid-template-columns: 1fr !important;
+  }
+}

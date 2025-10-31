@@ -285,7 +285,7 @@ const PatientDashboard = () => {
               <div className="logo-icon-small">
                 <Heart className="icon" />
               </div>
-              <span className="logo-text">DialCare</span>
+              <span className="logo-text">DialyHome</span>
             </div>
           </div>
           
@@ -294,9 +294,23 @@ const PatientDashboard = () => {
               <Bell className="icon" />
               <span className="notification-badge">3</span>
             </button>
-            <button className="icon-button">
-              <User className="icon" />
-            </button>
+            <button 
+            onClick={() => navigate('/perfil')}
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '10px',
+              border: 'none',
+              background: '#f3f4f6',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <User size={20} color="#6b7280" strokeWidth={2} />
+          </button>
+
             <button className="icon-button" onClick={handleLogout}>
               <LogOut className="icon" />
             </button>
@@ -1065,7 +1079,7 @@ const PatientDashboard = () => {
           onClose={() => setShowChartsModal(false)}
         />
       )};
-      <MessagingComponent userRole="paciente" />
+      {/* <MessagingComponent userRole="paciente" /> */}
 
     </div>
     

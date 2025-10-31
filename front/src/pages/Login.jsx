@@ -70,7 +70,7 @@ const Login = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
               </svg>
             </div>
-            <h1 className="brand-name" fontSize>DialCare</h1>
+            <h1 className="brand-name" fontSize>DialyHome</h1>
           </div>
           
           <h2 className="main-title">
@@ -209,14 +209,14 @@ const Login = () => {
               </button>
             </div>
 
-            <div className="card-footer">
+            {/* <div className="card-footer">
               <p>
                 Não tem uma conta?{' '}
                 <button className="signup-link">
-                  Solicite acesso
+                  Entre em contato com seu médico nefrologista e solicite a criação de acesso
                 </button>
               </p>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

@@ -205,7 +205,7 @@ const PatientHistory = () => {
               <Heart size={22} color="white" strokeWidth={2.5} />
             </div>
             <span style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1f2937' }}>
-              DialCare - Histórico
+              DialyHome - Histórico
             </span>
           </div>
           
@@ -236,6 +236,22 @@ const PatientHistory = () => {
             }}>
               <User size={20} color="#6b7280" strokeWidth={2} />
             </button>
+            <button 
+                        onClick={() => navigate('/perfil')}
+                        style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '10px',
+                          border: 'none',
+                          background: '#f3f4f6',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <User size={20} color="#6b7280" strokeWidth={2} />
+                      </button>
             <button
               onClick={handleLogout}
               style={{
