@@ -553,77 +553,201 @@ const sendRecommendation = async (req, res) => {
 //     });
 //   }
 // };
-const sendAlert = async (req, res) => {
-  const connection = await db.getConnection();
+// const sendAlert = async (req, res) => {
+//   // const connection = await db.getConnection();
   
+//   try {
+//     const { patientId } = req.params;
+//     const { title, message, priority, sessionInfo } = req.body;
+//     const doctorId = req.user.id; // ID do médico autenticado
+
+//     // Validações
+//     // if (!title || !message || !priority) {
+//     //   return res.status(400).json({ 
+//     //     error: 'Título, mensagem e prioridade são obrigatórios' 
+//     //   });
+//     // }
+
+//     // Buscar dados do paciente
+//     // const [patients] = await db.query(
+//     //   'SELECT email, nome FROM usuarios WHERE id = ? AND tipo = "paciente"',
+//     //   [patientId]
+//     // );
+//     const [patients] = await db.query(
+//       'SELECT email, nome FROM usuarios WHERE id = ?',
+//       [patientId]
+//     );
+
+//     if (patients.length === 0) {
+//       return res.status(404).json({ error: 'Paciente não encontrado' });
+//     }
+
+//     const patient = patients[0];
+
+//     // Buscar dados do médico
+//     const [doctors] = await db.query(
+//       'SELECT nome FROM usuarios WHERE id = ? AND tipo = "medico"',
+//       [doctorId]
+//     );
+
+//     if (doctors.length === 0) {
+//       return res.status(404).json({ error: 'Médico não encontrado' });
+//     }
+
+//     const doctor = doctors[0];
+
+//     // Salvar alerta no banco de dados (opcional)
+//     await db.query(
+//       `INSERT INTO alertas (medico_id, paciente_id, titulo, mensagem, prioridade, data_envio)
+//        VALUES (?, ?, ?, ?, ?, NOW())`,
+//       [doctorId, patientId, title, message, priority]
+//     );
+
+//     // Enviar email usando o emailService
+//     await emailService.sendAlertEmail({
+//       to: patient.email,
+//       patientName: patient.nome,
+//       doctorName: doctor.nome,
+//       title,
+//       message,
+//       priority,
+//       sessionInfo
+//     });
+
+//     res.json({ 
+//       success: true, 
+//       message: 'Alerta enviado com sucesso' 
+//     });
+
+//   } catch (error) {
+//     console.error('❌ Erro ao enviar alerta:', error);
+//     res.status(500).json({ 
+//       error: error.message || 'Erro ao enviar alerta' 
+//     });
+//   }
+// };
+
+const sendAlert = async (req, res) => {
   try {
     const { patientId } = req.params;
-    const { title, message, priority, sessionInfo } = req.body;
-    const doctorId = req.user.id; // ID do médico autenticado
+    
+    // ✅ Aceita ambos os formatos (inglês e português)
+    const {
+      title, titulo,
+      message, mensagem,
+      priority, prioridade,
+      sessionInfo
+    } = req.body;
+    
+    const doctorId = req.user.id;
+
+    // Usar o que vier (prioriza português)
+    const alertTitle = titulo || title;
+    const alertMessage = mensagem || message;
+    const alertPriority = prioridade || priority;
+
+    console.log('=== ENVIANDO ALERTA ===');
+    console.log('Patient ID:', patientId);
+    console.log('Doctor ID:', doctorId);
+    console.log('Dados:', { alertTitle, alertMessage, alertPriority });
 
     // Validações
-    if (!title || !message || !priority) {
+    if (!alertTitle || !alertMessage || !alertPriority) {
       return res.status(400).json({ 
         error: 'Título, mensagem e prioridade são obrigatórios' 
       });
     }
 
-    // Buscar dados do paciente
-    const [patients] = await connection.execute(
-      'SELECT email, nome FROM usuarios WHERE id = ? AND tipo = "paciente"',
-      [patientId]
-    );
+    // Buscar médico (PostgreSQL)
+    const doctorResult = await db.query(`
+      SELECT m.id as medico_id, u.nome, u.email
+      FROM medicos m
+      JOIN usuarios u ON m.usuario_id = u.id
+      WHERE m.usuario_id = $1
+    `, [doctorId]);
 
-    if (patients.length === 0) {
-      return res.status(404).json({ error: 'Paciente não encontrado' });
-    }
-
-    const patient = patients[0];
-
-    // Buscar dados do médico
-    const [doctors] = await connection.execute(
-      'SELECT nome FROM usuarios WHERE id = ? AND tipo = "medico"',
-      [doctorId]
-    );
-
-    if (doctors.length === 0) {
+    if (doctorResult.rows.length === 0) {
       return res.status(404).json({ error: 'Médico não encontrado' });
     }
 
-    const doctor = doctors[0];
+    const doctor = doctorResult.rows[0];
+    console.log('Médico encontrado:', doctor.nome);
 
-    // Salvar alerta no banco de dados (opcional)
-    await connection.execute(
-      `INSERT INTO alertas (medico_id, paciente_id, titulo, mensagem, prioridade, data_envio)
-       VALUES (?, ?, ?, ?, ?, NOW())`,
-      [doctorId, patientId, title, message, priority]
-    );
+    // Buscar paciente e verificar acesso (PostgreSQL)
+    const patientResult = await db.query(`
+      SELECT p.*, u.nome, u.email, u.id as usuario_id
+      FROM pacientes p
+      JOIN usuarios u ON p.usuario_id = u.id
+      WHERE p.id = $1 AND p.medico_responsavel_id = $2
+    `, [patientId, doctor.medico_id]);
+
+    if (patientResult.rows.length === 0) {
+      return res.status(404).json({ 
+        error: 'Paciente não encontrado ou sem acesso' 
+      });
+    }
+
+    const patient = patientResult.rows[0];
+    console.log('Paciente encontrado:', patient.nome);
+
+    // Criar notificação no banco de dados (PostgreSQL)
+    const notificationResult = await db.query(`
+      INSERT INTO notificacoes (
+        usuario_destinatario_id,
+        tipo,
+        titulo,
+        mensagem,
+        lida,
+        prioridade
+      ) VALUES ($1, $2, $3, $4, false, $5)
+      RETURNING *
+    `, [
+      patient.usuario_id,
+      'alerta_medico',
+      alertTitle,
+      alertMessage,
+      alertPriority
+    ]);
+
+    console.log('✅ Notificação criada no banco:', notificationResult.rows[0].id);
 
     // Enviar email usando o emailService
-    await emailService.sendAlertEmail({
-      to: patient.email,
-      patientName: patient.nome,
-      doctorName: doctor.nome,
-      title,
-      message,
-      priority,
-      sessionInfo
-    });
+    let emailSent = false;
+    try {
+      await emailService.sendAlertEmail({
+        to: patient.email,
+        patientName: patient.nome,
+        doctorName: doctor.nome,
+        title: alertTitle,
+        message: alertMessage,
+        priority: alertPriority,
+        sessionInfo
+      });
+
+      emailSent = true;
+      console.log('✅ Email enviado com sucesso para:', patient.email);
+    } catch (emailError) {
+      console.error('❌ Erro ao enviar email:', emailError);
+    }
 
     res.json({ 
       success: true, 
-      message: 'Alerta enviado com sucesso' 
+      message: emailSent 
+        ? 'Alerta enviado com sucesso! O paciente receberá um email.'
+        : 'Alerta enviado com sucesso! (Email não enviado)',
+      notification: notificationResult.rows[0],
+      emailSent
     });
 
   } catch (error) {
     console.error('❌ Erro ao enviar alerta:', error);
     res.status(500).json({ 
-      error: error.message || 'Erro ao enviar alerta' 
+      error: 'Erro ao enviar alerta',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
-  } finally {
-    connection.release();
   }
 };
+
 // Enviar alerta para paciente (com opção de email)
 const sendAlertToPatient = async (req, res) => {
   try {

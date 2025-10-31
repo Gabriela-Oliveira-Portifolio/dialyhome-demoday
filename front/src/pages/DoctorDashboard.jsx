@@ -2192,6 +2192,27 @@ const PatientDetailsModal = ({ patient, recentDialysis, medications, stats, onCl
           <Send size={18} />
           Enviar Recomendação
         </button>
+         <button
+          onClick={onGenerateReport}
+          style={{
+            flex: 1,
+            padding: '0.75rem',
+            background: 'linear-gradient(90deg, #14b8a6 0%, #10b981 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '10px',
+            fontSize: '0.95rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.5rem'
+          }}
+        >
+          <FileText size={18} />
+          Gerar Relatório PDF
+        </button>
       </div>
     </div>
   </div>
