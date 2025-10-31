@@ -183,7 +183,7 @@ const DoctorDashboard = () => {
     const patientInfo = [
       `Nome: ${patient.nome}`,
       `Email: ${patient.email}`,
-      `Idade: ${patient.idade} anos`,
+      // `Idade: ${patient.idade} anos`,
       `CPF: ${patient.cpf || 'N/A'}`,
       `Data de Nascimento: ${new Date(patient.data_nascimento).toLocaleDateString('pt-BR')}`
     ];
@@ -272,7 +272,7 @@ const DoctorDashboard = () => {
         doc.roundedRect(20, yPos - 3, 170, 22, 2, 2, 'F');
         
         doc.setFont(undefined, 'bold');
-        doc.text(`${new Date(record.data_registro).toLocaleDateString('pt-BR')} - ${record.horario_inicio} às ${record.horario_fim}`, 25, yPos);
+        doc.text(`${new Date(record.data_registro).toLocaleDateString('pt-BR')}`, 25, yPos);
         yPos += lineHeight;
         
         doc.setFont(undefined, 'normal');
