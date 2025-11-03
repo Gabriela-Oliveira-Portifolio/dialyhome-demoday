@@ -190,7 +190,7 @@ const Login = () => {
                 </div>
               </div>
 
-              <div className="form-options">
+              {/* <div className="form-options">
                 <label className="checkbox-label">
                   <input type="checkbox" />
                   <span>Lembrar-me</span>
@@ -198,7 +198,7 @@ const Login = () => {
                 <button type="button" className="forgot-password">
                   Esqueceu a senha?
                 </button>
-              </div>
+              </div> */}
 
               <button 
                 onClick={handleLogin} 
