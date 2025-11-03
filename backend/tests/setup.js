@@ -1,28 +1,27 @@
-const db = require('../src/config/database');
+// backend/tests/setup.js
 
-// Configuração global antes de todos os testes
-beforeAll(async () => {
-  // Conectar ao banco de testes
-  process.env.NODE_ENV = 'test';
-  process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
-});
+// Configuração global para testes
+process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = 'test_secret_key';
+process.env.DB_NAME = 'dialyhome_test';
+process.env.DB_HOST = 'localhost';
+process.env.DB_PORT = '5432';
+process.env.DB_USER = 'postgres';
+process.env.DB_PASSWORD = 'admin';
 
-// Limpar dados após cada teste
-afterEach(async () => {
-  // Limpar tabelas na ordem correta (devido às foreign keys)
-  await db.query('TRUNCATE TABLE registro_sintomas CASCADE');
-  await db.query('TRUNCATE TABLE registros_dialise CASCADE');
-  await db.query('TRUNCATE TABLE notificacoes CASCADE');
-  await db.query('TRUNCATE TABLE mensagens CASCADE');
-  await db.query('TRUNCATE TABLE lembretes CASCADE');
-  await db.query('TRUNCATE TABLE medicamentos CASCADE');
-  await db.query('TRUNCATE TABLE logs_auditoria CASCADE');
-  await db.query('TRUNCATE TABLE pacientes CASCADE');
-  await db.query('TRUNCATE TABLE medicos CASCADE');
-  await db.query('TRUNCATE TABLE usuarios CASCADE');
-});
+// Mock console para testes mais limpos (opcional)
+global.console = {
+  ...console,
+  error: jest.fn(),
+  warn: jest.fn(),
+  // Mantenha log para debug se necessário
+  log: console.log,
+};
 
-// Fechar conexão após todos os testes
-afterAll(async () => {
-  await db.end();
+// Timeout global
+jest.setTimeout(10000);
+
+// Limpar todos os mocks antes de cada teste
+beforeEach(() => {
+  jest.clearAllMocks();
 });
