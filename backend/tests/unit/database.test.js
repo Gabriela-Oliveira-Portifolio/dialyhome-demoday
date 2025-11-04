@@ -1,15 +1,19 @@
-const db = require('../../src/config/database');
+// Mock do pg antes de importar
+const mockPoolQuery = jest.fn();
+const mockPoolEnd = jest.fn();
+const mockPoolOn = jest.fn();
 
-// Mock do pg
 jest.mock('pg', () => {
-  const mPool = {
-    connect: jest.fn(),
-    query: jest.fn(),
-    end: jest.fn(),
-    on: jest.fn()
+  return {
+    Pool: jest.fn(() => ({
+      query: mockPoolQuery,
+      end: mockPoolEnd,
+      on: mockPoolOn
+    }))
   };
-  return { Pool: jest.fn(() => mPool) };
 });
+
+const db = require('../../src/config/database');
 
 describe('Database Configuration - Unit Tests', () => {
   
@@ -40,17 +44,17 @@ describe('Database Configuration - Unit Tests', () => {
         rowCount: 1
       };
 
-      db.pool.query.mockResolvedValue(mockResult);
+      mockPoolQuery.mockResolvedValue(mockResult);
 
       const result = await db.query('SELECT * FROM usuarios WHERE id = $1', [1]);
 
-      expect(db.pool.query).toHaveBeenCalledWith('SELECT * FROM usuarios WHERE id = $1', [1]);
+      expect(mockPoolQuery).toHaveBeenCalledWith('SELECT * FROM usuarios WHERE id = $1', [1]);
       expect(result).toEqual(mockResult);
     });
 
     it('deve propagar erros de query', async () => {
       const mockError = new Error('Connection failed');
-      db.pool.query.mockRejectedValue(mockError);
+      mockPoolQuery.mockRejectedValue(mockError);
 
       await expect(
         db.query('SELECT * FROM usuarios', [])
@@ -59,11 +63,11 @@ describe('Database Configuration - Unit Tests', () => {
 
     it('deve aceitar queries sem parâmetros', async () => {
       const mockResult = { rows: [], rowCount: 0 };
-      db.pool.query.mockResolvedValue(mockResult);
+      mockPoolQuery.mockResolvedValue(mockResult);
 
       await db.query('SELECT NOW()');
 
-      expect(db.pool.query).toHaveBeenCalledWith('SELECT NOW()', undefined);
+      expect(mockPoolQuery).toHaveBeenCalledWith('SELECT NOW()', undefined);
     });
   });
 
@@ -72,7 +76,7 @@ describe('Database Configuration - Unit Tests', () => {
       const mockResult1 = { rows: [{ id: 1 }], rowCount: 1 };
       const mockResult2 = { rows: [{ id: 2 }], rowCount: 1 };
 
-      db.pool.query
+      mockPoolQuery
         .mockResolvedValueOnce(mockResult1)
         .mockResolvedValueOnce(mockResult2);
 
@@ -83,7 +87,7 @@ describe('Database Configuration - Unit Tests', () => {
 
       expect(result1.rows[0].id).toBe(1);
       expect(result2.rows[0].id).toBe(2);
-      expect(db.pool.query).toHaveBeenCalledTimes(2);
+      expect(mockPoolQuery).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -92,7 +96,7 @@ describe('Database Configuration - Unit Tests', () => {
       const timeoutError = new Error('timeout exceeded');
       timeoutError.code = 'ETIMEDOUT';
       
-      db.pool.query.mockRejectedValue(timeoutError);
+      mockPoolQuery.mockRejectedValue(timeoutError);
 
       await expect(
         db.query('SELECT * FROM usuarios')
@@ -103,7 +107,7 @@ describe('Database Configuration - Unit Tests', () => {
       const syntaxError = new Error('syntax error at or near "SELEC"');
       syntaxError.code = '42601';
       
-      db.pool.query.mockRejectedValue(syntaxError);
+      mockPoolQuery.mockRejectedValue(syntaxError);
 
       await expect(
         db.query('SELEC * FROM usuarios')
@@ -114,7 +118,7 @@ describe('Database Configuration - Unit Tests', () => {
       const tableError = new Error('relation "usuarios_inexistente" does not exist');
       tableError.code = '42P01';
       
-      db.pool.query.mockRejectedValue(tableError);
+      mockPoolQuery.mockRejectedValue(tableError);
 
       await expect(
         db.query('SELECT * FROM usuarios_inexistente')
@@ -125,7 +129,7 @@ describe('Database Configuration - Unit Tests', () => {
       const constraintError = new Error('duplicate key value violates unique constraint');
       constraintError.code = '23505';
       
-      db.pool.query.mockRejectedValue(constraintError);
+      mockPoolQuery.mockRejectedValue(constraintError);
 
       await expect(
         db.query('INSERT INTO usuarios (email) VALUES ($1)', ['duplicate@test.com'])
@@ -135,27 +139,27 @@ describe('Database Configuration - Unit Tests', () => {
 
   describe('Transaction Support', () => {
     it('deve permitir início de transação', async () => {
-      db.pool.query.mockResolvedValue({ rows: [], rowCount: 0 });
+      mockPoolQuery.mockResolvedValue({ rows: [], rowCount: 0 });
 
       await db.query('BEGIN');
 
-      expect(db.pool.query).toHaveBeenCalledWith('BEGIN', undefined);
+      expect(mockPoolQuery).toHaveBeenCalledWith('BEGIN', undefined);
     });
 
     it('deve permitir commit de transação', async () => {
-      db.pool.query.mockResolvedValue({ rows: [], rowCount: 0 });
+      mockPoolQuery.mockResolvedValue({ rows: [], rowCount: 0 });
 
       await db.query('COMMIT');
 
-      expect(db.pool.query).toHaveBeenCalledWith('COMMIT', undefined);
+      expect(mockPoolQuery).toHaveBeenCalledWith('COMMIT', undefined);
     });
 
     it('deve permitir rollback de transação', async () => {
-      db.pool.query.mockResolvedValue({ rows: [], rowCount: 0 });
+      mockPoolQuery.mockResolvedValue({ rows: [], rowCount: 0 });
 
       await db.query('ROLLBACK');
 
-      expect(db.pool.query).toHaveBeenCalledWith('ROLLBACK', undefined);
+      expect(mockPoolQuery).toHaveBeenCalledWith('ROLLBACK', undefined);
     });
   });
 });
