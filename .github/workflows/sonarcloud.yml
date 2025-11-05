@@ -26,7 +26,7 @@ jobs:
         with:
           args: >
             -Dsonar.organization=gabriela-oliveira-portifolio
-            -Dsonar.projectKey=gabriela-oliveira-portifolio_dialyhome-demoday
+            -Dsonar.projectKey=Gabriela-Oliveira-Portifolio_dialyhome-demoday
 # on:
 
 #   push:
