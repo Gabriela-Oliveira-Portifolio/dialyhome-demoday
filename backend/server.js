@@ -7,7 +7,7 @@ require('dotenv').config();
 const remindersRoutes = require('./src/routes/reminder');
 const authRoutes = require('./src/routes/auth');
 const usersRoutes = require('./src/routes/users');
-const dialysisRoutes = require('./src/routes/dialysis');
+const dialysisRoutes = require('./src/routes/dialysis.js');
 const patientRoutes = require('./src/routes/patients');
 const symptomsRoutes = require('./src/routes/symptoms');
 const adminRoutes = require('./src/routes/admin');
