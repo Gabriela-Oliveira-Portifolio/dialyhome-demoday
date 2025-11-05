@@ -25,8 +25,8 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
 #           # ⬅️ ADICIONE ESTAS DUAS LINHAS ⬅️
-          projectKey: gabriela-oliveira-portifolio 
-          organization: Gabriela-Oliveira-Portifolio_dialyhome-demoday
+          organization: gabriela-oliveira-portifolio 
+          projectKey: Gabriela-Oliveira-Portifolio_dialyhome-demoday
 
 # on:
 
