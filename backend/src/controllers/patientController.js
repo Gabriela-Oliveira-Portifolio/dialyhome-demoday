@@ -1,14 +1,97 @@
 const db = require('../config/database');
 const { checkAdmin, checkDoctor } = require("../middleware/auth");
 
+// ============= FUNÇÕES AUXILIARES =============
+const helpers = {
+  // Buscar paciente por ID
+  async findPatient(patientId) {
+    const result = await db.query(
+      "SELECT * FROM pacientes WHERE id = $1 AND ativo = true", 
+      [patientId]
+    );
+    return result.rows[0] || null;
+  },
+
+  // Buscar paciente_id a partir do usuario_id
+  async findPatientIdByUserId(userId) {
+    const result = await db.query(
+      'SELECT id FROM pacientes WHERE usuario_id = $1',
+      [userId]
+    );
+    return result.rows[0]?.id || null;
+  },
+
+  // Verificar se paciente existe
+  validatePatientExists(patient, res) {
+    if (!patient) {
+      res.status(404).json({ error: "Paciente não encontrado" });
+      return false;
+    }
+    return true;
+  },
+
+  // Verificar permissões de acesso
+  checkAccess(user, patient, allowedTypes = ['admin', 'medico']) {
+    if (user.tipo === 'admin') return true;
+    if (allowedTypes.includes('medico') && 
+        user.tipo === 'medico' && 
+        patient.medico_id === user.id) return true;
+    if (allowedTypes.includes('paciente') && 
+        user.tipo === 'paciente' && 
+        user.id === patient.usuario_id) return true;
+    return false;
+  },
+
+  // Verificar se é médico ou admin
+  checkDoctorOrAdmin(user, res) {
+    if (!checkDoctor(user) && !checkAdmin(user)) {
+      res.status(403).json({ error: "Acesso negado" });
+      return false;
+    }
+    return true;
+  },
+
+  // Verificar se é admin
+  checkAdminOnly(user, res) {
+    if (!checkAdmin(user)) {
+      res.status(403).json({ error: "Acesso negado" });
+      return false;
+    }
+    return true;
+  },
+
+  // Tratamento de erro padrão
+  handleError(res, error, message = "Erro ao processar requisição") {
+    console.error(`${message}:`, error);
+    res.status(500).json({ error: message });
+  },
+
+  // Calcular dias em tratamento
+  calculateDaysSince(date) {
+    if (!date) return null;
+    const inicio = new Date(date);
+    const hoje = new Date();
+    return Math.floor((hoje - inicio) / (1000 * 60 * 60 * 24));
+  },
+
+  // Calcular tendência
+  calculateTrend(recent, previous) {
+    if (!recent || !previous) return 'stable';
+    const diff = ((recent - previous) / previous) * 100;
+    if (diff > 5) return 'up';
+    if (diff < -5) return 'down';
+    return 'stable';
+  }
+};
+
+// ============= CONTROLLER =============
 const patientController = {
   // Buscar perfil completo do paciente (próprio paciente)
   getProfile: async (req, res) => {
     try {
       const userId = req.user.id;
-
-    //   const result = await db.query(
-        const result = await db.query(
+      
+      const result = await db.query(
         `SELECT 
           u.id as usuario_id,
           u.nome,
@@ -43,14 +126,7 @@ const patientController = {
       }
 
       const patient = result.rows[0];
-
-      // Calcular dias em tratamento
-      let diasTratamento = null;
-      if (patient.data_inicio_tratamento) {
-        const inicio = new Date(patient.data_inicio_tratamento);
-        const hoje = new Date();
-        diasTratamento = Math.floor((hoje - inicio) / (1000 * 60 * 60 * 24));
-      }
+      const diasTratamento = helpers.calculateDaysSince(patient.data_inicio_tratamento);
 
       res.json({
         patient: {
@@ -59,8 +135,7 @@ const patientController = {
         }
       });
     } catch (error) {
-      console.error('Erro ao buscar perfil:', error);
-      res.status(500).json({ error: 'Erro ao buscar perfil do paciente' });
+      helpers.handleError(res, error, 'Erro ao buscar perfil do paciente');
     }
   },
 
@@ -70,17 +145,11 @@ const patientController = {
       const userId = req.user.id;
       const days = parseInt(req.query.days) || 30;
 
-      // Buscar paciente_id
-      const patientResult = await db.query(
-        'SELECT id FROM pacientes WHERE usuario_id = $1',
-        [userId]
-      );
-
-      if (patientResult.rows.length === 0) {
+      const pacienteId = await helpers.findPatientIdByUserId(userId);
+      
+      if (!pacienteId) {
         return res.status(404).json({ error: 'Paciente não encontrado' });
       }
-
-      const pacienteId = patientResult.rows[0].id;
 
       // Estatísticas do período especificado
       const stats = await db.query(
@@ -101,9 +170,6 @@ const patientController = {
         WHERE paciente_id = $1
         AND data_registro >= CURRENT_DATE - INTERVAL '1 day' * $2`,
         [pacienteId, days]
-
-        //   AND data_registro >= CURRENT_DATE - $2::interval`,
-        // [pacienteId, `${days} days`]
       );
 
       // Último registro
@@ -147,14 +213,6 @@ const patientController = {
       const recentTrends = trends.rows.find(t => t.period === 'recent') || {};
       const previousTrends = trends.rows.find(t => t.period === 'previous') || {};
 
-      const calculateTrend = (recent, previous) => {
-        if (!recent || !previous) return 'stable';
-        const diff = ((recent - previous) / previous) * 100;
-        if (diff > 5) return 'up';
-        if (diff < -5) return 'down';
-        return 'stable';
-      };
-
       res.json({
         summary: {
           total_registros: parseInt(statsData.total_registros) || 0,
@@ -177,21 +235,21 @@ const patientController = {
             value: statsData.media_sistolica ? Math.round(statsData.media_sistolica) : null,
             min: statsData.min_sistolica || null,
             max: statsData.max_sistolica || null,
-            trend: calculateTrend(recentTrends.avg_sistolica, previousTrends.avg_sistolica)
+            trend: helpers.calculateTrend(recentTrends.avg_sistolica, previousTrends.avg_sistolica)
           },
           pressao_diastolica: {
             value: statsData.media_diastolica ? Math.round(statsData.media_diastolica) : null,
             min: statsData.min_diastolica || null,
             max: statsData.max_diastolica || null,
-            trend: calculateTrend(recentTrends.avg_diastolica, previousTrends.avg_diastolica)
+            trend: helpers.calculateTrend(recentTrends.avg_diastolica, previousTrends.avg_diastolica)
           },
           uf_total: {
             value: statsData.media_uf ? (statsData.media_uf / 1000).toFixed(1) : null,
-            trend: calculateTrend(recentTrends.avg_uf, previousTrends.avg_uf)
+            trend: helpers.calculateTrend(recentTrends.avg_uf, previousTrends.avg_uf)
           },
           glicose: {
             value: statsData.media_glicose ? Math.round(statsData.media_glicose) : null,
-            trend: calculateTrend(recentTrends.avg_glicose, previousTrends.avg_glicose)
+            trend: helpers.calculateTrend(recentTrends.avg_glicose, previousTrends.avg_glicose)
           },
           tempo_permanencia: {
             value: statsData.media_tempo ? (statsData.media_tempo / 60).toFixed(1) : null
@@ -199,17 +257,14 @@ const patientController = {
         }
       });
     } catch (error) {
-      console.error('Erro ao buscar estatísticas:', error);
-      res.status(500).json({ error: 'Erro ao buscar estatísticas' });
+      helpers.handleError(res, error, 'Erro ao buscar estatísticas');
     }
   },
 
   // GET /api/patients (médicos/admin)
   getAllPatients: async (req, res) => {
     try {
-      if (!checkDoctor(req.user) && !checkAdmin(req.user)) {
-        return res.status(403).json({ error: "Acesso negado" });
-      }
+      if (!helpers.checkDoctorOrAdmin(req.user, res)) return;
 
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 20;
@@ -231,66 +286,51 @@ const patientController = {
       const patients = await db.query(query, params);
       res.json(patients.rows);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erro ao buscar pacientes" });
+      helpers.handleError(res, error, "Erro ao buscar pacientes");
     }
   },
 
   // GET /api/patients/:id
   getPatientById: async (req, res) => {
     try {
-      const patientId = req.params.id;
-
-      const patient = await db.query(
-        "SELECT * FROM pacientes WHERE id = $1 AND ativo = true", 
-        [patientId]
-      );
+      const patient = await helpers.findPatient(req.params.id);
       
-      if (!patient.rows.length) {
-        return res.status(404).json({ error: "Paciente não encontrado" });
-      }
+      if (!helpers.validatePatientExists(patient, res)) return;
 
       // Verifica permissão: próprio paciente, médico responsável ou admin
-      if (
-        req.user.tipo !== "admin" &&
-        !(req.user.tipo === "medico" && patient.rows[0].medico_id === req.user.id) &&
-        !(req.user.tipo === "paciente" && req.user.id === patient.rows[0].usuario_id)
-      ) {
+      if (!helpers.checkAccess(req.user, patient, ['admin', 'medico', 'paciente'])) {
         return res.status(403).json({ error: "Acesso negado" });
       }
 
       // Histórico recente, medicações e próximos lembretes
       const history = await db.query(
         "SELECT * FROM historico_pacientes WHERE paciente_id = $1 ORDER BY data DESC LIMIT 10", 
-        [patientId]
+        [req.params.id]
       );
       const medications = await db.query(
         "SELECT * FROM medicacoes WHERE paciente_id = $1 AND ativo = true", 
-        [patientId]
+        [req.params.id]
       );
       const reminders = await db.query(
         "SELECT * FROM lembretes WHERE paciente_id = $1 AND data >= NOW()", 
-        [patientId]
+        [req.params.id]
       );
 
       res.json({
-        ...patient.rows[0],
+        ...patient,
         history: history.rows,
         medications: medications.rows,
         reminders: reminders.rows
       });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erro ao buscar paciente" });
+      helpers.handleError(res, error, "Erro ao buscar paciente");
     }
   },
 
   // POST /api/patients (admin/médico)
   createPatient: async (req, res) => {
     try {
-      if (!checkDoctor(req.user) && !checkAdmin(req.user)) {
-        return res.status(403).json({ error: "Acesso negado" });
-      }
+      if (!helpers.checkDoctorOrAdmin(req.user, res)) return;
 
       const { nome, email, senha, convenio, medico_id } = req.body;
       
@@ -306,7 +346,6 @@ const patientController = {
         "INSERT INTO usuarios (nome, email, senha, tipo) VALUES ($1, $2, $3, 'paciente') RETURNING id",
         [nome, email, hashedPassword]
       );
-
       const usuario_id = newUser.rows[0].id;
 
       // Cria registro paciente
@@ -317,27 +356,19 @@ const patientController = {
 
       res.status(201).json({ message: "Paciente criado com sucesso", usuario_id });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erro ao criar paciente" });
+      helpers.handleError(res, error, "Erro ao criar paciente");
     }
   },
 
   // PUT /api/patients/:id
   updatePatient: async (req, res) => {
     try {
-      const patientId = req.params.id;
-
-      const patient = await db.query("SELECT * FROM pacientes WHERE id = $1", [patientId]);
+      const patient = await helpers.findPatient(req.params.id);
       
-      if (!patient.rows.length) {
-        return res.status(404).json({ error: "Paciente não encontrado" });
-      }
+      if (!helpers.validatePatientExists(patient, res)) return;
 
       // Permissão: admin ou médico responsável
-      if (
-        !checkAdmin(req.user) &&
-        !(req.user.tipo === "medico" && patient.rows[0].medico_id === req.user.id)
-      ) {
+      if (!helpers.checkAccess(req.user, patient, ['admin', 'medico'])) {
         return res.status(403).json({ error: "Acesso negado" });
       }
 
@@ -346,39 +377,37 @@ const patientController = {
       // Atualiza usuário
       await db.query(
         "UPDATE usuarios SET nome = $1, email = $2 WHERE id = $3",
-        [nome, email, patient.rows[0].usuario_id]
+        [nome, email, patient.usuario_id]
       );
 
       // Atualiza paciente
-      await db.query("UPDATE pacientes SET convenio = $1 WHERE id = $2", [convenio, patientId]);
+      await db.query(
+        "UPDATE pacientes SET convenio = $1 WHERE id = $2", 
+        [convenio, req.params.id]
+      );
 
       res.json({ message: "Paciente atualizado com sucesso" });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erro ao atualizar paciente" });
+      helpers.handleError(res, error, "Erro ao atualizar paciente");
     }
   },
 
   // GET /api/patients/:id/medical-data
   getMedicalData: async (req, res) => {
     try {
-      const patientId = req.params.id;
-
-      if (!checkDoctor(req.user) && !checkAdmin(req.user)) {
-        return res.status(403).json({ error: "Acesso negado" });
-      }
+      if (!helpers.checkDoctorOrAdmin(req.user, res)) return;
 
       const medicalData = await db.query(
         "SELECT * FROM dados_medicos WHERE paciente_id = $1", 
-        [patientId]
+        [req.params.id]
       );
       const weightHistory = await db.query(
         "SELECT data, peso FROM historico_medico WHERE paciente_id = $1 ORDER BY data", 
-        [patientId]
+        [req.params.id]
       );
       const pressureHistory = await db.query(
         "SELECT data, pressao FROM historico_medico WHERE paciente_id = $1 ORDER BY data", 
-        [patientId]
+        [req.params.id]
       );
 
       res.json({
@@ -387,96 +416,80 @@ const patientController = {
         pressureHistory: pressureHistory.rows
       });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erro ao buscar dados médicos" });
+      helpers.handleError(res, error, "Erro ao buscar dados médicos");
     }
   },
 
   // PUT /api/patients/:id/medical-data
   updateMedicalData: async (req, res) => {
     try {
-      const patientId = req.params.id;
-      
-      if (!checkDoctor(req.user) && !checkAdmin(req.user)) {
-        return res.status(403).json({ error: "Acesso negado" });
-      }
+      if (!helpers.checkDoctorOrAdmin(req.user, res)) return;
 
       const { observacoes, medicacoes } = req.body;
 
       // Atualiza observações
       await db.query(
         "UPDATE dados_medicos SET observacoes = $1 WHERE paciente_id = $2", 
-        [observacoes, patientId]
+        [observacoes, req.params.id]
       );
 
       // Atualiza medicações (simples: desativa antigas e adiciona novas)
-      await db.query("UPDATE medicacoes SET ativo = false WHERE paciente_id = $1", [patientId]);
+      await db.query(
+        "UPDATE medicacoes SET ativo = false WHERE paciente_id = $1", 
+        [req.params.id]
+      );
       
       for (const med of medicacoes) {
         await db.query(
           "INSERT INTO medicacoes (paciente_id, nome, dose, ativo) VALUES ($1, $2, $3, true)",
-          [patientId, med.nome, med.dose]
+          [req.params.id, med.nome, med.dose]
         );
       }
 
       res.json({ message: "Dados médicos atualizados com sucesso" });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erro ao atualizar dados médicos" });
+      helpers.handleError(res, error, "Erro ao atualizar dados médicos");
     }
   },
 
   // GET /api/patients/:id/dialysis-history
   getDialysisHistory: async (req, res) => {
     try {
-      const patientId = req.params.id;
-
-      const patient = await db.query("SELECT * FROM pacientes WHERE id = $1", [patientId]);
+      const patient = await helpers.findPatient(req.params.id);
       
-      if (!patient.rows.length) {
-        return res.status(404).json({ error: "Paciente não encontrado" });
-      }
+      if (!helpers.validatePatientExists(patient, res)) return;
 
       // Permissão: próprio paciente, médico ou admin
-      if (
-        req.user.tipo !== "admin" &&
-        !(req.user.tipo === "medico" && patient.rows[0].medico_id === req.user.id) &&
-        !(req.user.tipo === "paciente" && req.user.id === patient.rows[0].usuario_id)
-      ) {
+      if (!helpers.checkAccess(req.user, patient, ['admin', 'medico', 'paciente'])) {
         return res.status(403).json({ error: "Acesso negado" });
       }
 
       const history = await db.query(
         "SELECT * FROM historico_dialise WHERE paciente_id = $1 ORDER BY data DESC", 
-        [patientId]
+        [req.params.id]
       );
 
       res.json({ dialysisHistory: history.rows });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erro ao buscar histórico de diálise" });
+      helpers.handleError(res, error, "Erro ao buscar histórico de diálise");
     }
   },
 
   // PUT /api/patients/:id/assign-doctor
   assignDoctor: async (req, res) => {
     try {
-      if (!checkAdmin(req.user)) {
-        return res.status(403).json({ error: "Acesso negado" });
-      }
+      if (!helpers.checkAdminOnly(req.user, res)) return;
 
-      const patientId = req.params.id;
       const { medico_id } = req.body;
 
       await db.query(
         "UPDATE pacientes SET medico_id = $1 WHERE id = $2", 
-        [medico_id, patientId]
+        [medico_id, req.params.id]
       );
 
       res.json({ message: "Médico responsável atualizado com sucesso" });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erro ao atribuir médico" });
+      helpers.handleError(res, error, "Erro ao atribuir médico");
     }
   }
 };
