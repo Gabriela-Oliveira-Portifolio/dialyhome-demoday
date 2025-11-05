@@ -24,10 +24,9 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
-#           # ⬅️ ADICIONE ESTAS DUAS LINHAS ⬅️
-          organization: gabriela-oliveira-portifolio 
-          projectKey: Gabriela-Oliveira-Portifolio_dialyhome-demoday
-
+          args: >
+            -Dsonar.organization=gabriela-oliveira-portifolio
+            -Dsonar.projectKey=gabriela-oliveira-portifolio_dialyhome-demoday
 # on:
 
 #   push:
