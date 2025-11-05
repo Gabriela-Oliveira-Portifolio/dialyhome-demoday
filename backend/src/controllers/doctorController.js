@@ -1,9 +1,363 @@
-// backend/src/controllers/doctorController.js - VERSÃO ATUALIZADA
+// backend/src/controllers/doctorController.js - VERSÃO REFATORADA
 
 const db = require('../config/database');
 const bcrypt = require('bcrypt');
-const emailService = require('../services/emailService'); // ✅ Import correto
+const emailService = require('../services/emailService');
 
+// ===============================
+// FUNÇÕES AUXILIARES PARA ANALYTICS
+// ===============================
+
+const analyticsHelpers = {
+  // Buscar dados de pressão arterial
+  async fetchPressureData(patientId, startDate) {
+    const query = `
+      SELECT 
+        TO_CHAR(data_registro, 'DD/MM') as date,
+        pressao_arterial_sistolica as systolic,
+        pressao_arterial_diastolica as diastolic,
+        140 as "systolicIdeal",
+        90 as "diastolicIdeal"
+      FROM registros_dialise
+      WHERE paciente_id = $1 AND data_registro >= $2
+      ORDER BY data_registro ASC
+    `;
+    const result = await db.query(query, [patientId, startDate]);
+    return result.rows;
+  },
+
+  // Buscar dados de ultrafiltração
+  async fetchUFData(patientId, startDate) {
+    const query = `
+      SELECT 
+        TO_CHAR(data_registro, 'DD/MM') as date,
+        uf_total as uf
+      FROM registros_dialise
+      WHERE paciente_id = $1 
+        AND data_registro >= $2
+        AND uf_total IS NOT NULL
+      ORDER BY data_registro ASC
+    `;
+    const result = await db.query(query, [patientId, startDate]);
+    return result.rows;
+  },
+
+  // Buscar dados de glicose
+  async fetchGlucoseData(patientId, startDate) {
+    const query = `
+      SELECT 
+        TO_CHAR(data_registro, 'DD/MM') as date,
+        concentracao_glicose as glucose
+      FROM registros_dialise
+      WHERE paciente_id = $1 
+        AND data_registro >= $2
+        AND concentracao_glicose IS NOT NULL
+      ORDER BY data_registro ASC
+    `;
+    const result = await db.query(query, [patientId, startDate]);
+    return result.rows;
+  },
+
+  // Buscar frequência de sessões
+  async fetchSessionFrequency(patientId, startDate) {
+    const query = `
+      SELECT 
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE data_registro >= CURRENT_DATE - INTERVAL '7 days') as last_week,
+        COUNT(*) FILTER (WHERE sintomas IS NOT NULL AND sintomas != '') as with_symptoms
+      FROM registros_dialise
+      WHERE paciente_id = $1 AND data_registro >= $2
+    `;
+    const result = await db.query(query, [patientId, startDate]);
+    return result.rows[0];
+  },
+
+  // Buscar distribuição de sintomas
+  async fetchSymptomsDistribution(patientId, startDate) {
+    const query = `
+      SELECT 
+        sintomas,
+        COUNT(*) as count
+      FROM registros_dialise
+      WHERE paciente_id = $1 
+        AND data_registro >= $2
+        AND sintomas IS NOT NULL 
+        AND sintomas != ''
+      GROUP BY sintomas
+      ORDER BY count DESC
+      LIMIT 5
+    `;
+    const result = await db.query(query, [patientId, startDate]);
+    
+    const symptomColors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'];
+    return result.rows.map((symptom, index) => ({
+      name: symptom.sintomas.substring(0, 30) + (symptom.sintomas.length > 30 ? '...' : ''),
+      value: parseInt(symptom.count),
+      color: symptomColors[index] || '#6b7280'
+    }));
+  },
+
+  // Calcular mudança percentual entre duas médias
+  calculatePercentageChange(firstHalf, secondHalf) {
+    if (firstHalf === 0) return 0;
+    return ((secondHalf - firstHalf) / firstHalf * 100).toFixed(1);
+  },
+
+  // Determinar direção da tendência
+  getTrendDirection(change) {
+    if (change > 0) return 'up';
+    if (change < 0) return 'down';
+    return 'stable';
+  },
+
+  // Calcular média de um array
+  calculateAverage(values) {
+    if (values.length === 0) return 0;
+    return values.reduce((a, b) => a + b, 0) / values.length;
+  },
+
+  // Analisar tendência de pressão
+  analyzePressureTrend(pressureData) {
+    if (pressureData.length === 0) {
+      return {
+        status: 'Sem dados',
+        average: { systolic: 0, diastolic: 0 },
+        direction: 'stable',
+        change: 0,
+        insight: 'Dados insuficientes para análise',
+        score: 0
+      };
+    }
+
+    const avgSystolic = this.calculateAverage(pressureData.map(p => p.systolic));
+    const avgDiastolic = this.calculateAverage(pressureData.map(p => p.diastolic));
+    
+    const midPoint = Math.floor(pressureData.length / 2);
+    const firstHalf = this.calculateAverage(
+      pressureData.slice(0, midPoint).map(p => p.systolic)
+    );
+    const secondHalf = this.calculateAverage(
+      pressureData.slice(midPoint).map(p => p.systolic)
+    );
+    
+    const change = this.calculatePercentageChange(firstHalf, secondHalf);
+    const direction = this.getTrendDirection(change);
+    const score = Math.max(0, 100 - Math.abs(130 - avgSystolic) - Math.abs(80 - avgDiastolic));
+
+    let status, insight;
+    if (avgSystolic < 90 || avgDiastolic < 60) {
+      status = 'Baixa';
+      insight = 'Pressão arterial abaixo do ideal. Considere revisar medicações hipotensoras.';
+    } else if (avgSystolic > 140 || avgDiastolic > 90) {
+      status = 'Alta';
+      insight = 'Pressão arterial elevada. Recomenda-se ajuste no tratamento anti-hipertensivo.';
+    } else {
+      status = 'Controlada';
+      insight = 'Pressão arterial dentro dos parâmetros ideais. Manter tratamento atual.';
+    }
+
+    return {
+      status,
+      average: {
+        systolic: Math.round(avgSystolic),
+        diastolic: Math.round(avgDiastolic)
+      },
+      direction,
+      change,
+      insight,
+      score: Math.round(score)
+    };
+  },
+
+  // Analisar tendência de UF
+  analyzeUFTrend(ufData) {
+    if (ufData.length === 0) {
+      return {
+        average: 0,
+        max: 0,
+        min: 0,
+        direction: 'stable',
+        change: 0,
+        score: 0
+      };
+    }
+
+    const ufValues = ufData.map(r => r.uf);
+    const ufAvg = this.calculateAverage(ufValues);
+    const ufMax = Math.max(...ufValues);
+    const ufMin = Math.min(...ufValues);
+    
+    const midPoint = Math.floor(ufValues.length / 2);
+    const firstHalf = this.calculateAverage(ufValues.slice(0, midPoint));
+    const secondHalf = this.calculateAverage(ufValues.slice(midPoint));
+    
+    const change = this.calculatePercentageChange(firstHalf, secondHalf);
+    const direction = this.getTrendDirection(change);
+    const score = Math.min(100, (ufAvg / 3000) * 100);
+
+    return {
+      average: Math.round(ufAvg),
+      max: Math.round(ufMax),
+      min: Math.round(ufMin),
+      direction,
+      change,
+      score: Math.round(score)
+    };
+  },
+
+  // Analisar tendência de glicose
+  analyzeGlucoseTrend(glucoseData) {
+    if (glucoseData.length === 0) {
+      return {
+        status: 'Sem dados',
+        average: 0,
+        score: 0
+      };
+    }
+
+    const glucoseValues = glucoseData.map(r => r.glucose);
+    const glucoseAvg = this.calculateAverage(glucoseValues);
+    
+    let status;
+    if (glucoseAvg < 70) {
+      status = 'Baixa';
+    } else if (glucoseAvg > 180) {
+      status = 'Alta';
+    } else {
+      status = 'Controlada';
+    }
+    
+    const score = Math.max(0, 100 - Math.abs(100 - glucoseAvg) * 0.5);
+
+    return {
+      status,
+      average: Math.round(glucoseAvg),
+      score: Math.round(score)
+    };
+  },
+
+  // Processar distribuição de sintomas
+  processSymptomsDistribution(symptomsData, totalSessions, sessionsWithSymptoms) {
+    const distribution = [...symptomsData];
+    
+    const sessionsWithoutSymptoms = totalSessions - sessionsWithSymptoms;
+    if (sessionsWithoutSymptoms > 0) {
+      distribution.push({
+        name: 'Sem sintomas',
+        value: sessionsWithoutSymptoms,
+        color: '#d1d5db'
+      });
+    }
+
+    return distribution;
+  },
+
+  // Gerar recomendações baseadas nos dados
+  generateRecommendations(pressureTrend, ufTrend, glucoseTrend, complianceScore, symptomsRatio) {
+    const recommendations = [];
+
+    // Recomendação sobre pressão
+    if (pressureTrend.average.systolic > 140 || pressureTrend.average.diastolic > 90) {
+      recommendations.push({
+        priority: 'high',
+        title: 'Ajuste na Medicação Anti-Hipertensiva',
+        description: 'A pressão arterial está consistentemente elevada. Considere aumentar a dose ou adicionar um novo anti-hipertensivo.'
+      });
+    }
+
+    // Recomendação sobre UF
+    if (ufTrend.average < 2000) {
+      recommendations.push({
+        priority: 'medium',
+        title: 'Volume de Ultrafiltração Baixo',
+        description: 'O volume de UF está abaixo do esperado. Verifique se há retenção hídrica ou ajuste o peso seco.'
+      });
+    } else if (ufTrend.average > 3500) {
+      recommendations.push({
+        priority: 'medium',
+        title: 'Volume de Ultrafiltração Alto',
+        description: 'UF elevado pode indicar excesso de ganho de peso interdialítico. Reforçar orientações sobre controle hídrico.'
+      });
+    }
+
+    // Recomendação sobre glicose
+    if (glucoseTrend.average > 180) {
+      recommendations.push({
+        priority: 'high',
+        title: 'Controle Glicêmico Inadequado',
+        description: 'Glicemia acima da meta. Revisar medicação hipoglicemiante e reforçar orientação nutricional.'
+      });
+    }
+
+    // Recomendação sobre aderência
+    if (complianceScore < 80) {
+      recommendations.push({
+        priority: 'high',
+        title: 'Baixa Aderência ao Tratamento',
+        description: 'Paciente faltando a sessões programadas. Investigar barreiras e reforçar importância da regularidade.'
+      });
+    }
+
+    // Recomendação sobre sintomas
+    if (symptomsRatio > 0.3) {
+      recommendations.push({
+        priority: 'medium',
+        title: 'Sintomas Frequentes Durante Diálise',
+        description: 'Paciente relatando sintomas em mais de 30% das sessões. Avaliar parâmetros da diálise e condições clínicas.'
+      });
+    }
+
+    // Recomendações positivas
+    if (complianceScore >= 90 && pressureTrend.status === 'Controlada') {
+      recommendations.push({
+        priority: 'low',
+        title: 'Excelente Evolução',
+        description: 'Paciente com ótima aderência e controle adequado dos parâmetros. Manter acompanhamento regular.'
+      });
+    }
+
+    return recommendations;
+  },
+
+  // Calcular status geral do paciente
+  calculateOverallStatus(avgScore) {
+    if (avgScore >= 80) {
+      return 'Paciente com excelente evolução e controle adequado dos parâmetros. Manter tratamento atual.';
+    } else if (avgScore >= 60) {
+      return 'Paciente com evolução satisfatória, mas alguns parâmetros necessitam atenção.';
+    } else {
+      return 'Paciente necessita ajustes no tratamento. Considere reavaliação clínica completa.';
+    }
+  }
+};
+
+// ===============================
+// HELPERS GERAIS
+// ===============================
+
+const helpers = {
+  // Buscar ID do médico
+  async getDoctorId(userId) {
+    const result = await db.query(
+      'SELECT id FROM medicos WHERE usuario_id = $1',
+      [userId]
+    );
+    return result.rows[0]?.id || null;
+  },
+
+  // Verificar acesso do médico ao paciente
+  async verifyDoctorAccess(patientId, medicoId) {
+    const result = await db.query(
+      'SELECT id FROM pacientes WHERE id = $1 AND medico_responsavel_id = $2',
+      [patientId, medicoId]
+    );
+    return result.rows.length > 0;
+  }
+};
+
+// ===============================
+// CONTROLLERS
+// ===============================
 
 // Perfil do médico
 const getProfile = async (req, res) => {
@@ -80,7 +434,7 @@ const updateProfile = async (req, res) => {
     console.log('🔄 Query de atualização:', query);
     console.log('🔄 Valores:', updateValues);
 
-    const result = await db.query(query, updateValues);
+    await db.query(query, updateValues);
 
     // Buscar perfil completo atualizado
     const updatedProfile = await db.query(`
@@ -156,12 +510,11 @@ const changePassword = async (req, res) => {
 // Lista de pacientes vinculados
 const getPatients = async (req, res) => {
   try {
-    const doctorResult = await db.query('SELECT id FROM medicos WHERE usuario_id = $1', [req.user.id]);
-    if (doctorResult.rows.length === 0) {
+    const medico_id = await helpers.getDoctorId(req.user.id);
+    
+    if (!medico_id) {
       return res.status(404).json({ error: 'Médico não encontrado' });
     }
-
-    const medico_id = doctorResult.rows[0].id;
 
     const result = await db.query(`
       SELECT 
@@ -202,15 +555,13 @@ const getPatientDetails = async (req, res) => {
     console.log('Patient ID:', patientId);
     console.log('User ID:', req.user.id);
     
-    // Buscar o ID do médico
-    const doctorResult = await db.query('SELECT id FROM medicos WHERE usuario_id = $1', [req.user.id]);
+    const medico_id = await helpers.getDoctorId(req.user.id);
     
-    if (doctorResult.rows.length === 0) {
+    if (!medico_id) {
       console.error('Médico não encontrado para usuario_id:', req.user.id);
       return res.status(404).json({ error: 'Médico não encontrado' });
     }
 
-    const medico_id = doctorResult.rows[0].id;
     console.log('Medico ID:', medico_id);
 
     // Buscar dados do paciente
@@ -307,18 +658,16 @@ const getPatientDialysisHistory = async (req, res) => {
     const { patientId } = req.params;
     const { startDate, endDate, limit = 50, offset = 0 } = req.query;
     
-    const doctorResult = await db.query('SELECT id FROM medicos WHERE usuario_id = $1', [req.user.id]);
-    if (doctorResult.rows.length === 0) {
+    const medico_id = await helpers.getDoctorId(req.user.id);
+    
+    if (!medico_id) {
       return res.status(404).json({ error: 'Médico não encontrado' });
     }
 
     // Verificar se o paciente pertence ao médico
-    const verifyResult = await db.query(
-      'SELECT id FROM pacientes WHERE id = $1 AND medico_responsavel_id = $2',
-      [patientId, doctorResult.rows[0].id]
-    );
+    const hasAccess = await helpers.verifyDoctorAccess(patientId, medico_id);
 
-    if (verifyResult.rows.length === 0) {
+    if (!hasAccess) {
       return res.status(403).json({ error: 'Acesso negado a este paciente' });
     }
 
@@ -350,18 +699,16 @@ const getPatientDocuments = async (req, res) => {
   try {
     const { patientId } = req.params;
     
-    const doctorResult = await db.query('SELECT id FROM medicos WHERE usuario_id = $1', [req.user.id]);
-    if (doctorResult.rows.length === 0) {
+    const medico_id = await helpers.getDoctorId(req.user.id);
+    
+    if (!medico_id) {
       return res.status(404).json({ error: 'Médico não encontrado' });
     }
 
     // Verificar acesso
-    const verifyResult = await db.query(
-      'SELECT id FROM pacientes WHERE id = $1 AND medico_responsavel_id = $2',
-      [patientId, doctorResult.rows[0].id]
-    );
+    const hasAccess = await helpers.verifyDoctorAccess(patientId, medico_id);
 
-    if (verifyResult.rows.length === 0) {
+    if (!hasAccess) {
       return res.status(403).json({ error: 'Acesso negado a este paciente' });
     }
 
@@ -387,15 +734,16 @@ const sendRecommendation = async (req, res) => {
       return res.status(400).json({ error: 'Título e mensagem são obrigatórios' });
     }
     
-    const doctorResult = await db.query('SELECT id FROM medicos WHERE usuario_id = $1', [req.user.id]);
-    if (doctorResult.rows.length === 0) {
+    const medico_id = await helpers.getDoctorId(req.user.id);
+    
+    if (!medico_id) {
       return res.status(404).json({ error: 'Médico não encontrado' });
     }
 
     // Verificar acesso
     const patientResult = await db.query(
       'SELECT usuario_id FROM pacientes WHERE id = $1 AND medico_responsavel_id = $2',
-      [patientId, doctorResult.rows[0].id]
+      [patientId, medico_id]
     );
 
     if (patientResult.rows.length === 0) {
@@ -429,209 +777,12 @@ const sendRecommendation = async (req, res) => {
   }
 };
 
-// // Enviar alerta por email para paciente
-// const sendAlert = async (req, res) => {
-//   const emailService = require('../services/emailService');
-  
-//   try {
-//     const { patientId } = req.params;
-//     const { titulo, mensagem, prioridade, tipo, sessao_dialise_id } = req.body;
-
-//     console.log('=== ENVIANDO ALERTA ===');
-//     console.log('Patient ID:', patientId);
-//     console.log('Dados:', { titulo, mensagem, prioridade, tipo, sessao_dialise_id });
-
-//     // Validações
-//     if (!titulo || !mensagem) {
-//       return res.status(400).json({ error: 'Título e mensagem são obrigatórios' });
-//     }
-
-//     if (!['baixa', 'media', 'alta'].includes(prioridade)) {
-//       return res.status(400).json({ error: 'Prioridade inválida' });
-//     }
-    
-//     // Buscar médico
-//     const doctorResult = await db.query(`
-//       SELECT m.*, u.nome as nome_medico
-//       FROM medicos m
-//       JOIN usuarios u ON m.usuario_id = u.id
-//       WHERE m.usuario_id = $1
-//     `, [req.user.id]);
-
-//     if (doctorResult.rows.length === 0) {
-//       return res.status(404).json({ error: 'Médico não encontrado' });
-//     }
-
-//     const medico = doctorResult.rows[0];
-
-//     // Buscar paciente e verificar acesso
-//     const patientResult = await db.query(`
-//       SELECT p.*, u.nome, u.email, u.id as usuario_id
-//       FROM pacientes p
-//       JOIN usuarios u ON p.usuario_id = u.id
-//       WHERE p.id = $1 AND p.medico_responsavel_id = $2
-//     `, [patientId, medico.id]);
-
-//     if (patientResult.rows.length === 0) {
-//       return res.status(403).json({ error: 'Acesso negado a este paciente' });
-//     }
-
-//     const paciente = patientResult.rows[0];
-
-//     // Buscar informações da sessão se for tipo específico
-//     let sessionInfo = null;
-//     if (tipo === 'especifico' && sessao_dialise_id) {
-//       const sessionResult = await db.query(`
-//         SELECT * FROM registros_dialise 
-//         WHERE id = $1 AND paciente_id = $2
-//       `, [sessao_dialise_id, patientId]);
-
-//       if (sessionResult.rows.length > 0) {
-//         const sessao = sessionResult.rows[0];
-//         sessionInfo = {
-//           data: new Date(sessao.data_registro).toLocaleDateString('pt-BR'),
-//           pa: `${sessao.pressao_arterial_sistolica}/${sessao.pressao_arterial_diastolica} mmHg`,
-//           uf: sessao.uf_total ? `${(sessao.uf_total / 1000).toFixed(1)}L` : 'N/A'
-//         };
-//       }
-//     }
-
-//     // Criar notificação no sistema
-//     await db.query(`
-//       INSERT INTO notificacoes (
-//         usuario_destinatario_id,
-//         tipo,
-//         titulo,
-//         mensagem,
-//         lida
-//       ) VALUES ($1, $2, $3, $4, false)
-//     `, [
-//       paciente.usuario_id,
-//       'alerta_medico',
-//       titulo,
-//       mensagem
-//     ]);
-
-//     // Enviar email
-//     try {
-//       await emailService.sendAlertEmail({
-//         to: paciente.email,
-//         patientName: paciente.nome,
-//         doctorName: medico.nome_medico,
-//         title: titulo,
-//         message: mensagem,
-//         priority: prioridade,
-//         sessionInfo: sessionInfo
-//       });
-
-//       console.log('✅ Email enviado com sucesso para:', paciente.email);
-//     } catch (emailError) {
-//       console.error('❌ Erro ao enviar email:', emailError);
-//       // Não falha a requisição se o email falhar, apenas loga o erro
-//       // A notificação no sistema já foi criada
-//     }
-
-//     res.status(201).json({
-//       message: 'Alerta enviado com sucesso',
-//       alert: {
-//         titulo,
-//         mensagem,
-//         prioridade,
-//         tipo,
-//         emailEnviado: true,
-//         paciente: {
-//           nome: paciente.nome,
-//           email: paciente.email
-//         }
-//       }
-//     });
-//   } catch (error) {
-//     console.error('❌ Erro ao enviar alerta:', error);
-//     res.status(500).json({ 
-//       error: 'Erro interno do servidor',
-//       details: process.env.NODE_ENV === 'development' ? error.message : undefined
-//     });
-//   }
-// };
-// const sendAlert = async (req, res) => {
-//   // const connection = await db.getConnection();
-  
-//   try {
-//     const { patientId } = req.params;
-//     const { title, message, priority, sessionInfo } = req.body;
-//     const doctorId = req.user.id; // ID do médico autenticado
-
-//     // Validações
-//     // if (!title || !message || !priority) {
-//     //   return res.status(400).json({ 
-//     //     error: 'Título, mensagem e prioridade são obrigatórios' 
-//     //   });
-//     // }
-
-//     // Buscar dados do paciente
-//     // const [patients] = await db.query(
-//     //   'SELECT email, nome FROM usuarios WHERE id = ? AND tipo = "paciente"',
-//     //   [patientId]
-//     // );
-//     const [patients] = await db.query(
-//       'SELECT email, nome FROM usuarios WHERE id = ?',
-//       [patientId]
-//     );
-
-//     if (patients.length === 0) {
-//       return res.status(404).json({ error: 'Paciente não encontrado' });
-//     }
-
-//     const patient = patients[0];
-
-//     // Buscar dados do médico
-//     const [doctors] = await db.query(
-//       'SELECT nome FROM usuarios WHERE id = ? AND tipo = "medico"',
-//       [doctorId]
-//     );
-
-//     if (doctors.length === 0) {
-//       return res.status(404).json({ error: 'Médico não encontrado' });
-//     }
-
-//     const doctor = doctors[0];
-
-//     // Salvar alerta no banco de dados (opcional)
-//     await db.query(
-//       `INSERT INTO alertas (medico_id, paciente_id, titulo, mensagem, prioridade, data_envio)
-//        VALUES (?, ?, ?, ?, ?, NOW())`,
-//       [doctorId, patientId, title, message, priority]
-//     );
-
-//     // Enviar email usando o emailService
-//     await emailService.sendAlertEmail({
-//       to: patient.email,
-//       patientName: patient.nome,
-//       doctorName: doctor.nome,
-//       title,
-//       message,
-//       priority,
-//       sessionInfo
-//     });
-
-//     res.json({ 
-//       success: true, 
-//       message: 'Alerta enviado com sucesso' 
-//     });
-
-//   } catch (error) {
-//     console.error('❌ Erro ao enviar alerta:', error);
-//     res.status(500).json({ 
-//       error: error.message || 'Erro ao enviar alerta' 
-//     });
-//   }
-// };
-
+// Enviar alerta para paciente
 const sendAlert = async (req, res) => {
   try {
     const { patientId } = req.params;
     
-    // ✅ Aceita ambos os formatos (inglês e português)
+    // Aceita ambos os formatos (inglês e português)
     const {
       title, titulo,
       message, mensagem,
@@ -658,7 +809,7 @@ const sendAlert = async (req, res) => {
       });
     }
 
-    // Buscar médico (PostgreSQL)
+    // Buscar médico
     const doctorResult = await db.query(`
       SELECT m.id as medico_id, u.nome, u.email
       FROM medicos m
@@ -673,7 +824,7 @@ const sendAlert = async (req, res) => {
     const doctor = doctorResult.rows[0];
     console.log('Médico encontrado:', doctor.nome);
 
-    // Buscar paciente e verificar acesso (PostgreSQL)
+    // Buscar paciente e verificar acesso
     const patientResult = await db.query(`
       SELECT p.*, u.nome, u.email, u.id as usuario_id
       FROM pacientes p
@@ -690,7 +841,7 @@ const sendAlert = async (req, res) => {
     const patient = patientResult.rows[0];
     console.log('Paciente encontrado:', patient.nome);
 
-    // Criar notificação no banco de dados (PostgreSQL)
+    // Criar notificação no banco de dados
     const notificationResult = await db.query(`
       INSERT INTO notificacoes (
         usuario_destinatario_id,
@@ -770,16 +921,11 @@ const sendAlertToPatient = async (req, res) => {
     }
 
     // Buscar médico
-    const doctorResult = await db.query(
-      'SELECT id, usuario_id FROM medicos WHERE usuario_id = $1',
-      [req.user.id]
-    );
+    const medico_id = await helpers.getDoctorId(req.user.id);
 
-    if (doctorResult.rows.length === 0) {
+    if (!medico_id) {
       return res.status(404).json({ error: 'Médico não encontrado' });
     }
-
-    const medico_id = doctorResult.rows[0].id;
 
     // Buscar dados do médico (para o email)
     const doctorUserResult = await db.query(
@@ -829,8 +975,6 @@ const sendAlertToPatient = async (req, res) => {
     let emailSent = false;
     if (enviar_email && patient.email) {
       try {
-        const emailService = require('../services/emailService');
-        
         await emailService.sendAlertEmail({
           to: patient.email,
           patientName: patient.nome,
@@ -920,12 +1064,11 @@ const markNotificationAsRead = async (req, res) => {
 // Estatísticas do dashboard
 const getDashboardStats = async (req, res) => {
   try {
-    const doctorResult = await db.query('SELECT id FROM medicos WHERE usuario_id = $1', [req.user.id]);
-    if (doctorResult.rows.length === 0) {
+    const medico_id = await helpers.getDoctorId(req.user.id);
+    
+    if (!medico_id) {
       return res.status(404).json({ error: 'Médico não encontrado' });
     }
-
-    const medico_id = doctorResult.rows[0].id;
 
     // Total de pacientes
     const totalPatients = await db.query(
@@ -983,8 +1126,9 @@ const getPatientReport = async (req, res) => {
     const { patientId } = req.params;
     const { startDate, endDate } = req.query;
 
-    const doctorResult = await db.query('SELECT id FROM medicos WHERE usuario_id = $1', [req.user.id]);
-    if (doctorResult.rows.length === 0) {
+    const medico_id = await helpers.getDoctorId(req.user.id);
+    
+    if (!medico_id) {
       return res.status(404).json({ error: 'Médico não encontrado' });
     }
 
@@ -994,7 +1138,7 @@ const getPatientReport = async (req, res) => {
       FROM pacientes p
       JOIN usuarios u ON p.usuario_id = u.id
       WHERE p.id = $1 AND p.medico_responsavel_id = $2
-    `, [patientId, doctorResult.rows[0].id]);
+    `, [patientId, medico_id]);
 
     if (patientResult.rows.length === 0) {
       return res.status(403).json({ error: 'Acesso negado a este paciente' });
@@ -1050,7 +1194,7 @@ const getPatientReport = async (req, res) => {
 };
 
 // ===============================
-// Analytics estratégicos do paciente
+// Analytics estratégicos do paciente (SIMPLIFICADO)
 // ===============================
 const getPatientAnalytics = async (req, res) => {
   try {
@@ -1062,21 +1206,16 @@ const getPatientAnalytics = async (req, res) => {
     console.log('Período:', days, 'dias');
     
     // Verificar acesso do médico ao paciente
-    const doctorResult = await db.query('SELECT id FROM medicos WHERE usuario_id = $1', [req.user.id]);
+    const medico_id = await helpers.getDoctorId(req.user.id);
     
-    if (doctorResult.rows.length === 0) {
+    if (!medico_id) {
       return res.status(404).json({ error: 'Médico não encontrado' });
     }
-
-    const medico_id = doctorResult.rows[0].id;
     
     // Verificar se o paciente pertence ao médico
-    const patientCheck = await db.query(
-      'SELECT id FROM pacientes WHERE id = $1 AND medico_responsavel_id = $2',
-      [patientId, medico_id]
-    );
+    const hasAccess = await helpers.verifyDoctorAccess(patientId, medico_id);
 
-    if (patientCheck.rows.length === 0) {
+    if (!hasAccess) {
       return res.status(403).json({ error: 'Acesso negado a este paciente' });
     }
 
@@ -1084,282 +1223,81 @@ const getPatientAnalytics = async (req, res) => {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - parseInt(days));
 
-    // 1. DADOS DE PRESSÃO ARTERIAL
-    const pressureQuery = `
-      SELECT 
-        TO_CHAR(data_registro, 'DD/MM') as date,
-        pressao_arterial_sistolica as systolic,
-        pressao_arterial_diastolica as diastolic,
-        140 as "systolicIdeal",
-        90 as "diastolicIdeal"
-      FROM registros_dialise
-      WHERE paciente_id = $1 
-        AND data_registro >= $2
-      ORDER BY data_registro ASC
-    `;
-    const pressureData = await db.query(pressureQuery, [patientId, startDate]);
+    // Buscar todos os dados necessários
+    const [
+      pressureData,
+      ufData,
+      glucoseData,
+      sessionFrequency,
+      symptomsData
+    ] = await Promise.all([
+      analyticsHelpers.fetchPressureData(patientId, startDate),
+      analyticsHelpers.fetchUFData(patientId, startDate),
+      analyticsHelpers.fetchGlucoseData(patientId, startDate),
+      analyticsHelpers.fetchSessionFrequency(patientId, startDate),
+      analyticsHelpers.fetchSymptomsDistribution(patientId, startDate)
+    ]);
 
-    // 2. DADOS DE ULTRAFILTRAÇÃO
-    const ufQuery = `
-      SELECT 
-        TO_CHAR(data_registro, 'DD/MM') as date,
-        uf_total as uf
-      FROM registros_dialise
-      WHERE paciente_id = $1 
-        AND data_registro >= $2
-        AND uf_total IS NOT NULL
-      ORDER BY data_registro ASC
-    `;
-    const ufData = await db.query(ufQuery, [patientId, startDate]);
-
-    // 3. DADOS DE GLICOSE
-    const glucoseQuery = `
-      SELECT 
-        TO_CHAR(data_registro, 'DD/MM') as date,
-        concentracao_glicose as glucose
-      FROM registros_dialise
-      WHERE paciente_id = $1 
-        AND data_registro >= $2
-        AND concentracao_glicose IS NOT NULL
-      ORDER BY data_registro ASC
-    `;
-    const glucoseData = await db.query(glucoseQuery, [patientId, startDate]);
-
-    // 4. FREQUÊNCIA DE SESSÕES
-    const sessionFrequencyQuery = `
-      SELECT 
-        COUNT(*) as total,
-        COUNT(*) FILTER (WHERE data_registro >= CURRENT_DATE - INTERVAL '7 days') as last_week,
-        COUNT(*) FILTER (WHERE sintomas IS NOT NULL AND sintomas != '') as with_symptoms
-      FROM registros_dialise
-      WHERE paciente_id = $1 
-        AND data_registro >= $2
-    `;
-    const sessionFrequency = await db.query(sessionFrequencyQuery, [patientId, startDate]);
-    
-    // Calcular sessões esperadas (3x por semana)
+    // Calcular métricas
+    const totalSessions = parseInt(sessionFrequency.total);
+    const sessionsWithSymptoms = parseInt(sessionFrequency.with_symptoms);
     const expectedSessions = Math.floor(parseInt(days) / 7) * 3;
-
-    // 5. DISTRIBUIÇÃO DE SINTOMAS
-    const symptomsQuery = `
-      SELECT 
-        sintomas,
-        COUNT(*) as count
-      FROM registros_dialise
-      WHERE paciente_id = $1 
-        AND data_registro >= $2
-        AND sintomas IS NOT NULL 
-        AND sintomas != ''
-      GROUP BY sintomas
-      ORDER BY count DESC
-      LIMIT 5
-    `;
-    const symptomsResult = await db.query(symptomsQuery, [patientId, startDate]);
-    
-    // Cores para o gráfico de pizza
-    const symptomColors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'];
-    const symptomsDistribution = symptomsResult.rows.map((symptom, index) => ({
-      name: symptom.sintomas.substring(0, 30) + (symptom.sintomas.length > 30 ? '...' : ''),
-      value: parseInt(symptom.count),
-      color: symptomColors[index] || '#6b7280'
-    }));
-
-    // Adicionar "Sem sintomas" se houver sessões sem sintomas
-    const totalSessions = parseInt(sessionFrequency.rows[0].total);
-    const sessionsWithSymptoms = parseInt(sessionFrequency.rows[0].with_symptoms);
-    const sessionsWithoutSymptoms = totalSessions - sessionsWithSymptoms;
-    
-    if (sessionsWithoutSymptoms > 0) {
-      symptomsDistribution.push({
-        name: 'Sem sintomas',
-        value: sessionsWithoutSymptoms,
-        color: '#d1d5db'
-      });
-    }
-
-    // 6. CALCULAR TENDÊNCIAS E SCORES
-    
-    // Tendência de Pressão
-    const pressureAvg = pressureData.rows.reduce((acc, curr) => ({
-      systolic: acc.systolic + curr.systolic,
-      diastolic: acc.diastolic + curr.diastolic
-    }), { systolic: 0, diastolic: 0 });
-    
-    const pressureCount = pressureData.rows.length;
-    const avgSystolic = pressureCount > 0 ? pressureAvg.systolic / pressureCount : 0;
-    const avgDiastolic = pressureCount > 0 ? pressureAvg.diastolic / pressureCount : 0;
-    
-    const pressureScore = Math.max(0, 100 - Math.abs(130 - avgSystolic) - Math.abs(80 - avgDiastolic));
-    
-    let pressureStatus, pressureInsight;
-    if (avgSystolic < 90 || avgDiastolic < 60) {
-      pressureStatus = 'Baixa';
-      pressureInsight = 'Pressão arterial abaixo do ideal. Considere revisar medicações hipotensoras.';
-    } else if (avgSystolic > 140 || avgDiastolic > 90) {
-      pressureStatus = 'Alta';
-      pressureInsight = 'Pressão arterial elevada. Recomenda-se ajuste no tratamento anti-hipertensivo.';
-    } else {
-      pressureStatus = 'Controlada';
-      pressureInsight = 'Pressão arterial dentro dos parâmetros ideais. Manter tratamento atual.';
-    }
-
-    // Calcular mudança percentual (comparando primeira metade vs segunda metade)
-    const midPoint = Math.floor(pressureData.rows.length / 2);
-    const firstHalfAvg = pressureData.rows.slice(0, midPoint).reduce((acc, curr) => acc + curr.systolic, 0) / midPoint;
-    const secondHalfAvg = pressureData.rows.slice(midPoint).reduce((acc, curr) => acc + curr.systolic, 0) / (pressureData.rows.length - midPoint);
-    const pressureChange = firstHalfAvg > 0 ? ((secondHalfAvg - firstHalfAvg) / firstHalfAvg * 100).toFixed(1) : 0;
-    const pressureDirection = pressureChange > 0 ? 'up' : pressureChange < 0 ? 'down' : 'stable';
-
-    // Tendência de UF
-    const ufValues = ufData.rows.map(r => r.uf);
-    const ufAvg = ufValues.reduce((a, b) => a + b, 0) / ufValues.length || 0;
-    const ufMax = Math.max(...ufValues) || 0;
-    const ufMin = Math.min(...ufValues) || 0;
-    
-    const ufScore = Math.min(100, (ufAvg / 3000) * 100); // Score baseado em UF ideal de ~2.5-3L
-    
-    const ufFirstHalf = ufValues.slice(0, midPoint).reduce((a, b) => a + b, 0) / midPoint || 0;
-    const ufSecondHalf = ufValues.slice(midPoint).reduce((a, b) => a + b, 0) / (ufValues.length - midPoint) || 0;
-    const ufChange = ufFirstHalf > 0 ? ((ufSecondHalf - ufFirstHalf) / ufFirstHalf * 100).toFixed(1) : 0;
-    const ufDirection = ufChange > 0 ? 'up' : ufChange < 0 ? 'down' : 'stable';
-
-    // Tendência de Glicose
-    const glucoseValues = glucoseData.rows.map(r => r.glucose);
-    const glucoseAvg = glucoseValues.reduce((a, b) => a + b, 0) / glucoseValues.length || 0;
-    
-    let glucoseStatus;
-    if (glucoseAvg < 70) {
-      glucoseStatus = 'Baixa';
-    } else if (glucoseAvg > 180) {
-      glucoseStatus = 'Alta';
-    } else {
-      glucoseStatus = 'Controlada';
-    }
-    
-    const glucoseScore = Math.max(0, 100 - Math.abs(100 - glucoseAvg) * 0.5);
-
-    // Score de Aderência (baseado em frequência de sessões)
-    const complianceScore = Math.min(100, (totalSessions / expectedSessions) * 100).toFixed(0);
-
-    // Score de Sintomas (quanto menos sintomas, melhor)
+    const complianceScore = Math.min(100, (totalSessions / expectedSessions) * 100);
     const symptomsScore = Math.max(0, 100 - (sessionsWithSymptoms / totalSessions * 100));
+    const symptomsRatio = sessionsWithSymptoms / totalSessions;
 
-    // 7. PREDIÇÕES E RECOMENDAÇÕES
-    const recommendations = [];
+    // Analisar tendências
+    const pressureTrend = analyticsHelpers.analyzePressureTrend(pressureData);
+    const ufTrend = analyticsHelpers.analyzeUFTrend(ufData);
+    const glucoseTrend = analyticsHelpers.analyzeGlucoseTrend(glucoseData);
 
-    // Recomendação sobre pressão
-    if (avgSystolic > 140 || avgDiastolic > 90) {
-      recommendations.push({
-        priority: 'high',
-        title: 'Ajuste na Medicação Anti-Hipertensiva',
-        description: 'A pressão arterial está consistentemente elevada. Considere aumentar a dose ou adicionar um novo anti-hipertensivo.'
-      });
-    }
+    // Processar sintomas
+    const symptomsDistribution = analyticsHelpers.processSymptomsDistribution(
+      symptomsData,
+      totalSessions,
+      sessionsWithSymptoms
+    );
 
-    // Recomendação sobre UF
-    if (ufAvg < 2000) {
-      recommendations.push({
-        priority: 'medium',
-        title: 'Volume de Ultrafiltração Baixo',
-        description: 'O volume de UF está abaixo do esperado. Verifique se há retenção hídrica ou ajuste o peso seco.'
-      });
-    } else if (ufAvg > 3500) {
-      recommendations.push({
-        priority: 'medium',
-        title: 'Volume de Ultrafiltração Alto',
-        description: 'UF elevado pode indicar excesso de ganho de peso interdialítico. Reforçar orientações sobre controle hídrico.'
-      });
-    }
+    // Gerar recomendações
+    const recommendations = analyticsHelpers.generateRecommendations(
+      pressureTrend,
+      ufTrend,
+      glucoseTrend,
+      complianceScore,
+      symptomsRatio
+    );
 
-    // Recomendação sobre glicose
-    if (glucoseAvg > 180) {
-      recommendations.push({
-        priority: 'high',
-        title: 'Controle Glicêmico Inadequado',
-        description: 'Glicemia acima da meta. Revisar medicação hipoglicemiante e reforçar orientação nutricional.'
-      });
-    }
+    // Calcular score geral
+    const avgScore = (
+      complianceScore + 
+      pressureTrend.score + 
+      ufTrend.score + 
+      glucoseTrend.score + 
+      symptomsScore
+    ) / 5;
 
-    // Recomendação sobre aderência
-    if (complianceScore < 80) {
-      recommendations.push({
-        priority: 'high',
-        title: 'Baixa Aderência ao Tratamento',
-        description: 'Paciente faltando a sessões programadas. Investigar barreiras e reforçar importância da regularidade.'
-      });
-    }
+    const overallStatus = analyticsHelpers.calculateOverallStatus(avgScore);
 
-    // Recomendação sobre sintomas
-    if (sessionsWithSymptoms / totalSessions > 0.3) {
-      recommendations.push({
-        priority: 'medium',
-        title: 'Sintomas Frequentes Durante Diálise',
-        description: 'Paciente relatando sintomas em mais de 30% das sessões. Avaliar parâmetros da diálise e condições clínicas.'
-      });
-    }
-
-    // Recomendações positivas
-    if (complianceScore >= 90 && pressureStatus === 'Controlada') {
-      recommendations.push({
-        priority: 'low',
-        title: 'Excelente Evolução',
-        description: 'Paciente com ótima aderência e controle adequado dos parâmetros. Manter acompanhamento regular.'
-      });
-    }
-
-    // Status geral
-    let overallStatus;
-    const avgScore = (complianceScore + pressureScore + ufScore + glucoseScore + symptomsScore) / 5;
-    
-    if (avgScore >= 80) {
-      overallStatus = 'Paciente com excelente evolução e controle adequado dos parâmetros. Manter tratamento atual.';
-    } else if (avgScore >= 60) {
-      overallStatus = 'Paciente com evolução satisfatória, mas alguns parâmetros necessitam atenção.';
-    } else {
-      overallStatus = 'Paciente necessita ajustes no tratamento. Considere reavaliação clínica completa.';
-    }
-
-    // 8. RESPOSTA FINAL
+    // Montar resposta
     const analyticsData = {
-      pressureData: pressureData.rows,
-      ufData: ufData.rows,
-      glucoseData: glucoseData.rows,
+      pressureData,
+      ufData,
+      glucoseData,
       sessionFrequency: {
         total: totalSessions,
         expected: expectedSessions,
-        lastWeek: parseInt(sessionFrequency.rows[0].last_week),
+        lastWeek: parseInt(sessionFrequency.last_week),
         withSymptoms: sessionsWithSymptoms
       },
       symptomsDistribution,
       complianceScore: parseInt(complianceScore),
       trends: {
-        pressure: {
-          status: pressureStatus,
-          average: {
-            systolic: Math.round(avgSystolic),
-            diastolic: Math.round(avgDiastolic)
-          },
-          direction: pressureDirection,
-          change: pressureChange,
-          insight: pressureInsight,
-          score: Math.round(pressureScore)
-        },
-        uf: {
-          average: Math.round(ufAvg),
-          max: Math.round(ufMax),
-          min: Math.round(ufMin),
-          direction: ufDirection,
-          change: ufChange,
-          score: Math.round(ufScore)
-        },
-        glucose: {
-          status: glucoseStatus,
-          average: Math.round(glucoseAvg),
-          score: Math.round(glucoseScore)
-        },
+        pressure: pressureTrend,
+        uf: ufTrend,
+        glucose: glucoseTrend,
         symptoms: {
           total: sessionsWithSymptoms,
-          percentage: ((sessionsWithSymptoms / totalSessions) * 100).toFixed(1),
+          percentage: (symptomsRatio * 100).toFixed(1),
           score: Math.round(symptomsScore)
         }
       },
@@ -1387,12 +1325,11 @@ const getGeneralReport = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     
-    const doctorResult = await db.query('SELECT id FROM medicos WHERE usuario_id = $1', [req.user.id]);
-    if (doctorResult.rows.length === 0) {
+    const medico_id = await helpers.getDoctorId(req.user.id);
+    
+    if (!medico_id) {
       return res.status(404).json({ error: 'Médico não encontrado' });
     }
-
-    const medico_id = doctorResult.rows[0].id;
 
     // Lista de pacientes
     const patients = await db.query(`
@@ -1486,6 +1423,7 @@ module.exports = {
   getPatientDocuments,
   sendRecommendation,
   sendAlert,
+  sendAlertToPatient,
   getNotifications,
   markNotificationAsRead,
   getDashboardStats,
