@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Histórico completo para análise
+          fetch-depth: 0 # Histórico completo para análise
 
       - name: SonarCloud Scan
       # Use a ação recomendada (v5.0.0 é a mais estável)
