@@ -1,59 +1,85 @@
 name: SonarCloud Analysis
 
-
-
 on:
-
   push:
-
     branches:
-
       - main
-
       - develop
-
   pull_request:
-
     types: [opened, synchronize, reopened]
 
-
-
 jobs:
-
   sonarcloud:
-
     name: SonarCloud
-
     runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Histórico completo para análise
+
+      - name: SonarCloud Scan
+      # Use a ação recomendada (v5.0.0 é a mais estável)
+        uses: SonarSource/sonarqube-scan-action@v5.0.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+#           # ⬅️ ADICIONE ESTAS DUAS LINHAS ⬅️
+          projectKey: SUA_CHAVE_DE_PROJETO 
+          organization: SEU_ID_DE_ORGANIZACAO
+
+# on:
+
+#   push:
+
+#     branches:
+
+#       - main
+
+#       - develop
+
+#   pull_request:
+
+#     types: [opened, synchronize, reopened]
+
+
+
+# jobs:
+
+#   sonarcloud:
+
+#     name: SonarCloud
+
+#     runs-on: ubuntu-latest
 
    
 
-    steps:
+#     steps:
 
-      - uses: actions/checkout@v3
+#       - uses: actions/checkout@v3
 
-        with:
+#         with:
 
-          fetch-depth: 0  # Histórico completo para análise
+#           fetch-depth: 0  # Histórico completo para análise
 
      
 
-      - name: SonarCloud Scan
+#       - name: SonarCloud Scan
 
-        # uses: SonarSource/sonarcloud-github-action@master
-        uses: SonarSource/sonarqube-scan-action@v5.0.0
+#         # uses: SonarSource/sonarcloud-github-action@master
+#         uses: SonarSource/sonarqube-scan-action@v5.0.0
         
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          run: |
-            sonar-scanner \
-              -Dsonar.organization="gabriela-oliveira-portifolio" \
-              -Dsonar.projectKey="Gabriela-Oliveira-Portifolio_dialyhome-demoday"
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+#           run: |
+#             sonar-scanner \
+#               -Dsonar.organization="gabriela-oliveira-portifolio" \
+#               -Dsonar.projectKey="Gabriela-Oliveira-Portifolio_dialyhome-demoday"
 
-        # env:
+#         # env:
 
-        #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#         #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-        #   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+#         #   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
