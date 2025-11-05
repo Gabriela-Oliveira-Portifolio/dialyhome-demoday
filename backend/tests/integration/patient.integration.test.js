@@ -33,6 +33,7 @@ describe('Patient Routes - Profile & Stats Integration Tests', () => {
         // 1. Limpar banco de teste (MUITO IMPORTANTE A ORDEM)
         await db.query('DELETE FROM tokens_invalidados');
         await db.query('DELETE FROM registros_dialise');
+        await db.query('DELETE FROM tokens_invalidados');
         await db.query('DELETE FROM pacientes');
         await db.query('DELETE FROM medicos');
         await db.query('DELETE FROM usuarios');
