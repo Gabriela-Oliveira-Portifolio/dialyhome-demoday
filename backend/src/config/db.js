@@ -3,8 +3,8 @@ require("dotenv").config();
 
 async function connect() {
     
-    if(global.connection)
-        return global.connection.connect();
+    if(globalThis.connection)
+        return globalThis.connection.connect();
 
 
     const { Pool } = require("pg");
@@ -20,7 +20,7 @@ async function connect() {
     console.log(res.rows[0]);
 
     client.release();
-    global.connection = pool;
+    globalThis.connection = pool;
     return pool.connect();
 }
 

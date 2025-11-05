@@ -1,5 +1,5 @@
 // test-db.js
-const db = require('./src/config/database');
+const db = require('../../src/config/database');
 
 async function testConnection() {
   try {

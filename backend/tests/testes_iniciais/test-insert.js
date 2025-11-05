@@ -1,5 +1,5 @@
 // test-insert.js
-const db = require('./src/config/database');
+const db = require('../../src/config/database');
 const bcrypt = require('bcryptjs');
 
 async function testInsert() {

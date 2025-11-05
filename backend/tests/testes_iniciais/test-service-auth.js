@@ -1,4 +1,4 @@
-const authService = require('./src/services/authService');
+const authService = require('../../src/services/authService');
 require('dotenv').config();
 
 async function testarManualmente() {
