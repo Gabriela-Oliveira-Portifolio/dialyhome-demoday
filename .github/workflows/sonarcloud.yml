@@ -27,6 +27,8 @@ jobs:
           args: >
             -Dsonar.organization=gabriela-oliveira-portifolio
             -Dsonar.projectKey=Gabriela-Oliveira-Portifolio_dialyhome-demoday
+            -Dsonar.exclusions=**/node_modules/**,**/*.min.js,**/*.d.ts
+            -Dsonar.coverage.exclusions=**/node_modules/**,**/*.min.js,**/*.d.ts
 # on:
 
 #   push:
