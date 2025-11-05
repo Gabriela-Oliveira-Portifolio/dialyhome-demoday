@@ -128,6 +128,16 @@ const setupTestDatabase = async () => {
         data_operacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         ip_address VARCHAR(45)
       );
+
+      CREATE TABLE IF NOT EXISTS tokens_invalidados (
+                id SERIAL PRIMARY KEY,
+                token TEXT NOT NULL UNIQUE,
+                usuario_id INTEGER NOT NULL,
+                data_invalidacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                motivo VARCHAR(100),
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+            );
+
     `);
 
     console.log('✅ Tabelas criadas com sucesso!');
