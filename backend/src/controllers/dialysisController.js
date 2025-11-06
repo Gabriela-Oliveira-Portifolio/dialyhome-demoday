@@ -134,11 +134,8 @@ const getRecords = async (req, res) => {
       `SELECT 
         id,
         data_registro,
-        horario_inicio,
-        horario_fim,
         pressao_arterial_sistolica,
         pressao_arterial_diastolica,
-        drenagem_inicial,
         uf_total,
         tempo_permanencia,
         concentracao_glicose,

@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/12</span>
+                <span class='fraction'>12/12</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/12</span>
+                <span class='fraction'>12/12</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -93,68 +93,68 @@
 <a name='L28'></a><a href='#L28'>28</a>
 <a name='L29'></a><a href='#L29'>29</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// backend/src/routes/messaging.js
+<span class="cline-any cline-yes">2x</span></td><td class="text"><pre class="prettyprint lang-js">// backend/src/routes/messaging.js
 &nbsp;
-const express = <span class="cstat-no" title="statement not covered" >require('express');</span>
-const router = <span class="cstat-no" title="statement not covered" >express.Router();</span>
-const { authenticateToken } = <span class="cstat-no" title="statement not covered" >require('../middleware/auth');</span>
-const messagingController = <span class="cstat-no" title="statement not covered" >require('../controllers/messagingController');</span>
+const express = require('express');
+const router = express.Router();
+const { authenticateToken } = require('../middleware/auth');
+const messagingController = require('../controllers/messagingController');
 &nbsp;
 // Todas as rotas requerem autenticação
-<span class="cstat-no" title="statement not covered" >router.use(authenticateToken);</span>
+router.use(authenticateToken);
 &nbsp;
 // POST /api/messaging/send - Enviar mensagem
-<span class="cstat-no" title="statement not covered" >router.post('/send', messagingController.sendMessage);</span>
+router.post('/send', messagingController.sendMessage);
 &nbsp;
 // GET /api/messaging/conversations - Listar todas as conversas
-<span class="cstat-no" title="statement not covered" >router.get('/conversations', messagingController.getConversations);</span>
+router.get('/conversations', messagingController.getConversations);
 &nbsp;
 // GET /api/messaging/:userId - Obter mensagens de uma conversa específica
-<span class="cstat-no" title="statement not covered" >router.get('/:userId', messagingController.getMessages);</span>
+router.get('/:userId', messagingController.getMessages);
 &nbsp;
 // PUT /api/messaging/:messageId/read - Marcar mensagem como lida
-<span class="cstat-no" title="statement not covered" >router.put('/:messageId/read', messagingController.markAsRead);</span>
+router.put('/:messageId/read', messagingController.markAsRead);
 &nbsp;
 // DELETE /api/messaging/:messageId - Deletar mensagem
-<span class="cstat-no" title="statement not covered" >router.delete('/:messageId', messagingController.deleteMessage);</span>
+router.delete('/:messageId', messagingController.deleteMessage);
 &nbsp;
 // GET /api/messaging/contact/info - Obter informações do contato (médico ou pacientes)
-<span class="cstat-no" title="statement not covered" >router.get('/contact/info', messagingController.getContactInfo);</span>
+router.get('/contact/info', messagingController.getContactInfo);
 &nbsp;
-<span class="cstat-no" title="statement not covered" >module.exports = router;</span></pre></td></tr></table></pre>
+module.exports = router;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-11-03T23:59:31.606Z
+                at 2025-11-06T16:00:01.357Z
             </div>
         <script src="../prettify.js"></script>
         <script>

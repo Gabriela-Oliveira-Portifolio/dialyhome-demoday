@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/11</span>
+                <span class='fraction'>11/11</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/11</span>
+                <span class='fraction'>11/11</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -120,7 +120,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -128,25 +128,25 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// const express = require('express');
 // const { getProfile, updateProfile, changePassword, getUserById, toggleUserStatus, deleteUser  } = require('../controllers/userController');
 // const router = express.Router();
@@ -162,7 +162,7 @@
 // module.exports = router;
 &nbsp;
 &nbsp;
-const express = <span class="cstat-no" title="statement not covered" >require('express');</span>
+const express = require('express');
 const { 
   getProfile, 
   updateProfile, 
@@ -170,25 +170,25 @@ const {
   getUserById, 
   toggleUserStatus, 
   deleteUser  
-} = <span class="cstat-no" title="statement not covered" >require('../controllers/userController');</span>
+} = require('../controllers/userController');
 &nbsp;
-const { authenticateToken, authorizeRole } = <span class="cstat-no" title="statement not covered" >require('../middleware/auth');</span>
+const { authenticateToken, authorizeRole } = require('../middleware/auth');
 &nbsp;
-const router = <span class="cstat-no" title="statement not covered" >express.Router();</span>
+const router = express.Router();
 &nbsp;
 // 🔒 Todas essas rotas exigem login
-<span class="cstat-no" title="statement not covered" >router.get('/getProfile', authenticateToken, getProfile);</span>
-<span class="cstat-no" title="statement not covered" >router.put('/updateProfile', authenticateToken, updateProfile);</span>
-<span class="cstat-no" title="statement not covered" >router.put('/changePassword', authenticateToken, changePassword);</span>
+router.get('/getProfile', authenticateToken, getProfile);
+router.put('/updateProfile', authenticateToken, updateProfile);
+router.put('/changePassword', authenticateToken, changePassword);
 &nbsp;
 // 🔒 Rotas só para administradores
-<span class="cstat-no" title="statement not covered" >router.get('/:id', authenticateToken, authorizeRole(['admin']), getUserById);</span>
+router.get('/:id', authenticateToken, authorizeRole(['admin']), getUserById);
 // router.get('/:id', getUserById);
 &nbsp;
-<span class="cstat-no" title="statement not covered" >router.put('/:id/toggle-status', authenticateToken, authorizeRole(['admin']), toggleUserStatus);</span>
-<span class="cstat-no" title="statement not covered" >router.delete('/:id', authenticateToken, authorizeRole(['admin']), deleteUser);</span>
+router.put('/:id/toggle-status', authenticateToken, authorizeRole(['admin']), toggleUserStatus);
+router.delete('/:id', authenticateToken, authorizeRole(['admin']), deleteUser);
 &nbsp;
-<span class="cstat-no" title="statement not covered" >module.exports = router;</span>
+module.exports = router;
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -196,7 +196,7 @@ const router = <span class="cstat-no" title="statement not covered" >express.Rou
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-11-03T23:59:31.606Z
+                at 2025-11-06T16:00:01.357Z
             </div>
         <script src="../prettify.js"></script>
         <script>
