@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Heart, Clock, Activity, Droplet, FileText, Calendar, 
+  Heart, Activity, Droplet, FileText, Calendar, 
   TrendingUp, ArrowLeft, Filter, Download,
   AlertCircle, CheckCircle, Bell, User, LogOut
 } from 'lucide-react';

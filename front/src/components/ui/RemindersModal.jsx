@@ -72,7 +72,7 @@ const RemindersModal = ({ isOpen, onClose }) => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Tem certeza que deseja deletar este lembrete?')) return;
+    if (!globalThis.confirm('Tem certeza que deseja deletar este lembrete?')) return;
 
     try {
       await deleteReminder(id);

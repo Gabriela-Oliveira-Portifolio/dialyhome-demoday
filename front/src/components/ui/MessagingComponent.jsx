@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  MessageCircle, Send, X, User, Search, ChevronLeft,
-  MoreVertical, Trash2, Check, CheckCheck, Clock
+  MessageCircle, Send, X, Search, ChevronLeft,
+  Check, CheckCheck
 } from 'lucide-react';
 import {
   sendMessage,

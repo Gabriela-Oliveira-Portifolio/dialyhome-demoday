@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, X, AlertCircle, ThermometerSun, Wind, Heart } from 'lucide-react';
+import { Activity, X, AlertCircle, Wind, Heart } from 'lucide-react';
 import { getPredefinedSymptoms, registerIsolatedSymptom } from '../../services/symptoms';
 
 const SymptomsModal = ({ isOpen, onClose, onSymptomRegistered }) => {

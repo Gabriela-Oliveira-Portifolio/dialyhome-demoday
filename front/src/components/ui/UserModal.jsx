@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, Mail, Lock, Shield, Calendar, Phone, MapPin, Activity } from 'lucide-react';
+import { X, Save, User, Shield, Activity } from 'lucide-react';
 
 const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) => {
   const [loading, setLoading] = useState(false);

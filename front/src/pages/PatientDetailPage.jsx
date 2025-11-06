@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Calendar, Activity, Heart, AlertCircle,
-  Pill, FileText, TrendingUp, Download, Send, Plus
+  ArrowLeft, Activity, Heart, AlertCircle,
+  Pill, FileText, TrendingUp, Send
 } from 'lucide-react';
 import {
   getPatientDetails,
