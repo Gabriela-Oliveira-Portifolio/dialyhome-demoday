@@ -1362,7 +1362,7 @@ const UserGrowthChart = ({ data }) => {
     if (!groupedData[month]) {
       groupedData[month] = { pacientes: 0, medicos: 0, admin: 0 };
     }
-    groupedData[month][item.tipo_usuario] = parseInt(item.total);
+    groupedData[month][item.tipo_usuario] = Number.parseInt(item.total);
   });
 
   const months = Object.keys(groupedData).slice(-6);
@@ -1423,14 +1423,14 @@ UserGrowthChart.propTypes = {
 const WeeklyPatternChart = ({ data }) => {
   const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
   const sortedData = [...data].sort((a, b) => a.dia_num - b.dia_num);
-  const maxRegistros = Math.max(...sortedData.map(d => parseInt(d.registros))) || 10;
+  const maxRegistros = Math.max(...sortedData.map(d => Number.parseInt(d.registros))) || 10;
 
   return (
     <div style={{ width: '100%', height: '300px' }}>
       <svg width="100%" height="100%" viewBox="0 0 800 300">
         {sortedData.map((d, i) => {
           const x = 100 + i * 100;
-          const barHeight = (parseInt(d.registros) / maxRegistros) * 200;
+          const barHeight = (Number.parseInt(d.registros) / maxRegistros) * 200;
           
           return (
             <g key={i}>
@@ -1468,7 +1468,7 @@ WeeklyPatternChart.propTypes = {
 
 const SymptomsChart = ({ data }) => {
   const topSymptoms = data.slice(0, 8);
-  const maxFreq = Math.max(...topSymptoms.map(s => parseInt(s.frequencia))) || 10;
+  const maxFreq = Math.max(...topSymptoms.map(s => Number.parseInt(s.frequencia))) || 10;
 
   const getCategoryColor = (categoria) => {
     const colors = {
@@ -1496,7 +1496,7 @@ const SymptomsChart = ({ data }) => {
           </div>
           <div style={{ width: '100%', height: '24px', background: '#f3f4f6', borderRadius: '12px', overflow: 'hidden' }}>
             <div style={{
-              width: `${(parseInt(symptom.frequencia) / maxFreq) * 100}%`,
+              width: `${(Number.parseInt(symptom.frequencia) / maxFreq) * 100}%`,
               height: '100%',
               background: getCategoryColor(symptom.categoria),
               transition: 'width 0.3s ease',
@@ -1602,8 +1602,8 @@ const BloodPressureChart = ({ data }) => {
         ))}
         {topPatients.map((patient, i) => {
           const x = 170 + i * 80;
-          const systolicHeight = (parseInt(patient.sistolica_media) / 180) * 200;
-          const diastolicHeight = (parseInt(patient.diastolica_media) / 180) * 200;
+          const systolicHeight = (Number.parseInt(patient.sistolica_media) / 180) * 200;
+          const diastolicHeight = (Number.parseInt(patient.diastolica_media) / 180) * 200;
           
           const status = patient.status;
           const color = status === 'Normal' ? '#10b981' : status === 'Monitorar' ? '#f59e0b' : '#ef4444';
@@ -1648,7 +1648,7 @@ BloodPressureChart.propTypes = {
 };
 
 const UltrafiltrationChart = ({ data }) => {
-  const maxUF = Math.max(...data.map(d => parseFloat(d.uf_media))) || 1000;
+  const maxUF = Math.max(...data.map(d => Number.parseFloat(d.uf_media))) || 1000;
   
   return (
     <div style={{ width: '100%', height: '300px' }}>
@@ -1664,7 +1664,7 @@ const UltrafiltrationChart = ({ data }) => {
         <polygon
           points={`80,250 ${data.map((d, i) => {
             const x = 80 + (i * 870 / (data.length - 1));
-            const y = 250 - ((parseFloat(d.uf_media) / maxUF) * 200);
+            const y = 250 - ((Number.parseFloat(d.uf_media) / maxUF) * 200);
             return `${x},${y}`;
           }).join(' ')} 950,250`}
           fill="url(#ufGradient)"
@@ -1672,7 +1672,7 @@ const UltrafiltrationChart = ({ data }) => {
         <polyline
           points={data.map((d, i) => {
             const x = 80 + (i * 870 / (data.length - 1));
-            const y = 250 - ((parseFloat(d.uf_media) / maxUF) * 200);
+            const y = 250 - ((Number.parseFloat(d.uf_media) / maxUF) * 200);
             return `${x},${y}`;
           }).join(' ')}
           fill="none"
@@ -1681,7 +1681,7 @@ const UltrafiltrationChart = ({ data }) => {
         />
         {data.map((d, i) => {
           const x = 80 + (i * 870 / (data.length - 1));
-          const y = 250 - ((parseFloat(d.uf_media) / maxUF) * 200);
+          const y = 250 - ((Number.parseFloat(d.uf_media) / maxUF) * 200);
           return (
             <circle key={i} cx={x} cy={y} r="5" fill="#14b8a6" />
           );
@@ -2745,9 +2745,10 @@ const UserModal = ({ type, user, onClose, onSuccess }) => {
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem' }}>
+                {/* <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem' }}>
                   Nome Completo *
-                </label>
+                </label> */}
+                <label htmlFor="NomeCompleto" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem' }}>Nome Completo *</label>
                 <input
                   type="text"
                   value={formData.nome}
@@ -2759,9 +2760,10 @@ const UserModal = ({ type, user, onClose, onSuccess }) => {
               </div>
 
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem' }}>
+                {/* <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem' }}>
                   Email *
-                </label>
+                </label> */}
+                <label htmlFor="Email" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem' }}>Email *</label>
                 <input
                   type="email"
                   value={formData.email}
@@ -2774,9 +2776,10 @@ const UserModal = ({ type, user, onClose, onSuccess }) => {
 
               {type === 'create' && (
                 <div>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem' }}>
+                  {/* <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem' }}>
                     Senha *
-                  </label>
+                  </label> */}
+                  <label htmlFor="Senha" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem' }}>Senha *</label>
                   <div style={{ position: 'relative' }}>
                     <input
                       type={showPassword ? "text" : "password"}
@@ -2809,9 +2812,10 @@ const UserModal = ({ type, user, onClose, onSuccess }) => {
               )}
 
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem' }}>
+                {/* <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem' }}>
                   Tipo de Usuário *
-                </label>
+                </label> */}
+                <label htmlFor="TipodeUsuario" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem' }}>Tipo de Usuário *</label>
                 <select
                   value={formData.tipo_usuario}
                   onChange={(e) => handleChange('tipo_usuario', e.target.value)}
@@ -2841,7 +2845,8 @@ const UserModal = ({ type, user, onClose, onSuccess }) => {
               
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                 <div>
-                  <label style={labelStyle}>CPF</label>
+                  {/* <label style={labelStyle}>CPF</label> */}
+                  <label htmlFor="CPF" style={labelStyle}>CPF</label>
                   <input
                     type="text"
                     value={formData.cpf}
@@ -2853,7 +2858,8 @@ const UserModal = ({ type, user, onClose, onSuccess }) => {
                 </div>
 
                 <div>
-                  <label style={labelStyle}>Data de Nascimento</label>
+                  {/* <label style={labelStyle}>Data de Nascimento</label> */}
+                  <label htmlFor="DatadeNascimento" style={labelStyle}>Data de Nascimento</label>
                   <input
                     type="date"
                     value={formData.data_nascimento}
@@ -2863,7 +2869,8 @@ const UserModal = ({ type, user, onClose, onSuccess }) => {
                 </div>
 
                 <div>
-                  <label style={labelStyle}>Telefone</label>
+                  {/* <label style={labelStyle}>Telefone</label> */}
+                  <label htmlFor="Telefone" style={labelStyle}>Telefone</label>
                   <input
                     type="tel"
                     value={formData.telefone}
@@ -2874,7 +2881,8 @@ const UserModal = ({ type, user, onClose, onSuccess }) => {
                 </div>
 
                 <div>
-                  <label style={labelStyle}>Peso Inicial (kg)</label>
+                  {/* <label style={labelStyle}>Peso Inicial (kg)</label> */}
+                  <label htmlFor="PesoInicial" style={labelStyle}>Peso Inicial (kg)</label>
                   <input
                     type="number"
                     step="0.1"
@@ -2886,7 +2894,8 @@ const UserModal = ({ type, user, onClose, onSuccess }) => {
                 </div>
 
                 <div>
-                  <label style={labelStyle}>Altura (m)</label>
+                  {/* <label style={labelStyle}>Altura (m)</label> */}
+                  <label htmlFor="Altura" style={labelStyle}>Altura (m)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -2898,7 +2907,8 @@ const UserModal = ({ type, user, onClose, onSuccess }) => {
                 </div>
 
                 <div>
-                  <label style={labelStyle}>Data Início Tratamento</label>
+                  {/* <label style={labelStyle}>Data Início Tratamento</label> */}
+                  <label htmlFor="DataInicioTratamento" style={labelStyle}>Data Início Tratamento</label>
                   <input
                     type="date"
                     value={formData.data_inicio_tratamento}
@@ -2908,7 +2918,8 @@ const UserModal = ({ type, user, onClose, onSuccess }) => {
                 </div>
 
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={labelStyle}>Endereço</label>
+                  {/* <label style={labelStyle}>Endereço</label> */}
+                  <label htmlFor="Endereco" style={labelStyle}>Endereço</label>
                   <input
                     type="text"
                     value={formData.endereco}
@@ -2919,7 +2930,8 @@ const UserModal = ({ type, user, onClose, onSuccess }) => {
                 </div>
 
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={labelStyle}>Observações Médicas</label>
+                  {/* <label style={labelStyle}>Observações Médicas</label> */}
+                  <label htmlFor="observacoesMedicas" style={labelStyle}>Observações Médicas</label>
                   <textarea
                     value={formData.observacoes_medicas}
                     onChange={(e) => handleChange('observacoes_medicas', e.target.value)}
@@ -2946,7 +2958,9 @@ const UserModal = ({ type, user, onClose, onSuccess }) => {
               
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                 <div>
-                  <label style={labelStyle}>CRM *</label>
+                  {/* <label style={labelStyle}>CRM *</label> */}
+                  <label htmlFor="CRM" style={labelStyle}>CRM *</label>
+
                   <input
                     type="text"
                     value={formData.crm}
@@ -2958,7 +2972,8 @@ const UserModal = ({ type, user, onClose, onSuccess }) => {
                 </div>
 
                 <div>
-                  <label style={labelStyle}>Especialidade</label>
+                  <label htmlFor="Especialidade" style={labelStyle}>Especialidade</label>
+                  {/* <label style={labelStyle}>Especialidade</label> */}
                   <input
                     type="text"
                     value={formData.especialidade}
@@ -2969,7 +2984,7 @@ const UserModal = ({ type, user, onClose, onSuccess }) => {
                 </div>
 
                 <div>
-                  <label style={labelStyle}>Telefone de Contato</label>
+                  <label htmlFor="telefoneContato" style={labelStyle}>Telefone de Contato</label>
                   <input
                     type="tel"
                     value={formData.telefone_contato}
@@ -2980,7 +2995,7 @@ const UserModal = ({ type, user, onClose, onSuccess }) => {
                 </div>
 
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={labelStyle}>Local de Atendimento</label>
+                  <label htmlFor="localAtendimento" style={labelStyle}>Local de Atendimento</label>
                   <input
                     type="text"
                     value={formData.local_atendimento}
