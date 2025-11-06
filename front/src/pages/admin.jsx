@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Users, UserPlus, Activity, Shield, FileText, Database,
-  TrendingUp, AlertCircle, CheckCircle, Clock, Search,
-  Filter, Download, RefreshCw, Settings, LogOut, Bell,
-  BarChart3, PieChart, Calendar, X, Save, Edit, Trash2
+  TrendingUp, AlertCircle, CheckCircle, Search,
+  RefreshCw, Settings, LogOut,
+  BarChart3, PieChart, X, Save, Edit, Trash2
 } from 'lucide-react';
 import adminService from '../services/adminService';
+import PropTypes from 'prop-types';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -93,7 +94,7 @@ const AdminDashboard = () => {
   };
 
   const handleDeleteUser = async (userId) => {
-    if (!window.confirm('Tem certeza que deseja inativar este usuário?')) return;
+    if (!globalThis.confirm('Tem certeza que deseja inativar este usuário?')) return;
     
     try {
       await adminService.deleteUser(userId);
@@ -117,7 +118,7 @@ const AdminDashboard = () => {
   const handleLogout = () => {
     localStorage.clear();
     sessionStorage.clear();
-    window.location.href = '/login';
+    globalThis.location.href = '/login';
   };
 
   // Aplicar filtros quando mudarem
@@ -284,6 +285,10 @@ const Header = ({ onLogout }) => (
   </header>
 );
 
+Header.propTypes = {
+  onLogout: PropTypes.func.isRequired
+};
+
 const NavigationTabs = ({ activeTab, setActiveTab }) => {
   const tabs = [
     { id: 'dashboard', icon: BarChart3, label: 'Dashboard' },
@@ -324,6 +329,12 @@ const NavigationTabs = ({ activeTab, setActiveTab }) => {
   );
 };
 
+NavigationTabs.propTypes = {
+  activeTab: PropTypes.string.isRequired,
+  setActiveTab: PropTypes.func.isRequired
+};
+
+
 const NavTab = ({ active, onClick, icon: Icon, label }) => (
   <button
     onClick={onClick}
@@ -347,6 +358,14 @@ const NavTab = ({ active, onClick, icon: Icon, label }) => (
     {label}
   </button>
 );
+
+NavTab.propTypes = {
+  active: PropTypes.bool.isRequired,
+  onClick: PropTypes.func.isRequired,
+  icon: PropTypes.elementType.isRequired,
+  label: PropTypes.string.isRequired
+};
+
 
 const Alert = ({ type, message, onClose }) => (
   <div style={{
@@ -386,6 +405,12 @@ const Alert = ({ type, message, onClose }) => (
     </button>
   </div>
 );
+
+Alert.propTypes = {
+  type: PropTypes.oneOf(['error', 'success']).isRequired,
+  message: PropTypes.string.isRequired,
+  onClose: PropTypes.func.isRequired
+};
 
 const DashboardView = ({ stats }) => {
   if (!stats) return null;
@@ -490,6 +515,19 @@ const DashboardView = ({ stats }) => {
       </div>
     </div>
   );
+};
+
+DashboardView.propTypes = {
+  stats: PropTypes.shape({
+    totalUsers: PropTypes.number,
+    activeUsers: PropTypes.number,
+    totalPatients: PropTypes.number,
+    totalDoctors: PropTypes.number,
+    totalRecords: PropTypes.number,
+    recentAlerts: PropTypes.number,
+    systemHealth: PropTypes.number,
+    recentActivity: PropTypes.arrayOf(PropTypes.object)
+  })
 };
 
 const UsersView = ({ 
@@ -693,6 +731,18 @@ const UsersView = ({
     </div>
   </div>
 );
+
+UsersView.propTypes = {
+  users: PropTypes.arrayOf(PropTypes.object).isRequired,
+  searchTerm: PropTypes.string.isRequired,
+  setSearchTerm: PropTypes.func.isRequired,
+  filterType: PropTypes.string.isRequired,
+  setFilterType: PropTypes.func.isRequired,
+  onCreateUser: PropTypes.func.isRequired,
+  onEditUser: PropTypes.func.isRequired,
+  onDeleteUser: PropTypes.func.isRequired,
+  onToggleStatus: PropTypes.func.isRequired
+};
 
 const RelationsView = ({ relations, onReload }) => {
   const [showModal, setShowModal] = useState(false);
@@ -1050,6 +1100,11 @@ const RelationsView = ({ relations, onReload }) => {
   );
 };
 
+RelationsView.propTypes = {
+  relations: PropTypes.arrayOf(PropTypes.object).isRequired,
+  onReload: PropTypes.func.isRequired
+};
+
 const AuditView = ({ logs }) => (
   <div>
     <h1 style={{
@@ -1108,6 +1163,10 @@ const AuditView = ({ logs }) => (
     </div>
   </div>
 );
+
+AuditView.propTypes = {
+  logs: PropTypes.arrayOf(PropTypes.object).isRequired
+};
 
 
 
@@ -1390,6 +1449,10 @@ const UserGrowthChart = ({ data }) => {
   );
 };
 
+UserGrowthChart.propTypes = {
+  data: PropTypes.arrayOf(PropTypes.object).isRequired
+};
+
 const WeeklyPatternChart = ({ data }) => {
   const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
   const sortedData = [...data].sort((a, b) => a.dia_num - b.dia_num);
@@ -1430,6 +1493,10 @@ const WeeklyPatternChart = ({ data }) => {
       </svg>
     </div>
   );
+};
+
+WeeklyPatternChart.propTypes = {
+  data: PropTypes.arrayOf(PropTypes.object).isRequired
 };
 
 const SymptomsChart = ({ data }) => {
@@ -1480,6 +1547,11 @@ const SymptomsChart = ({ data }) => {
     </div>
   );
 };
+
+SymptomsChart.propTypes = {
+  data: PropTypes.arrayOf(PropTypes.object).isRequired
+};
+
 
 const AdherenceGauge = ({ data }) => {
   const adherenceStats = {
@@ -1542,6 +1614,11 @@ const AdherenceGauge = ({ data }) => {
   );
 };
 
+AdherenceGauge.propTypes = {
+  data: PropTypes.arrayOf(PropTypes.object).isRequired
+};
+
+
 const BloodPressureChart = ({ data }) => {
   const topPatients = data.slice(0, 10);
   
@@ -1597,6 +1674,10 @@ const BloodPressureChart = ({ data }) => {
       </svg>
     </div>
   );
+};
+
+BloodPressureChart.propTypes = {
+  data: PropTypes.arrayOf(PropTypes.object).isRequired
 };
 
 const UltrafiltrationChart = ({ data }) => {
@@ -1659,6 +1740,9 @@ const UltrafiltrationChart = ({ data }) => {
   );
 };
 
+UltrafiltrationChart.propTypes = {
+  data: PropTypes.arrayOf(PropTypes.object).isRequired
+};
 
 
 
@@ -2017,7 +2101,17 @@ const AssignDoctorModal = ({ patient, doctors, onClose, onSave, loading, error }
 
 
 
-
+AssignDoctorModal.propTypes = {
+  patient: PropTypes.shape({
+    paciente_id: PropTypes.number,
+    paciente_nome: PropTypes.string
+  }).isRequired,
+  doctors: PropTypes.arrayOf(PropTypes.object).isRequired,
+  onClose: PropTypes.func.isRequired,
+  onSave: PropTypes.func.isRequired,
+  loading: PropTypes.bool.isRequired,
+  error: PropTypes.string
+};
 
 
 
@@ -2210,6 +2304,11 @@ const HorizontalBarChart = ({ data }) => (
   </div>
 );
 
+HorizontalBarChart.propTypes = {
+  data: PropTypes.arrayOf(PropTypes.object).isRequired
+};
+
+
 const AlertsBarChart = ({ data }) => (
   <div style={{ width: '100%', height: '250px', padding: '1rem' }}>
     {data.map((d, i) => (
@@ -2369,6 +2468,13 @@ const ChartCard = ({ title, subtitle, children }) => (
   </div>
 );
 
+ChartCard.propTypes = {
+  title: PropTypes.string.isRequired,
+  subtitle: PropTypes.string.isRequired,
+  children: PropTypes.node.isRequired
+};
+
+
 const InsightCard = ({ type, title, message }) => {
   const colors = {
     success: { bg: '#ecfdf5', border: '#10b981', text: '#065f46', icon: '✅' },
@@ -2406,7 +2512,11 @@ const InsightCard = ({ type, title, message }) => {
   );
 };
 
-
+InsightCard.propTypes = {
+  type: PropTypes.oneOf(['success', 'warning', 'info', 'alert']).isRequired,
+  title: PropTypes.string.isRequired,
+  message: PropTypes.string.isRequired
+};
 
 
 
@@ -3004,6 +3114,13 @@ const UserModal = ({ type, user, onClose, onSuccess }) => {
   );
 };
 
+UserModal.propTypes = {
+  type: PropTypes.oneOf(['create', 'edit']).isRequired,
+  user: PropTypes.object,
+  onClose: PropTypes.func.isRequired,
+  onSuccess: PropTypes.func.isRequired
+};
+
 // Estilos reutilizáveis
 const inputStyle = {
   width: '100%',
@@ -3053,6 +3170,14 @@ const StatCard = ({ icon: Icon, title, value, subtitle, color }) => (
     </p>
   </div>
 );
+
+StatCard.propTypes = {
+  icon: PropTypes.elementType.isRequired,
+  title: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  subtitle: PropTypes.string.isRequired,
+  color: PropTypes.string.isRequired
+};
 
 const LoadingState = () => (
   <div style={{

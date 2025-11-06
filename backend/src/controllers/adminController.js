@@ -61,12 +61,12 @@ const adminController = {
       const systemHealth = 98.5;
 
       res.json({
-        totalUsers: usersStats.rows.reduce((sum, row) => sum + parseInt(row.total), 0),
-        activeUsers: usersStats.rows.reduce((sum, row) => sum + parseInt(row.ativos), 0),
+        totalUsers: usersStats.rows.reduce((sum, row) => sum + Number.parseInt(row.total), 0),
+        activeUsers: usersStats.rows.reduce((sum, row) => sum + Number.parseInt(row.ativos), 0),
         totalPatients: usersStats.rows.find(r => r.tipo_usuario === 'paciente')?.total || 0,
         totalDoctors: usersStats.rows.find(r => r.tipo_usuario === 'medico')?.total || 0,
-        totalRecords: parseInt(dialysisStats.rows[0]?.total_registros) || 0,
-        recentAlerts: parseInt(recentAlerts.rows[0]?.total_alertas) || 0,
+        totalRecords: Number.parseInt(dialysisStats.rows[0]?.total_registros) || 0,
+        recentAlerts: Number.parseInt(recentAlerts.rows[0]?.total_alertas) || 0,
         systemHealth,
         usersStats: usersStats.rows,
         dialysisStats: dialysisStats.rows[0],
@@ -144,8 +144,8 @@ const adminController = {
 
       res.json({
         users: result.rows,
-        total: parseInt(countResult.rows[0].count),
-        page: parseInt(page),
+        total: Number.parseInt(countResult.rows[0].count),
+        page: Number.parseInt(page),
         totalPages: Math.ceil(countResult.rows[0].count / limit)
       });
     } catch (error) {
@@ -536,8 +536,8 @@ const adminController = {
 
       res.json({
         logs: result.rows,
-        page: parseInt(page),
-        limit: parseInt(limit)
+        page: Number.parseInt(page),
+        limit: Number.parseInt(limit)
       });
     } catch (error) {
       console.error('Erro ao buscar logs:', error);
@@ -827,7 +827,7 @@ const adminController = {
         WHERE u.ativo = true AND rd.id IS NULL
       `);
 
-      if (parseInt(inactivePatients.rows[0].total) > 0) {
+      if (Number.parseInt(inactivePatients.rows[0].total) > 0) {
         insights.push({
           type: 'warning',
           title: 'Pacientes Inativos',
@@ -850,7 +850,7 @@ const adminController = {
         ) sub
       `);
 
-      if (parseInt(overloadedDoctors.rows[0].total) > 0) {
+      if (Number.parseInt(overloadedDoctors.rows[0].total) > 0) {
         insights.push({
           type: 'alert',
           title: 'Médicos Sobrecarregados',
@@ -868,8 +868,8 @@ const adminController = {
         FROM usuarios
       `);
 
-      const currentMonth = parseInt(userGrowth.rows[0].mes_atual);
-      const previousMonth = parseInt(userGrowth.rows[0].mes_anterior);
+      const currentMonth = Number.parseInt(userGrowth.rows[0].mes_atual);
+      const previousMonth = Number.parseInt(userGrowth.rows[0].mes_anterior);
       
       if (currentMonth > previousMonth * 1.2) {
         insights.push({
@@ -888,7 +888,7 @@ const adminController = {
         WHERE p.medico_responsavel_id IS NULL AND u.ativo = true
       `);
 
-      if (parseInt(unassignedPatients.rows[0].total) > 0) {
+      if (Number.parseInt(unassignedPatients.rows[0].total) > 0) {
         insights.push({
           type: 'info',
           title: 'Vinculações Pendentes',

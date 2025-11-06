@@ -103,11 +103,11 @@ const enviarAlerta = async (req, res) => {
     // 4. Sanitizar a mensagem (prevenir XSS)
     const mensagemSanitizada = mensagem
       .trim()
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#x27;')
-      .replace(/\//g, '&#x2F;');
+      .replaceAll(/</g, '&lt;')
+      .replaceAll(/>/g, '&gt;')
+      .replaceAll(/"/g, '&quot;')
+      .replaceAll(/'/g, '&#x27;')
+      .replaceAll(/\//g, '&#x2F;');
 
     // 5. Criar notificação no banco de dados
     const notificacaoResult = await db.query(
@@ -212,7 +212,7 @@ const listarAlertasEnviados = async (req, res) => {
   try {
     const userId = req.user.id;
     const { limite = 20, pagina = 1, paciente_id } = req.query;
-    const offset = (parseInt(pagina) - 1) * parseInt(limite);
+    const offset = (Number.parseInt(pagina) - 1) * Number.parseInt(limite);
 
     // Buscar médico
     const medicoResult = await db.query(
@@ -253,7 +253,7 @@ const listarAlertasEnviados = async (req, res) => {
     }
 
     query += ` ORDER BY n.data_criacao DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-    params.push(parseInt(limite), offset);
+    params.push(Number.parseInt(limite), offset);
 
     const result = await db.query(query, params);
 
@@ -274,15 +274,15 @@ const listarAlertasEnviados = async (req, res) => {
     }
 
     const countResult = await db.query(countQuery, countParams);
-    const total = parseInt(countResult.rows[0].total);
+    const total = Number.parseInt(countResult.rows[0].total);
 
     res.json({
       alertas: result.rows,
       paginacao: {
-        pagina_atual: parseInt(pagina),
-        total_paginas: Math.ceil(total / parseInt(limite)),
+        pagina_atual: Number.parseInt(pagina),
+        total_paginas: Math.ceil(total / Number.parseInt(limite)),
         total_registros: total,
-        registros_por_pagina: parseInt(limite)
+        registros_por_pagina: Number.parseInt(limite)
       }
     });
 
@@ -382,9 +382,9 @@ const obterEstatisticas = async (req, res) => {
     const result = await db.query(query, params);
     const stats = result.rows[0];
 
-    const total = parseInt(stats.total) || 0;
-    const lidos = parseInt(stats.lidos) || 0;
-    const naoLidos = parseInt(stats.nao_lidos) || 0;
+    const total = Number.parseInt(stats.total) || 0;
+    const lidos = Number.parseInt(stats.lidos) || 0;
+    const naoLidos = Number.parseInt(stats.nao_lidos) || 0;
 
     res.json({
       total_alertas_enviados: total,
@@ -403,7 +403,7 @@ const obterEstatisticas = async (req, res) => {
  * Cria o template HTML do email
  */
 function criarTemplateEmail({ nomePaciente, nomeMedico, especialidade, crm, mensagem }) {
-  const mensagemFormatada = mensagem.replace(/\n/g, '<br>');
+  const mensagemFormatada = mensagem.replaceAll(/\n/g, '<br>');
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
   return `
