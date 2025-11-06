@@ -491,8 +491,8 @@ const DashboardView = ({ stats }) => {
           Atividade Recente
         </h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {stats.recentActivity?.map((activity, index) => (
-            <div key={index} style={{
+          {stats.recentActivity?.map((activity) => (
+            <div key={activity.id} style={{
               padding: '0.75rem',
               background: '#f9fafb',
               borderRadius: '8px',
@@ -540,197 +540,212 @@ const UsersView = ({
   onEditUser,
   onDeleteUser,
   onToggleStatus
-}) => (
-  <div>
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-      <h1 style={{
-        fontSize: '2rem',
-        fontWeight: '700',
-        background: 'linear-gradient(90deg, #0d9488 0%, #059669 100%)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent'
-      }}>
-        Gerenciamento de Usuários
-      </h1>
-      <button 
-        onClick={onCreateUser}
-        style={{
-          padding: '0.75rem 1.5rem',
-          background: 'linear-gradient(90deg, #14b8a6 0%, #10b981 100%)',
-          color: 'white',
-          border: 'none',
-          borderRadius: '10px',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          fontWeight: '600',
-          fontSize: '0.95rem'
-        }}
-      >
-        <UserPlus size={18} />
-        Novo Usuário
-      </button>
-    </div>
+}) => {
 
-    {/* Filters */}
-    <div style={{
-      background: 'white',
-      borderRadius: '16px',
-      padding: '1.5rem',
-      marginBottom: '1.5rem',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-      display: 'flex',
-      gap: '1rem',
-      flexWrap: 'wrap'
-    }}>
-      <div style={{ flex: '1 1 300px', position: 'relative' }}>
-        <Search size={20} color="#6b7280" style={{
-          position: 'absolute',
-          left: '1rem',
-          top: '50%',
-          transform: 'translateY(-50%)'
-        }} />
-        <input
-          type="text"
-          placeholder="Buscar por nome ou email..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+  // Função que retorna o estilo de cor conforme o tipo de usuário
+  const getUserTypeStyle = (tipoUsuario) => {
+    switch (tipoUsuario) {
+      case 'admin':
+        return { background: '#dbeafe', color: '#2563eb' };
+      case 'medico':
+        return { background: '#dcfce7', color: '#16a34a' };
+      default:
+        return { background: '#fef3c7', color: '#f59e0b' };
+    }
+  };
+  return (
+    <div>
+      {/* Cabeçalho */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <h1 style={{
+          fontSize: '2rem',
+          fontWeight: '700',
+          background: 'linear-gradient(90deg, #0d9488 0%, #059669 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent'
+        }}>
+          Gerenciamento de Usuários
+        </h1>
+        <button 
+          onClick={onCreateUser}
           style={{
-            width: '100%',
-            padding: '0.75rem 1rem 0.75rem 3rem',
+            padding: '0.75rem 1.5rem',
+            background: 'linear-gradient(90deg, #14b8a6 0%, #10b981 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '10px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            fontWeight: '600',
+            fontSize: '0.95rem'
+          }}
+        >
+          <UserPlus size={18} />
+          Novo Usuário
+        </button>
+      </div>
+
+      {/* Filtros */}
+      <div style={{
+        background: 'white',
+        borderRadius: '16px',
+        padding: '1.5rem',
+        marginBottom: '1.5rem',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+        display: 'flex',
+        gap: '1rem',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{ flex: '1 1 300px', position: 'relative' }}>
+          <Search size={20} color="#6b7280" style={{
+            position: 'absolute',
+            left: '1rem',
+            top: '50%',
+            transform: 'translateY(-50%)'
+          }} />
+          <input
+            type="text"
+            placeholder="Buscar por nome ou email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.75rem 1rem 0.75rem 3rem',
+              border: '2px solid #e5e7eb',
+              borderRadius: '10px',
+              fontSize: '0.95rem',
+              outline: 'none'
+            }}
+          />
+        </div>
+        <select
+          value={filterType}
+          onChange={(e) => setFilterType(e.target.value)}
+          style={{
+            padding: '0.75rem 1rem',
             border: '2px solid #e5e7eb',
             borderRadius: '10px',
             fontSize: '0.95rem',
+            cursor: 'pointer',
             outline: 'none'
           }}
-        />
+        >
+          <option value="">Todos os tipos</option>
+          <option value="paciente">Pacientes</option>
+          <option value="medico">Médicos</option>
+          <option value="admin">Administradores</option>
+        </select>
       </div>
-      <select
-        value={filterType}
-        onChange={(e) => setFilterType(e.target.value)}
-        style={{
-          padding: '0.75rem 1rem',
-          border: '2px solid #e5e7eb',
-          borderRadius: '10px',
-          fontSize: '0.95rem',
-          cursor: 'pointer',
-          outline: 'none'
-        }}
-      >
-        <option value="">Todos os tipos</option>
-        <option value="paciente">Pacientes</option>
-        <option value="medico">Médicos</option>
-        <option value="admin">Administradores</option>
-      </select>
-    </div>
 
-    {/* Users Table */}
-    <div style={{
-      background: 'white',
-      borderRadius: '16px',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-      overflow: 'hidden'
-    }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr style={{ background: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
-            <th style={tableHeaderStyle}>Nome</th>
-            <th style={tableHeaderStyle}>Email</th>
-            <th style={tableHeaderStyle}>Tipo</th>
-            <th style={tableHeaderStyle}>Status</th>
-            <th style={tableHeaderStyle}>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((user, index) => (
-            <tr key={user.id} style={{
-              borderBottom: '1px solid #f3f4f6',
-              background: index % 2 === 0 ? 'white' : '#fafafa'
-            }}>
-              <td style={tableCellStyle}>{user.nome}</td>
-              <td style={tableCellStyle}>{user.email}</td>
-              <td style={tableCellStyle}>
-                <span style={{
-                  padding: '0.25rem 0.75rem',
-                  borderRadius: '12px',
-                  fontSize: '0.8rem',
-                  fontWeight: '600',
-                  background: user.tipo_usuario === 'admin' ? '#dbeafe' :
-                             user.tipo_usuario === 'medico' ? '#dcfce7' : '#fef3c7',
-                  color: user.tipo_usuario === 'admin' ? '#2563eb' :
-                        user.tipo_usuario === 'medico' ? '#16a34a' : '#f59e0b'
-                }}>
-                  {user.tipo_usuario}
-                </span>
-              </td>
-              <td style={tableCellStyle}>
-                {user.ativo ? (
-                  <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <CheckCircle size={16} /> Ativo
-                  </span>
-                ) : (
-                  <span style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <AlertCircle size={16} /> Inativo
-                  </span>
-                )}
-              </td>
-              <td style={tableCellStyle}>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button 
-                    onClick={() => onEditUser(user)}
-                    style={{
-                      padding: '0.5rem',
-                      background: '#dbeafe',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      color: '#2563eb',
-                      display: 'flex'
-                    }}
-                    title="Editar"
-                  >
-                    <Edit size={16} />
-                  </button>
-                  <button 
-                    onClick={() => onToggleStatus(user.id)}
-                    style={{
-                      padding: '0.5rem',
-                      background: user.ativo ? '#fef3c7' : '#dcfce7',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      color: user.ativo ? '#f59e0b' : '#16a34a',
-                      display: 'flex'
-                    }}
-                    title={user.ativo ? 'Desativar' : 'Ativar'}
-                  >
-                    {user.ativo ? <AlertCircle size={16} /> : <CheckCircle size={16} />}
-                  </button>
-                  <button 
-                    onClick={() => onDeleteUser(user.id)}
-                    style={{
-                      padding: '0.5rem',
-                      background: '#fee',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      color: '#dc2626',
-                      display: 'flex'
-                    }}
-                    title="Excluir"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </td>
+      {/* Tabela de Usuários */}
+      <div style={{
+        background: 'white',
+        borderRadius: '16px',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+        overflow: 'hidden'
+      }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
+              <th style={tableHeaderStyle}>Nome</th>
+              <th style={tableHeaderStyle}>Email</th>
+              <th style={tableHeaderStyle}>Tipo</th>
+              <th style={tableHeaderStyle}>Status</th>
+              <th style={tableHeaderStyle}>Ações</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {users.map((user, index) => {
+              const userStyle = getUserTypeStyle(user.tipo_usuario);
+              return (
+                <tr key={user.id} style={{
+                  borderBottom: '1px solid #f3f4f6',
+                  background: index % 2 === 0 ? 'white' : '#fafafa'
+                }}>
+                  <td style={tableCellStyle}>{user.nome}</td>
+                  <td style={tableCellStyle}>{user.email}</td>
+                  <td style={tableCellStyle}>
+                    <span style={{
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '12px',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      ...userStyle
+                    }}>
+                      {user.tipo_usuario}
+                    </span>
+                  </td>
+                  <td style={tableCellStyle}>
+                    {user.ativo ? (
+                      <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <CheckCircle size={16} /> Ativo
+                      </span>
+                    ) : (
+                      <span style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <AlertCircle size={16} /> Inativo
+                      </span>
+                    )}
+                  </td>
+                  <td style={tableCellStyle}>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button 
+                        onClick={() => onEditUser(user)}
+                        style={{
+                          padding: '0.5rem',
+                          background: '#dbeafe',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          color: '#2563eb',
+                          display: 'flex'
+                        }}
+                        title="Editar"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button 
+                        onClick={() => onToggleStatus(user.id)}
+                        style={{
+                          padding: '0.5rem',
+                          background: user.ativo ? '#fef3c7' : '#dcfce7',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          color: user.ativo ? '#f59e0b' : '#16a34a',
+                          display: 'flex'
+                        }}
+                        title={user.ativo ? 'Desativar' : 'Ativar'}
+                      >
+                        {user.ativo ? <AlertCircle size={16} /> : <CheckCircle size={16} />}
+                      </button>
+                      <button 
+                        onClick={() => onDeleteUser(user.id)}
+                        style={{
+                          padding: '0.5rem',
+                          background: '#fee',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          color: '#dc2626',
+                          display: 'flex'
+                        }}
+                        title="Excluir"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 UsersView.propTypes = {
   users: PropTypes.arrayOf(PropTypes.object).isRequired,
@@ -777,7 +792,7 @@ const RelationsView = ({ relations, onReload }) => {
   };
 
   const handleUnassignDoctor = async (pacienteId) => {
-    if (!window.confirm('Tem certeza que deseja desvincular o médico deste paciente?')) return;
+    if (!globalThis.confirm('Tem certeza que deseja desvincular o médico deste paciente?')) return;
 
     setLoading(true);
     try {
@@ -1167,54 +1182,6 @@ const AuditView = ({ logs }) => (
 AuditView.propTypes = {
   logs: PropTypes.arrayOf(PropTypes.object).isRequired
 };
-
-
-
-
-
-
-
-
-
-
-
-
-// const ReportsView = () => (
-//   <div>
-//     <h1 style={{
-//       fontSize: '2rem',
-//       fontWeight: '700',
-//       background: 'linear-gradient(90deg, #0d9488 0%, #059669 100%)',
-//       WebkitBackgroundClip: 'text',
-//       WebkitTextFillColor: 'transparent',
-//       marginBottom: '2rem'
-//     }}>
-//       Relatórios do Sistema
-//     </h1>
-//     <div style={{
-//       background: 'white',
-//       borderRadius: '16px',
-//       padding: '3rem',
-//       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-//       textAlign: 'center'
-//     }}>
-//       <PieChart size={64} color="#d1d5db" style={{ margin: '0 auto 1rem' }} />
-//       <p style={{ color: '#6b7280', fontSize: '1rem' }}>
-//         Relatórios e análises serão implementados aqui
-//       </p>
-//     </div>
-//   </div>
-// );
-
-
-
-
-
-
-
-
-
-
 
 
 // ==================== REPORTS VIEW COM GRÁFICOS ====================
