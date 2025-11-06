@@ -2,6 +2,8 @@
 
 const nodemailer = require('nodemailer');
 
+// ==================== CONFIGURAÇÃO ====================
+
 // Configurar o transporter do nodemailer
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -22,29 +24,102 @@ transporter.verify((error, success) => {
   }
 });
 
+// ==================== CONSTANTES ====================
+
+const PRIORITY_CONFIG = {
+  baixa: { color: '#10b981', label: 'Baixa' },
+  media: { color: '#f59e0b', label: 'Média' },
+  alta: { color: '#ef4444', label: 'Alta' }
+};
+
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+// ==================== TEMPLATES ====================
+
 /**
- * Envia email de alerta para o paciente
+ * Gera o HTML do cabeçalho do email
  */
-const sendAlertEmail = async ({ to, patientName, doctorName, title, message, priority, sessionInfo }) => {
-  try {
-    // Define cor baseada na prioridade
-    const priorityColors = {
-      baixa: '#10b981',
-      media: '#f59e0b',
-      alta: '#ef4444'
-    };
+const getEmailHeader = () => `
+<!-- Header -->
+<div style="background: linear-gradient(135deg, #14b8a6 0%, #10b981 100%); padding: 30px 20px; text-align: center;">
+  <div style="background-color: rgba(255, 255, 255, 0.2); width: 60px; height: 60px; border-radius: 12px; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center;">
+    <div style="width: 40px; height: 40px; background-color: white; border-radius: 8px;"></div>
+  </div>
+  <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 700;">DialCare</h1>
+  <p style="color: rgba(255, 255, 255, 0.9); margin: 5px 0 0 0; font-size: 14px;">Sistema de Monitoramento de Diálise</p>
+</div>
+`;
 
-    const priorityLabels = {
-      baixa: 'Baixa',
-      media: 'Média',
-      alta: 'Alta'
-    };
+/**
+ * Gera o HTML do badge de prioridade
+ */
+const getPriorityBadge = (priority) => {
+  const config = PRIORITY_CONFIG[priority] || PRIORITY_CONFIG.media;
+  return `
+<!-- Prioridade Badge -->
+<div style="text-align: center; margin-top: -15px;">
+  <div style="display: inline-block; background-color: ${config.color}; color: white; padding: 8px 20px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+    ⚠️ Prioridade: ${config.label}
+  </div>
+</div>
+`;
+};
 
-    const priorityColor = priorityColors[priority] || '#f59e0b';
-    const priorityLabel = priorityLabels[priority] || 'Média';
+/**
+ * Gera o HTML das informações da sessão
+ */
+const getSessionInfoHtml = (sessionInfo) => {
+  if (!sessionInfo) return '';
+  
+  return `
+<!-- Session Info -->
+<div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin-bottom: 25px;">
+  <p style="color: #6b7280; font-size: 12px; margin: 0 0 10px 0; font-weight: 600; text-transform: uppercase;">
+    📊 Relacionado à Sessão de Diálise
+  </p>
+  <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+    <div>
+      <p style="color: #9ca3af; font-size: 11px; margin: 0;">Data</p>
+      <p style="color: #111827; font-size: 14px; font-weight: 600; margin: 3px 0 0 0;">${sessionInfo.data}</p>
+    </div>
+    <div>
+      <p style="color: #9ca3af; font-size: 11px; margin: 0;">Pressão Arterial</p>
+      <p style="color: #111827; font-size: 14px; font-weight: 600; margin: 3px 0 0 0;">${sessionInfo.pa}</p>
+    </div>
+    <div>
+      <p style="color: #9ca3af; font-size: 11px; margin: 0;">UF Total</p>
+      <p style="color: #111827; font-size: 14px; font-weight: 600; margin: 3px 0 0 0;">${sessionInfo.uf}</p>
+    </div>
+  </div>
+</div>
+`;
+};
 
-    // Template HTML do email
-    const htmlContent = `
+/**
+ * Gera o HTML do rodapé do email
+ */
+const getEmailFooter = () => `
+<!-- Footer -->
+<div style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+  <p style="color: #6b7280; font-size: 12px; margin: 0 0 5px 0;">
+    Este email foi enviado por <strong>DialCare</strong>
+  </p>
+  <p style="color: #9ca3af; font-size: 11px; margin: 0;">
+    Sistema de Monitoramento e Acompanhamento de Diálise Peritoneal
+  </p>
+  <p style="color: #d1d5db; font-size: 10px; margin: 10px 0 0 0;">
+    © ${new Date().getFullYear()} DialCare. Todos os direitos reservados.
+  </p>
+</div>
+`;
+
+/**
+ * Gera o template HTML completo do email de alerta
+ */
+const getAlertEmailHtml = ({ patientName, doctorName, title, message, priority, sessionInfo }) => {
+  const config = PRIORITY_CONFIG[priority] || PRIORITY_CONFIG.media;
+  
+  return `
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -55,21 +130,9 @@ const sendAlertEmail = async ({ to, patientName, doctorName, title, message, pri
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
   <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
     
-    <!-- Header -->
-    <div style="background: linear-gradient(135deg, #14b8a6 0%, #10b981 100%); padding: 30px 20px; text-align: center;">
-      <div style="background-color: rgba(255, 255, 255, 0.2); width: 60px; height: 60px; border-radius: 12px; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center;">
-        <div style="width: 40px; height: 40px; background-color: white; border-radius: 8px;"></div>
-      </div>
-      <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 700;">DialCare</h1>
-      <p style="color: rgba(255, 255, 255, 0.9); margin: 5px 0 0 0; font-size: 14px;">Sistema de Monitoramento de Diálise</p>
-    </div>
-
-    <!-- Prioridade Badge -->
-    <div style="text-align: center; margin-top: -15px;">
-      <div style="display: inline-block; background-color: ${priorityColor}; color: white; padding: 8px 20px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-        ⚠️ Prioridade: ${priorityLabel}
-      </div>
-    </div>
+    ${getEmailHeader()}
+    
+    ${getPriorityBadge(priority)}
 
     <!-- Content -->
     <div style="padding: 30px 20px;">
@@ -93,32 +156,11 @@ ${message}
         </p>
       </div>
 
-      ${sessionInfo ? `
-      <!-- Session Info -->
-      <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin-bottom: 25px;">
-        <p style="color: #6b7280; font-size: 12px; margin: 0 0 10px 0; font-weight: 600; text-transform: uppercase;">
-          📊 Relacionado à Sessão de Diálise
-        </p>
-        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-          <div>
-            <p style="color: #9ca3af; font-size: 11px; margin: 0;">Data</p>
-            <p style="color: #111827; font-size: 14px; font-weight: 600; margin: 3px 0 0 0;">${sessionInfo.data}</p>
-          </div>
-          <div>
-            <p style="color: #9ca3af; font-size: 11px; margin: 0;">Pressão Arterial</p>
-            <p style="color: #111827; font-size: 14px; font-weight: 600; margin: 3px 0 0 0;">${sessionInfo.pa}</p>
-          </div>
-          <div>
-            <p style="color: #9ca3af; font-size: 11px; margin: 0;">UF Total</p>
-            <p style="color: #111827; font-size: 14px; font-weight: 600; margin: 3px 0 0 0;">${sessionInfo.uf}</p>
-          </div>
-        </div>
-      </div>
-      ` : ''}
+      ${getSessionInfoHtml(sessionInfo)}
 
       <!-- CTA Button -->
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard" 
+        <a href="${FRONTEND_URL}/dashboard" 
            style="display: inline-block; background: linear-gradient(90deg, #14b8a6 0%, #10b981 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px; box-shadow: 0 10px 15px -3px rgba(20, 184, 166, 0.3);">
           Acessar Sistema
         </a>
@@ -133,28 +175,23 @@ ${message}
       </div>
     </div>
 
-    <!-- Footer -->
-    <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
-      <p style="color: #6b7280; font-size: 12px; margin: 0 0 5px 0;">
-        Este email foi enviado por <strong>DialCare</strong>
-      </p>
-      <p style="color: #9ca3af; font-size: 11px; margin: 0;">
-        Sistema de Monitoramento e Acompanhamento de Diálise Peritoneal
-      </p>
-      <p style="color: #d1d5db; font-size: 10px; margin: 10px 0 0 0;">
-        © ${new Date().getFullYear()} DialCare. Todos os direitos reservados.
-      </p>
-    </div>
+    ${getEmailFooter()}
   </div>
 </body>
 </html>
-    `;
+  `;
+};
 
-    // Versão em texto puro (fallback)
-    const textContent = `
+/**
+ * Gera o conteúdo em texto puro do email de alerta
+ */
+const getAlertEmailText = ({ patientName, doctorName, title, message, priority, sessionInfo }) => {
+  const config = PRIORITY_CONFIG[priority] || PRIORITY_CONFIG.media;
+  
+  let text = `
 DialCare - Sistema de Monitoramento de Diálise
 
-Prioridade: ${priorityLabel}
+Prioridade: ${config.label}
 
 Olá, ${patientName}!
 
@@ -163,27 +200,61 @@ Você recebeu uma nova mensagem do seu médico, Dr(a). ${doctorName}.
 ${title}
 
 ${message}
+`;
 
-${sessionInfo ? `
+  if (sessionInfo) {
+    text += `
 Relacionado à Sessão de Diálise:
 Data: ${sessionInfo.data}
 Pressão Arterial: ${sessionInfo.pa}
 UF Total: ${sessionInfo.uf}
-` : ''}
+`;
+  }
 
-Para mais informações, acesse: ${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard
+  text += `
+Para mais informações, acesse: ${FRONTEND_URL}/dashboard
 
 ---
 Este email foi enviado por DialCare
 Sistema de Monitoramento e Acompanhamento de Diálise Peritoneal
 © ${new Date().getFullYear()} DialCare. Todos os direitos reservados.
-    `;
+  `;
+
+  return text;
+};
+
+// ==================== FUNÇÕES PRINCIPAIS ====================
+
+/**
+ * Envia email de alerta para o paciente
+ */
+const sendAlertEmail = async ({ to, patientName, doctorName, title, message, priority, sessionInfo }) => {
+  try {
+    const config = PRIORITY_CONFIG[priority] || PRIORITY_CONFIG.media;
+    
+    const htmlContent = getAlertEmailHtml({ 
+      patientName, 
+      doctorName, 
+      title, 
+      message, 
+      priority, 
+      sessionInfo 
+    });
+    
+    const textContent = getAlertEmailText({ 
+      patientName, 
+      doctorName, 
+      title, 
+      message, 
+      priority, 
+      sessionInfo 
+    });
 
     // Enviar email
     const info = await transporter.sendMail({
       from: `"DialCare" <${process.env.SMTP_USER}>`,
       to: to,
-      subject: `⚠️ [${priorityLabel}] ${title} - DialCare`,
+      subject: `⚠️ [${config.label}] ${title} - DialCare`,
       text: textContent,
       html: htmlContent
     });

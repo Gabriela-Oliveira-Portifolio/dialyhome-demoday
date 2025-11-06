@@ -8,6 +8,217 @@ import {
 import { getUserProfile, updateUserProfile, changePassword } from '../services/Userservice';
 import './PatientProfile.css';
 
+// ==================== COMPONENTES REUTILIZÁVEIS ====================
+
+const InputField = ({ 
+  label, 
+  icon: Icon, 
+  name, 
+  value, 
+  onChange, 
+  type = 'text',
+  placeholder,
+  rows,
+  ...props 
+}) => {
+  const isTextarea = type === 'textarea';
+  const InputComponent = isTextarea ? 'textarea' : 'input';
+
+  return (
+    <div>
+      <label style={styles.label}>
+        <Icon size={18} color="#14b8a6" />
+        {label}
+      </label>
+      <InputComponent
+        type={isTextarea ? undefined : type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        rows={rows}
+        style={{
+          ...styles.input,
+          ...(isTextarea && { resize: 'vertical' })
+        }}
+        onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
+        onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+        {...props}
+      />
+    </div>
+  );
+};
+
+const PasswordField = ({ 
+  label, 
+  name, 
+  value, 
+  onChange, 
+  placeholder,
+  showPassword,
+  onTogglePassword
+}) => {
+  return (
+    <div>
+      <label style={styles.label}>
+        <Lock size={18} color="#14b8a6" />
+        {label}
+      </label>
+      <div style={{ position: 'relative' }}>
+        <input
+          type={showPassword ? 'text' : 'password'}
+          name={name}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          style={styles.passwordInput}
+          onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
+          onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+        />
+        <button
+          type="button"
+          onClick={onTogglePassword}
+          style={styles.passwordToggle}
+        >
+          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const TabButton = ({ active, onClick, icon: Icon, children }) => {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        ...styles.tabButton,
+        background: active 
+          ? 'linear-gradient(90deg, #14b8a6 0%, #10b981 100%)' 
+          : 'transparent',
+        color: active ? 'white' : '#6b7280'
+      }}
+    >
+      <Icon size={18} />
+      {children}
+    </button>
+  );
+};
+
+const SubmitButton = ({ saving, children, icon: Icon }) => {
+  return (
+    <button
+      type="submit"
+      disabled={saving}
+      style={{
+        ...styles.submitButton,
+        background: saving 
+          ? '#d1d5db' 
+          : 'linear-gradient(90deg, #14b8a6 0%, #10b981 100%)',
+        cursor: saving ? 'not-allowed' : 'pointer'
+      }}
+    >
+      <Icon size={18} />
+      {children}
+    </button>
+  );
+};
+
+const Alert = ({ type, children }) => {
+  const isError = type === 'error';
+  return (
+    <div style={{
+      ...styles.alert,
+      backgroundColor: isError ? '#fee2e2' : '#d1fae5',
+      color: isError ? '#dc2626' : '#065f46',
+      border: isError ? '1px solid #fecaca' : '1px solid #a7f3d0'
+    }}>
+      {isError ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
+      {children}
+    </div>
+  );
+};
+
+// ==================== ESTILOS ====================
+
+const styles = {
+  label: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: '0.5rem'
+  },
+  input: {
+    width: '100%',
+    padding: '0.75rem 1rem',
+    border: '2px solid #e5e7eb',
+    borderRadius: '10px',
+    fontSize: '1rem',
+    outline: 'none',
+    transition: 'border-color 0.2s'
+  },
+  passwordInput: {
+    width: '100%',
+    padding: '0.75rem 3rem 0.75rem 1rem',
+    border: '2px solid #e5e7eb',
+    borderRadius: '10px',
+    fontSize: '1rem',
+    outline: 'none',
+    transition: 'border-color 0.2s'
+  },
+  passwordToggle: {
+    position: 'absolute',
+    right: '1rem',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    background: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    color: '#6b7280'
+  },
+  tabButton: {
+    flex: 1,
+    padding: '1rem',
+    border: 'none',
+    borderRadius: '12px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
+    fontSize: '0.95rem',
+    fontWeight: '600',
+    transition: 'all 0.2s'
+  },
+  submitButton: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
+    padding: '0.75rem 1.5rem',
+    color: 'white',
+    border: 'none',
+    borderRadius: '10px',
+    fontSize: '1rem',
+    fontWeight: '600',
+    boxShadow: '0 10px 25px -5px rgba(20, 184, 166, 0.4)',
+    transition: 'all 0.2s'
+  },
+  alert: {
+    padding: '1rem',
+    borderRadius: '12px',
+    marginBottom: '1.5rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem'
+  }
+};
+
+// ==================== COMPONENTE PRINCIPAL ====================
+
 const UserProfile = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -21,17 +232,12 @@ const UserProfile = () => {
   const [userType, setUserType] = useState('');
 
   const [profileData, setProfileData] = useState({
-    // Campos comuns
     cpf: '',
     telefone: '',
     endereco: '',
-    
-    // Campos específicos de paciente
     peso_inicial: '',
     altura: '',
     data_inicio_tratamento: '',
-    
-    // Campos específicos de médico
     crm: '',
     especialidade: '',
     telefone_contato: '',
@@ -51,57 +257,55 @@ const UserProfile = () => {
   }, []);
 
   const loadUserProfile = async () => {
-  setLoading(true);
-  setError('');
-  try {
-    const response = await getUserProfile();
-    console.log('Resposta completa do getUserProfile:', response); // Debug
-    
-    // Tentar pegar o usuário de diferentes lugares da resposta
-    const user = response.user || response.patient || response.doctor || response.data;
-    
-    if (!user) {
-      console.error('Estrutura da resposta:', response);
-      throw new Error('Dados do usuário não encontrados na resposta');
-    }
-    
-    // Pegar o tipo de usuário (priorizar sessionStorage, depois response)
-    const tipo = sessionStorage.getItem('userType') || 
-                 user.tipo_usuario || 
-                 response.tipo_usuario ||
-                 'paciente'; // fallback
-    
-    console.log('Tipo de usuário detectado:', tipo);
-    setUserType(tipo);
+    setLoading(true);
+    setError('');
+    try {
+      const response = await getUserProfile();
+      console.log('Resposta completa do getUserProfile:', response);
+      
+      const user = response.user || response.patient || response.doctor || response.data;
+      
+      if (!user) {
+        console.error('Estrutura da resposta:', response);
+        throw new Error('Dados do usuário não encontrados na resposta');
+      }
+      
+      const tipo = sessionStorage.getItem('userType') || 
+                   user.tipo_usuario || 
+                   response.tipo_usuario ||
+                   'paciente';
+      
+      console.log('Tipo de usuário detectado:', tipo);
+      setUserType(tipo);
 
-    const data = {
-      cpf: user.cpf || '',
-      telefone: user.telefone || '',
-      endereco: user.endereco || '',
-      peso_inicial: user.peso_inicial || '',
-      altura: user.altura || '',
-      data_inicio_tratamento: user.data_inicio_tratamento ? 
-        user.data_inicio_tratamento.split('T')[0] : '', // Formatar data para input type="date"
-      crm: user.crm || '',
-      especialidade: user.especialidade || '',
-      telefone_contato: user.telefone_contato || user.telefone || '',
-      local_atendimento: user.local_atendimento || ''
-    };
+      const data = {
+        cpf: user.cpf || '',
+        telefone: user.telefone || '',
+        endereco: user.endereco || '',
+        peso_inicial: user.peso_inicial || '',
+        altura: user.altura || '',
+        data_inicio_tratamento: user.data_inicio_tratamento ? 
+          user.data_inicio_tratamento.split('T')[0] : '',
+        crm: user.crm || '',
+        especialidade: user.especialidade || '',
+        telefone_contato: user.telefone_contato || user.telefone || '',
+        local_atendimento: user.local_atendimento || ''
+      };
 
-    setProfileData(data);
-    setOriginalData(data);
-  } catch (err) {
-    console.error('Erro ao carregar perfil:', err);
-    setError(err.message || err.error || 'Erro ao carregar dados do perfil');
-    
-    if (err.error?.includes('Token') || err.error?.includes('autenticação') || err.message?.includes('Token')) {
-      sessionStorage.clear();
-      navigate('/login');
+      setProfileData(data);
+      setOriginalData(data);
+    } catch (err) {
+      console.error('Erro ao carregar perfil:', err);
+      setError(err.message || err.error || 'Erro ao carregar dados do perfil');
+      
+      if (err.error?.includes('Token') || err.error?.includes('autenticação') || err.message?.includes('Token')) {
+        sessionStorage.clear();
+        navigate('/login');
+      }
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -184,7 +388,6 @@ const UserProfile = () => {
     setSuccess('');
 
     try {
-      // Enviar apenas os campos que foram alterados
       const changedData = {};
       Object.keys(profileData).forEach(key => {
         if (profileData[key] !== originalData[key] && profileData[key] !== '') {
@@ -432,37 +635,8 @@ const UserProfile = () => {
           </div>
 
           {/* Messages */}
-          {error && (
-            <div style={{
-              backgroundColor: '#fee2e2',
-              color: '#dc2626',
-              padding: '1rem',
-              borderRadius: '12px',
-              marginBottom: '1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}>
-              <AlertCircle size={20} />
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div style={{
-              backgroundColor: '#d1fae5',
-              color: '#065f46',
-              padding: '1rem',
-              borderRadius: '12px',
-              marginBottom: '1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}>
-              <CheckCircle size={20} />
-              {success}
-            </div>
-          )}
+          {error && <Alert type="error">{error}</Alert>}
+          {success && <Alert type="success">{success}</Alert>}
 
           {/* Tabs */}
           <div style={{
@@ -474,54 +648,20 @@ const UserProfile = () => {
             display: 'flex',
             gap: '0.5rem'
           }}>
-            <button
+            <TabButton
+              active={activeTab === 'personal'}
               onClick={() => setActiveTab('personal')}
-              style={{
-                flex: 1,
-                padding: '1rem',
-                background: activeTab === 'personal' 
-                  ? 'linear-gradient(90deg, #14b8a6 0%, #10b981 100%)' 
-                  : 'transparent',
-                color: activeTab === 'personal' ? 'white' : '#6b7280',
-                border: 'none',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-                fontSize: '0.95rem',
-                fontWeight: '600',
-                transition: 'all 0.2s'
-              }}
+              icon={User}
             >
-              <User size={18} />
               Dados Pessoais
-            </button>
-            <button
+            </TabButton>
+            <TabButton
+              active={activeTab === 'security'}
               onClick={() => setActiveTab('security')}
-              style={{
-                flex: 1,
-                padding: '1rem',
-                background: activeTab === 'security' 
-                  ? 'linear-gradient(90deg, #14b8a6 0%, #10b981 100%)' 
-                  : 'transparent',
-                color: activeTab === 'security' ? 'white' : '#6b7280',
-                border: 'none',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-                fontSize: '0.95rem',
-                fontWeight: '600',
-                transition: 'all 0.2s'
-              }}
+              icon={Lock}
             >
-              <Lock size={18} />
               Segurança
-            </button>
+            </TabButton>
           </div>
 
           {/* Content */}
@@ -535,552 +675,162 @@ const UserProfile = () => {
               <form onSubmit={handleSaveProfile}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                   
-                  {/* CPF */}
-                  <div>
-                    <label style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.5rem'
-                    }}>
-                      <CreditCard size={18} color="#14b8a6" />
-                      CPF
-                    </label>
-                    <input
-                      type="text"
-                      name="cpf"
-                      value={profileData.cpf}
-                      onChange={handleCPFChange}
-                      placeholder="000.000.000-00"
-                      maxLength={14}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem 1rem',
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '10px',
-                        fontSize: '1rem',
-                        outline: 'none',
-                        transition: 'border-color 0.2s'
-                      }}
-                      onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
-                      onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                    />
-                  </div>
+                  <InputField
+                    label="CPF"
+                    icon={CreditCard}
+                    name="cpf"
+                    value={profileData.cpf}
+                    onChange={handleCPFChange}
+                    placeholder="000.000.000-00"
+                    maxLength={14}
+                  />
 
-                  {/* Telefone */}
-                  <div>
-                    <label style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.5rem'
-                    }}>
-                      <Phone size={18} color="#14b8a6" />
-                      Telefone
-                    </label>
-                    <input
-                      type="text"
-                      name="telefone"
-                      value={profileData.telefone}
-                      onChange={handlePhoneChange}
-                      placeholder="(00) 00000-0000"
-                      maxLength={15}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem 1rem',
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '10px',
-                        fontSize: '1rem',
-                        outline: 'none',
-                        transition: 'border-color 0.2s'
-                      }}
-                      onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
-                      onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                    />
-                  </div>
+                  <InputField
+                    label="Telefone"
+                    icon={Phone}
+                    name="telefone"
+                    value={profileData.telefone}
+                    onChange={handlePhoneChange}
+                    placeholder="(00) 00000-0000"
+                    maxLength={15}
+                  />
 
-                  {/* Endereço */}
-                  <div>
-                    <label style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.5rem'
-                    }}>
-                      <MapPin size={18} color="#14b8a6" />
-                      Endereço
-                    </label>
-                    <textarea
-                      name="endereco"
-                      value={profileData.endereco}
-                      onChange={handleInputChange}
-                      placeholder="Rua, número, bairro, cidade, estado"
-                      rows={3}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem 1rem',
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '10px',
-                        fontSize: '1rem',
-                        outline: 'none',
-                        resize: 'vertical',
-                        transition: 'border-color 0.2s'
-                      }}
-                      onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
-                      onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                    />
-                  </div>
+                  <InputField
+                    label="Endereço"
+                    icon={MapPin}
+                    name="endereco"
+                    value={profileData.endereco}
+                    onChange={handleInputChange}
+                    type="textarea"
+                    placeholder="Rua, número, bairro, cidade, estado"
+                    rows={3}
+                  />
 
                   {/* Campos específicos de PACIENTE */}
                   {userType === 'paciente' && (
                     <>
-                      {/* Peso e Altura */}
                       <div style={{
                         display: 'grid',
                         gridTemplateColumns: '1fr 1fr',
                         gap: '1rem'
                       }}>
-                        <div>
-                          <label style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            fontSize: '0.875rem',
-                            fontWeight: '600',
-                            color: '#374151',
-                            marginBottom: '0.5rem'
-                          }}>
-                            <Weight size={18} color="#14b8a6" />
-                            Peso (kg)
-                          </label>
-                          <input
-                            type="number"
-                            name="peso_inicial"
-                            value={profileData.peso_inicial}
-                            onChange={handleInputChange}
-                            placeholder="70.5"
-                            step="0.1"
-                            min="20"
-                            max="300"
-                            style={{
-                              width: '100%',
-                              padding: '0.75rem 1rem',
-                              border: '2px solid #e5e7eb',
-                              borderRadius: '10px',
-                              fontSize: '1rem',
-                              outline: 'none',
-                              transition: 'border-color 0.2s'
-                            }}
-                            onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
-                            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                          />
-                        </div>
-
-                        <div>
-                          <label style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            fontSize: '0.875rem',
-                            fontWeight: '600',
-                            color: '#374151',
-                            marginBottom: '0.5rem'
-                          }}>
-                            <Ruler size={18} color="#14b8a6" />
-                            Altura (m)
-                          </label>
-                          <input
-                            type="number"
-                            name="altura"
-                            value={profileData.altura}
-                            onChange={handleInputChange}
-                            placeholder="1.75"
-                            step="0.01"
-                            min="0.5"
-                            max="2.5"
-                            style={{
-                              width: '100%',
-                              padding: '0.75rem 1rem',
-                              border: '2px solid #e5e7eb',
-                              borderRadius: '10px',
-                              fontSize: '1rem',
-                              outline: 'none',
-                              transition: 'border-color 0.2s'
-                            }}
-                            onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
-                            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Data início tratamento */}
-                      <div>
-                        <label style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          fontSize: '0.875rem',
-                          fontWeight: '600',
-                          color: '#374151',
-                          marginBottom: '0.5rem'
-                        }}>
-                          <Calendar size={18} color="#14b8a6" />
-                          Data Início do Tratamento
-                        </label>
-                        <input
-                          type="date"
-                          name="data_inicio_tratamento"
-                          value={profileData.data_inicio_tratamento}
+                        <InputField
+                          label="Peso (kg)"
+                          icon={Weight}
+                          name="peso_inicial"
+                          type="number"
+                          value={profileData.peso_inicial}
                           onChange={handleInputChange}
-                          style={{
-                            width: '100%',
-                            padding: '0.75rem 1rem',
-                            border: '2px solid #e5e7eb',
-                            borderRadius: '10px',
-                            fontSize: '1rem',
-                            outline: 'none',
-                            transition: 'border-color 0.2s'
-                          }}
-                          onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
-                          onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                          placeholder="70.5"
+                          step="0.1"
+                          min="20"
+                          max="300"
+                        />
+
+                        <InputField
+                          label="Altura (m)"
+                          icon={Ruler}
+                          name="altura"
+                          type="number"
+                          value={profileData.altura}
+                          onChange={handleInputChange}
+                          placeholder="1.75"
+                          step="0.01"
+                          min="0.5"
+                          max="2.5"
                         />
                       </div>
+
+                      <InputField
+                        label="Data Início do Tratamento"
+                        icon={Calendar}
+                        name="data_inicio_tratamento"
+                        type="date"
+                        value={profileData.data_inicio_tratamento}
+                        onChange={handleInputChange}
+                      />
                     </>
                   )}
 
                   {/* Campos específicos de MÉDICO */}
                   {userType === 'medico' && (
                     <>
-                      <div>
-                        <label style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          fontSize: '0.875rem',
-                          fontWeight: '600',
-                          color: '#374151',
-                          marginBottom: '0.5rem'
-                        }}>
-                          <Stethoscope size={18} color="#14b8a6" />
-                          CRM
-                        </label>
-                        <input
-                          type="text"
-                          name="crm"
-                          value={profileData.crm}
-                          onChange={handleInputChange}
-                          placeholder="CRM-12345/SC"
-                          style={{
-                            width: '100%',
-                            padding: '0.75rem 1rem',
-                            border: '2px solid #e5e7eb',
-                            borderRadius: '10px',
-                            fontSize: '1rem',
-                            outline: 'none',
-                            transition: 'border-color 0.2s'
-                          }}
-                          onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
-                          onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                        />
-                      </div>
+                      <InputField
+                        label="CRM"
+                        icon={Stethoscope}
+                        name="crm"
+                        value={profileData.crm}
+                        onChange={handleInputChange}
+                        placeholder="CRM-12345/SC"
+                      />
 
-                      <div>
-                        <label style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          fontSize: '0.875rem',
-                          fontWeight: '600',
-                          color: '#374151',
-                          marginBottom: '0.5rem'
-                        }}>
-                          <Heart size={18} color="#14b8a6" />
-                          Especialidade
-                        </label>
-                        <input
-                          type="text"
-                          name="especialidade"
-                          value={profileData.especialidade}
-                          onChange={handleInputChange}
-                          placeholder="Ex: Nefrologia"
-                          style={{
-                            width: '100%',
-                            padding: '0.75rem 1rem',
-                            border: '2px solid #e5e7eb',
-                            borderRadius: '10px',
-                            fontSize: '1rem',
-                            outline: 'none',
-                            transition: 'border-color 0.2s'
-                          }}
-                          onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
-                          onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                        />
-                      </div>
+                      <InputField
+                        label="Especialidade"
+                        icon={Heart}
+                        name="especialidade"
+                        value={profileData.especialidade}
+                        onChange={handleInputChange}
+                        placeholder="Ex: Nefrologia"
+                      />
 
-                      <div>
-                        <label style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          fontSize: '0.875rem',
-                          fontWeight: '600',
-                          color: '#374151',
-                          marginBottom: '0.5rem'
-                        }}>
-                          <Phone size={18} color="#14b8a6" />
-                          Telefone de Contato
-                        </label>
-                        <input
-                          type="text"
-                          name="telefone_contato"
-                          value={profileData.telefone_contato}
-                          onChange={handleInputChange}
-                          placeholder="(00) 00000-0000"
-                          style={{
-                            width: '100%',
-                            padding: '0.75rem 1rem',
-                            border: '2px solid #e5e7eb',
-                            borderRadius: '10px',
-                            fontSize: '1rem',
-                            outline: 'none',
-                            transition: 'border-color 0.2s'
-                          }}
-                          onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
-                          onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                        />
-                      </div>
+                      <InputField
+                        label="Telefone de Contato"
+                        icon={Phone}
+                        name="telefone_contato"
+                        value={profileData.telefone_contato}
+                        onChange={handleInputChange}
+                        placeholder="(00) 00000-0000"
+                      />
 
-                      <div>
-                        <label style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          fontSize: '0.875rem',
-                          fontWeight: '600',
-                          color: '#374151',
-                          marginBottom: '0.5rem'
-                        }}>
-                          <MapPin size={18} color="#14b8a6" />
-                          Local de Atendimento
-                        </label>
-                        <input
-                          type="text"
-                          name="local_atendimento"
-                          value={profileData.local_atendimento}
-                          onChange={handleInputChange}
-                          placeholder="Ex: Hospital Regional"
-                          style={{
-                            width: '100%',
-                            padding: '0.75rem 1rem',
-                            border: '2px solid #e5e7eb',
-                            borderRadius: '10px',
-                            fontSize: '1rem',
-                            outline: 'none',
-                            transition: 'border-color 0.2s'
-                          }}
-                          onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
-                          onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                        />
-                      </div>
+                      <InputField
+                        label="Local de Atendimento"
+                        icon={MapPin}
+                        name="local_atendimento"
+                        value={profileData.local_atendimento}
+                        onChange={handleInputChange}
+                        placeholder="Ex: Hospital Regional"
+                      />
                     </>
                   )}
 
-                  {/* Button */}
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem',
-                      padding: '0.75rem 1.5rem',
-                      background: saving 
-                        ? '#d1d5db' 
-                        : 'linear-gradient(90deg, #14b8a6 0%, #10b981 100%)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '10px',
-                      fontSize: '1rem',
-                      fontWeight: '600',
-                      cursor: saving ? 'not-allowed' : 'pointer',
-                      boxShadow: '0 10px 25px -5px rgba(20, 184, 166, 0.4)',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <Save size={18} />
+                  <SubmitButton saving={saving} icon={Save}>
                     {saving ? 'Salvando...' : 'Salvar Alterações'}
-                  </button>
+                  </SubmitButton>
                 </div>
               </form>
             ) : (
               <form onSubmit={handleChangePassword}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                   
-                  {/* Senha Atual */}
-                  <div>
-                    <label style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.5rem'
-                    }}>
-                      <Lock size={18} color="#14b8a6" />
-                      Senha Atual
-                    </label>
-                    <div style={{ position: 'relative' }}>
-                      <input
-                        type={showCurrentPassword ? 'text' : 'password'}
-                        name="currentPassword"
-                        value={passwordData.currentPassword}
-                        onChange={handlePasswordChange}
-                        placeholder="Digite sua senha atual"
-                        style={{
-                          width: '100%',
-                          padding: '0.75rem 3rem 0.75rem 1rem',
-                          border: '2px solid #e5e7eb',
-                          borderRadius: '10px',
-                          fontSize: '1rem',
-                          outline: 'none',
-                          transition: 'border-color 0.2s'
-                        }}
-                        onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
-                        onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                        style={{
-                          position: 'absolute',
-                          right: '1rem',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: '#6b7280'
-                        }}
-                      >
-                        {showCurrentPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
-                    </div>
-                  </div>
+                  <PasswordField
+                    label="Senha Atual"
+                    name="currentPassword"
+                    value={passwordData.currentPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="Digite sua senha atual"
+                    showPassword={showCurrentPassword}
+                    onTogglePassword={() => setShowCurrentPassword(!showCurrentPassword)}
+                  />
 
-                  {/* Nova Senha */}
-                  <div>
-                    <label style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.5rem'
-                    }}>
-                      <Lock size={18} color="#14b8a6" />
-                      Nova Senha
-                    </label>
-                    <div style={{ position: 'relative' }}>
-                      <input
-                        type={showNewPassword ? 'text' : 'password'}
-                        name="newPassword"
-                        value={passwordData.newPassword}
-                        onChange={handlePasswordChange}
-                        placeholder="Digite sua nova senha (mín. 6 caracteres)"
-                        style={{
-                          width: '100%',
-                          padding: '0.75rem 3rem 0.75rem 1rem',
-                          border: '2px solid #e5e7eb',
-                          borderRadius: '10px',
-                          fontSize: '1rem',
-                          outline: 'none',
-                          transition: 'border-color 0.2s'
-                        }}
-                        onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
-                        onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowNewPassword(!showNewPassword)}
-                        style={{
-                          position: 'absolute',
-                          right: '1rem',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: '#6b7280'
-                        }}
-                      >
-                        {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
-                    </div>
-                  </div>
+                  <PasswordField
+                    label="Nova Senha"
+                    name="newPassword"
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="Digite sua nova senha (mín. 6 caracteres)"
+                    showPassword={showNewPassword}
+                    onTogglePassword={() => setShowNewPassword(!showNewPassword)}
+                  />
 
-                  {/* Confirmar Senha */}
-                  <div>
-                    <label style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.5rem'
-                    }}>
-                      <Lock size={18} color="#14b8a6" />
-                      Confirmar Nova Senha
-                    </label>
-                    <div style={{ position: 'relative' }}>
-                      <input
-                        type={showConfirmPassword ? 'text' : 'password'}
-                        name="confirmPassword"
-                        value={passwordData.confirmPassword}
-                        onChange={handlePasswordChange}
-                        placeholder="Confirme sua nova senha"
-                        style={{
-                          width: '100%',
-                          padding: '0.75rem 3rem 0.75rem 1rem',
-                          border: '2px solid #e5e7eb',
-                          borderRadius: '10px',
-                          fontSize: '1rem',
-                          outline: 'none',
-                          transition: 'border-color 0.2s'
-                        }}
-                        onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
-                        onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        style={{
-                          position: 'absolute',
-                          right: '1rem',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: '#6b7280'
-                        }}
-                      >
-                        {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
-                    </div>
-                  </div>
+                  <PasswordField
+                    label="Confirmar Nova Senha"
+                    name="confirmPassword"
+                    value={passwordData.confirmPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="Confirme sua nova senha"
+                    showPassword={showConfirmPassword}
+                    onTogglePassword={() => setShowConfirmPassword(!showConfirmPassword)}
+                  />
 
                   {/* Info Box */}
                   <div style={{
@@ -1099,32 +849,9 @@ const UserProfile = () => {
                     </ul>
                   </div>
 
-                  {/* Button */}
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem',
-                      padding: '0.75rem 1.5rem',
-                      background: saving 
-                        ? '#d1d5db' 
-                        : 'linear-gradient(90deg, #14b8a6 0%, #10b981 100%)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '10px',
-                      fontSize: '1rem',
-                      fontWeight: '600',
-                      cursor: saving ? 'not-allowed' : 'pointer',
-                      boxShadow: '0 10px 25px -5px rgba(20, 184, 166, 0.4)',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <Lock size={18} />
+                  <SubmitButton saving={saving} icon={Lock}>
                     {saving ? 'Alterando...' : 'Alterar Senha'}
-                  </button>
+                  </SubmitButton>
                 </div>
               </form>
             )}

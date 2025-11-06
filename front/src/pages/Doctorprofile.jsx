@@ -8,6 +8,249 @@ import {
 import { getDoctorProfile, updateDoctorProfile, changeDoctorPassword } from '../services/doctor';
 import './PatientProfile.css';
 
+// ==================== COMPONENTES REUTILIZÁVEIS ====================
+
+const InputField = ({ 
+  label, 
+  icon: Icon, 
+  name, 
+  value, 
+  onChange, 
+  type = 'text',
+  placeholder,
+  rows,
+  ...props 
+}) => {
+  const isTextarea = type === 'textarea';
+  const InputComponent = isTextarea ? 'textarea' : 'input';
+
+  return (
+    <div>
+      <label style={styles.label}>
+        <Icon size={18} color="#14b8a6" />
+        {label}
+      </label>
+      <InputComponent
+        type={isTextarea ? undefined : type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        rows={rows}
+        style={{
+          ...styles.input,
+          ...(isTextarea && { resize: 'vertical' })
+        }}
+        onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
+        onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+        {...props}
+      />
+    </div>
+  );
+};
+
+const PasswordField = ({ 
+  label, 
+  name, 
+  value, 
+  onChange, 
+  placeholder,
+  showPassword,
+  onTogglePassword
+}) => {
+  return (
+    <div>
+      <label style={styles.label}>
+        <Lock size={18} color="#14b8a6" />
+        {label}
+      </label>
+      <div style={{ position: 'relative' }}>
+        <input
+          type={showPassword ? 'text' : 'password'}
+          name={name}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          style={styles.passwordInput}
+          onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
+          onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+        />
+        <button
+          type="button"
+          onClick={onTogglePassword}
+          style={styles.passwordToggle}
+        >
+          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const TabButton = ({ active, onClick, icon: Icon, children }) => {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        ...styles.tabButton,
+        background: active 
+          ? 'linear-gradient(90deg, #14b8a6 0%, #10b981 100%)' 
+          : 'transparent',
+        color: active ? 'white' : '#6b7280'
+      }}
+    >
+      <Icon size={18} />
+      {children}
+    </button>
+  );
+};
+
+const SubmitButton = ({ saving, children, icon: Icon }) => {
+  return (
+    <button
+      type="submit"
+      disabled={saving}
+      style={{
+        ...styles.submitButton,
+        background: saving 
+          ? '#d1d5db' 
+          : 'linear-gradient(90deg, #14b8a6 0%, #10b981 100%)',
+        cursor: saving ? 'not-allowed' : 'pointer'
+      }}
+    >
+      <Icon size={18} />
+      {children}
+    </button>
+  );
+};
+
+const Alert = ({ type, children }) => {
+  const isError = type === 'error';
+  return (
+    <div style={{
+      ...styles.alert,
+      backgroundColor: isError ? '#fee2e2' : '#d1fae5',
+      color: isError ? '#dc2626' : '#065f46'
+    }}>
+      {isError ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
+      {children}
+    </div>
+  );
+};
+
+const SpecialtyTag = ({ specialty, onRemove, index }) => {
+  return (
+    <div style={styles.specialtyTag}>
+      <span>{specialty}</span>
+      <button
+        type="button"
+        onClick={() => onRemove(index)}
+        style={styles.specialtyRemoveButton}
+      >
+        <X size={16} color="#0369a1" />
+      </button>
+    </div>
+  );
+};
+
+// ==================== ESTILOS ====================
+
+const styles = {
+  label: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: '0.5rem'
+  },
+  input: {
+    width: '100%',
+    padding: '0.75rem 1rem',
+    border: '2px solid #e5e7eb',
+    borderRadius: '10px',
+    fontSize: '1rem',
+    outline: 'none',
+    transition: 'border-color 0.2s'
+  },
+  passwordInput: {
+    width: '100%',
+    padding: '0.75rem 3rem 0.75rem 1rem',
+    border: '2px solid #e5e7eb',
+    borderRadius: '10px',
+    fontSize: '1rem',
+    outline: 'none',
+    transition: 'border-color 0.2s'
+  },
+  passwordToggle: {
+    position: 'absolute',
+    right: '1rem',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    background: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    color: '#6b7280'
+  },
+  tabButton: {
+    flex: 1,
+    padding: '1rem',
+    border: 'none',
+    borderRadius: '12px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
+    fontSize: '0.95rem',
+    fontWeight: '600',
+    transition: 'all 0.2s'
+  },
+  submitButton: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
+    padding: '0.75rem 1.5rem',
+    color: 'white',
+    border: 'none',
+    borderRadius: '10px',
+    fontSize: '1rem',
+    fontWeight: '600',
+    boxShadow: '0 10px 25px -5px rgba(20, 184, 166, 0.4)',
+    transition: 'all 0.2s'
+  },
+  alert: {
+    padding: '1rem',
+    borderRadius: '12px',
+    marginBottom: '1.5rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem'
+  },
+  specialtyTag: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    padding: '0.5rem 0.75rem',
+    background: '#e0f2fe',
+    borderRadius: '20px',
+    fontSize: '0.875rem',
+    color: '#0369a1'
+  },
+  specialtyRemoveButton: {
+    background: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    padding: 0
+  }
+};
+
+// ==================== COMPONENTE PRINCIPAL ====================
+
 const DoctorProfile = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -146,7 +389,6 @@ const DoctorProfile = () => {
     setSuccess('');
 
     try {
-      // Verificar se houve alterações
       const especialidadesChanged = 
         JSON.stringify(profileData.especialidades.sort()) !== 
         JSON.stringify(originalData.especialidades.sort());
@@ -386,37 +628,8 @@ const DoctorProfile = () => {
           </div>
 
           {/* Messages */}
-          {error && (
-            <div style={{
-              backgroundColor: '#fee2e2',
-              color: '#dc2626',
-              padding: '1rem',
-              borderRadius: '12px',
-              marginBottom: '1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}>
-              <AlertCircle size={20} />
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div style={{
-              backgroundColor: '#d1fae5',
-              color: '#065f46',
-              padding: '1rem',
-              borderRadius: '12px',
-              marginBottom: '1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}>
-              <CheckCircle size={20} />
-              {success}
-            </div>
-          )}
+          {error && <Alert type="error">{error}</Alert>}
+          {success && <Alert type="success">{success}</Alert>}
 
           {/* Tabs */}
           <div style={{
@@ -428,54 +641,20 @@ const DoctorProfile = () => {
             display: 'flex',
             gap: '0.5rem'
           }}>
-            <button
+            <TabButton
+              active={activeTab === 'personal'}
               onClick={() => setActiveTab('personal')}
-              style={{
-                flex: 1,
-                padding: '1rem',
-                background: activeTab === 'personal' 
-                  ? 'linear-gradient(90deg, #14b8a6 0%, #10b981 100%)' 
-                  : 'transparent',
-                color: activeTab === 'personal' ? 'white' : '#6b7280',
-                border: 'none',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-                fontSize: '0.95rem',
-                fontWeight: '600',
-                transition: 'all 0.2s'
-              }}
+              icon={User}
             >
-              <User size={18} />
               Dados Profissionais
-            </button>
-            <button
+            </TabButton>
+            <TabButton
+              active={activeTab === 'security'}
               onClick={() => setActiveTab('security')}
-              style={{
-                flex: 1,
-                padding: '1rem',
-                background: activeTab === 'security' 
-                  ? 'linear-gradient(90deg, #14b8a6 0%, #10b981 100%)' 
-                  : 'transparent',
-                color: activeTab === 'security' ? 'white' : '#6b7280',
-                border: 'none',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-                fontSize: '0.95rem',
-                fontWeight: '600',
-                transition: 'all 0.2s'
-              }}
+              icon={Lock}
             >
-              <Lock size={18} />
               Segurança
-            </button>
+            </TabButton>
           </div>
 
           {/* Content */}
@@ -489,121 +668,39 @@ const DoctorProfile = () => {
               <form onSubmit={handleSaveProfile}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                   
-                  {/* CRM */}
-                  <div>
-                    <label style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.5rem'
-                    }}>
-                      <CreditCard size={18} color="#14b8a6" />
-                      CRM
-                    </label>
-                    <input
-                      type="text"
-                      name="crm"
-                      value={profileData.crm}
-                      onChange={handleInputChange}
-                      placeholder="CRM 12345"
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem 1rem',
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '10px',
-                        fontSize: '1rem',
-                        outline: 'none',
-                        transition: 'border-color 0.2s'
-                      }}
-                      onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
-                      onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                    />
-                  </div>
+                  <InputField
+                    label="CRM"
+                    icon={CreditCard}
+                    name="crm"
+                    value={profileData.crm}
+                    onChange={handleInputChange}
+                    placeholder="CRM 12345"
+                  />
 
-                  {/* Telefone */}
-                  <div>
-                    <label style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.5rem'
-                    }}>
-                      <Phone size={18} color="#14b8a6" />
-                      Telefone
-                    </label>
-                    <input
-                      type="text"
-                      name="telefone"
-                      value={profileData.telefone}
-                      onChange={handlePhoneChange}
-                      placeholder="(00) 00000-0000"
-                      maxLength={15}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem 1rem',
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '10px',
-                        fontSize: '1rem',
-                        outline: 'none',
-                        transition: 'border-color 0.2s'
-                      }}
-                      onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
-                      onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                    />
-                  </div>
+                  <InputField
+                    label="Telefone"
+                    icon={Phone}
+                    name="telefone"
+                    value={profileData.telefone}
+                    onChange={handlePhoneChange}
+                    placeholder="(00) 00000-0000"
+                    maxLength={15}
+                  />
 
-                  {/* Endereço */}
-                  <div>
-                    <label style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.5rem'
-                    }}>
-                      <MapPin size={18} color="#14b8a6" />
-                      Endereço do Consultório
-                    </label>
-                    <textarea
-                      name="endereco"
-                      value={profileData.endereco}
-                      onChange={handleInputChange}
-                      placeholder="Rua, número, bairro, cidade, estado"
-                      rows={3}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem 1rem',
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '10px',
-                        fontSize: '1rem',
-                        outline: 'none',
-                        resize: 'vertical',
-                        transition: 'border-color 0.2s'
-                      }}
-                      onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
-                      onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                    />
-                  </div>
+                  <InputField
+                    label="Endereço do Consultório"
+                    icon={MapPin}
+                    name="endereco"
+                    value={profileData.endereco}
+                    onChange={handleInputChange}
+                    type="textarea"
+                    placeholder="Rua, número, bairro, cidade, estado"
+                    rows={3}
+                  />
 
                   {/* Especialidades */}
                   <div>
-                    <label style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.5rem'
-                    }}>
+                    <label style={styles.label}>
                       <Stethoscope size={18} color="#14b8a6" />
                       Especialidades
                     </label>
@@ -616,35 +713,12 @@ const DoctorProfile = () => {
                       marginBottom: '0.75rem'
                     }}>
                       {profileData.especialidades.map((esp, index) => (
-                        <div
+                        <SpecialtyTag
                           key={index}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            padding: '0.5rem 0.75rem',
-                            background: '#e0f2fe',
-                            borderRadius: '20px',
-                            fontSize: '0.875rem',
-                            color: '#0369a1'
-                          }}
-                        >
-                          <span>{esp}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveEspecialidade(index)}
-                            style={{
-                              background: 'transparent',
-                              border: 'none',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              padding: 0
-                            }}
-                          >
-                            <X size={16} color="#0369a1" />
-                          </button>
-                        </div>
+                          specialty={esp}
+                          index={index}
+                          onRemove={handleRemoveEspecialidade}
+                        />
                       ))}
                     </div>
 
@@ -661,15 +735,7 @@ const DoctorProfile = () => {
                           }
                         }}
                         placeholder="Digite uma especialidade"
-                        style={{
-                          flex: 1,
-                          padding: '0.75rem 1rem',
-                          border: '2px solid #e5e7eb',
-                          borderRadius: '10px',
-                          fontSize: '1rem',
-                          outline: 'none',
-                          transition: 'border-color 0.2s'
-                        }}
+                        style={styles.input}
                         onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
                         onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                       />
@@ -696,193 +762,44 @@ const DoctorProfile = () => {
                     </div>
                   </div>
 
-                  {/* Button */}
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem',
-                      padding: '0.75rem 1.5rem',
-                      background: saving 
-                        ? '#d1d5db' 
-                        : 'linear-gradient(90deg, #14b8a6 0%, #10b981 100%)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '10px',
-                      fontSize: '1rem',
-                      fontWeight: '600',
-                      cursor: saving ? 'not-allowed' : 'pointer',
-                      boxShadow: '0 10px 25px -5px rgba(20, 184, 166, 0.4)',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <Save size={18} />
+                  <SubmitButton saving={saving} icon={Save}>
                     {saving ? 'Salvando...' : 'Salvar Alterações'}
-                  </button>
+                  </SubmitButton>
                 </div>
               </form>
             ) : (
               <form onSubmit={handleChangePassword}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                   
-                  {/* Senha Atual */}
-                  <div>
-                    <label style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.5rem'
-                    }}>
-                      <Lock size={18} color="#14b8a6" />
-                      Senha Atual
-                    </label>
-                    <div style={{ position: 'relative' }}>
-                      <input
-                        type={showCurrentPassword ? 'text' : 'password'}
-                        name="currentPassword"
-                        value={passwordData.currentPassword}
-                        onChange={handlePasswordChange}
-                        placeholder="Digite sua senha atual"
-                        style={{
-                          width: '100%',
-                          padding: '0.75rem 3rem 0.75rem 1rem',
-                          border: '2px solid #e5e7eb',
-                          borderRadius: '10px',
-                          fontSize: '1rem',
-                          outline: 'none',
-                          transition: 'border-color 0.2s'
-                        }}
-                        onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
-                        onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                        style={{
-                          position: 'absolute',
-                          right: '1rem',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: '#6b7280'
-                        }}
-                      >
-                        {showCurrentPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
-                    </div>
-                  </div>
+                  <PasswordField
+                    label="Senha Atual"
+                    name="currentPassword"
+                    value={passwordData.currentPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="Digite sua senha atual"
+                    showPassword={showCurrentPassword}
+                    onTogglePassword={() => setShowCurrentPassword(!showCurrentPassword)}
+                  />
 
-                  {/* Nova Senha */}
-                  <div>
-                    <label style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.5rem'
-                    }}>
-                      <Lock size={18} color="#14b8a6" />
-                      Nova Senha
-                    </label>
-                    <div style={{ position: 'relative' }}>
-                      <input
-                        type={showNewPassword ? 'text' : 'password'}
-                        name="newPassword"
-                        value={passwordData.newPassword}
-                        onChange={handlePasswordChange}
-                        placeholder="Digite sua nova senha (mín. 6 caracteres)"
-                        style={{
-                          width: '100%',
-                          padding: '0.75rem 3rem 0.75rem 1rem',
-                          border: '2px solid #e5e7eb',
-                          borderRadius: '10px',
-                          fontSize: '1rem',
-                          outline: 'none',
-                          transition: 'border-color 0.2s'
-                        }}
-                        onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
-                        onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowNewPassword(!showNewPassword)}
-                        style={{
-                          position: 'absolute',
-                          right: '1rem',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: '#6b7280'
-                        }}
-                      >
-                        {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
-                    </div>
-                  </div>
+                  <PasswordField
+                    label="Nova Senha"
+                    name="newPassword"
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="Digite sua nova senha (mín. 6 caracteres)"
+                    showPassword={showNewPassword}
+                    onTogglePassword={() => setShowNewPassword(!showNewPassword)}
+                  />
 
-                  {/* Confirmar Senha */}
-                  <div>
-                    <label style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.5rem'
-                    }}>
-                      <Lock size={18} color="#14b8a6" />
-                      Confirmar Nova Senha
-                    </label>
-                    <div style={{ position: 'relative' }}>
-                      <input
-                        type={showConfirmPassword ? 'text' : 'password'}
-                        name="confirmPassword"
-                        value={passwordData.confirmPassword}
-                        onChange={handlePasswordChange}
-                        placeholder="Confirme sua nova senha"
-                        style={{
-                          width: '100%',
-                          padding: '0.75rem 3rem 0.75rem 1rem',
-                          border: '2px solid #e5e7eb',
-                          borderRadius: '10px',
-                          fontSize: '1rem',
-                          outline: 'none',
-                          transition: 'border-color 0.2s'
-                        }}
-                        onFocus={(e) => e.target.style.borderColor = '#14b8a6'}
-                        onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        style={{
-                          position: 'absolute',
-                          right: '1rem',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: '#6b7280'
-                        }}
-                      >
-                        {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
-                    </div>
-                  </div>
+                  <PasswordField
+                    label="Confirmar Nova Senha"
+                    name="confirmPassword"
+                    value={passwordData.confirmPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="Confirme sua nova senha"
+                    showPassword={showConfirmPassword}
+                    onTogglePassword={() => setShowConfirmPassword(!showConfirmPassword)}
+                  />
 
                   {/* Info Box */}
                   <div style={{
@@ -901,32 +818,9 @@ const DoctorProfile = () => {
                     </ul>
                   </div>
 
-                  {/* Button */}
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem',
-                      padding: '0.75rem 1.5rem',
-                      background: saving 
-                        ? '#d1d5db' 
-                        : 'linear-gradient(90deg, #14b8a6 0%, #10b981 100%)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '10px',
-                      fontSize: '1rem',
-                      fontWeight: '600',
-                      cursor: saving ? 'not-allowed' : 'pointer',
-                      boxShadow: '0 10px 25px -5px rgba(20, 184, 166, 0.4)',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <Lock size={18} />
+                  <SubmitButton saving={saving} icon={Lock}>
                     {saving ? 'Alterando...' : 'Alterar Senha'}
-                  </button>
+                  </SubmitButton>
                 </div>
               </form>
             )}
