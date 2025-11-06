@@ -85,7 +85,7 @@ const PatientHistory = () => {
       // Se for erro de autenticação, redirecionar
       if (err.error?.includes('Token') || err.error?.includes('autenticação')) {
         sessionStorage.clear();
-        window.location.href = '/login';
+        globalThis.location.href = '/login';
       }
     } finally {
       setLoading(false);
@@ -115,12 +115,12 @@ const PatientHistory = () => {
   };
 
   const handleBack = () => {
-    window.history.back();
+    globalThis.history.back();
   };
 
   const handleLogout = () => {
     sessionStorage.clear();
-    window.location.href = '/login';
+    globalThis.location.href = '/login';
   };
 
   const handleExport = () => {
