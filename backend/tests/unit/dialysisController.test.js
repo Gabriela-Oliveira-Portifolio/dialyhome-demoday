@@ -559,7 +559,13 @@ describe('DialysisController - Unit Tests', () => {
 
       await updateRecord(mockReq, mockRes);
 
-      expect(mockRes.status).toHaveBeenCalledWith(200);
+      expect(mockRes.status).not.toHaveBeenCalled(); // status não é chamado
+        expect(mockRes.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+            message: 'Registro atualizado com sucesso'
+        })
+        );
+
     });
   });
 });
