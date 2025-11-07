@@ -1,23 +1,3 @@
-// // src/routes/alertaMedico.js
-// // Rotas para gerenciamento de alertas médicos
-// const express = require('express');
-// const router = express.Router();
-// const { authenticateToken, authorizeRole } = require('../middleware/auth');
-// const { enviarAlerta, listarAlertasEnviados, buscarAlerta, obterEstatisticas   } = require('../controllers/alertaDoMedicoController');
-
-// router.use(authenticateToken);
-// router.use(authorizeRole(['medico']));
-
-// router.post('/enviar', enviarAlerta);
-
-// router.get('/enviados', listarAlertasEnviados);
-
-// router.get('/estatisticas', buscarAlerta);
-
-// router.get('/:id', obterEstatisticas);
-
-// module.exports = router;
-
 const express = require('express');
 const router = express.Router();
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
