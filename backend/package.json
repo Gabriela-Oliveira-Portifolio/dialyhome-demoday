@@ -37,6 +37,8 @@
     "node-cron": "^3.0.3",
     "nodemailer": "^6.10.1",
     "pg": "^8.16.3",
+    "sequelize": "^6.37.7",
+    "sequelize-mock": "^0.10.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2",
     "winston": "^3.17.0"

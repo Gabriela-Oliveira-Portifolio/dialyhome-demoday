@@ -2,8 +2,8 @@
 
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../middleware/auth');
-const messagingController = require('../controllers/messagingController');
+const { authenticateToken } = require('../src/middleware/auth');
+const messagingController = require('../src/controllers/messagingController');
 
 // Todas as rotas requerem autenticação
 router.use(authenticateToken);

@@ -34,77 +34,158 @@ const symptomsController = {
     }
   },
 
-  // Registrar sintomas para um registro de diálise
+  // // Registrar sintomas para um registro de diálise
+  // registerSymptoms: async (req, res) => {
+  //   try {
+  //     const userId = req.user.id;
+  //     const { registro_dialise_id, sintomas } = req.body;
+
+  //     // Validações
+  //     if (!registro_dialise_id || !sintomas || sintomas.length === 0) {
+  //       return res.status(400).json({ 
+  //         error: 'ID do registro de diálise e sintomas são obrigatórios' 
+  //       });
+  //     }
+
+  //     // Buscar paciente_id
+  //     const patientResult = await db.query(
+  //       'SELECT id FROM pacientes WHERE usuario_id = $1',
+  //       [userId]
+  //     );
+
+  //     if (patientResult.rows.length === 0) {
+  //       return res.status(404).json({ error: 'Paciente não encontrado' });
+  //     }
+
+  //     const pacienteId = patientResult.rows[0].id;
+
+  //     // Verificar se o registro de diálise pertence ao paciente
+  //     const dialysisCheck = await db.query(
+  //       'SELECT id FROM registros_dialise WHERE id = $1 AND paciente_id = $2',
+  //       [registro_dialise_id, pacienteId]
+  //     );
+
+  //     if (dialysisCheck.rows.length === 0) {
+  //       return res.status(404).json({ error: 'Registro de diálise não encontrado' });
+  //     }
+
+  //     // Deletar sintomas anteriores deste registro
+  //     await db.query(
+  //       'DELETE FROM registro_sintomas WHERE registro_dialise_id = $1',
+  //       [registro_dialise_id]
+  //     );
+
+  //     // Inserir novos sintomas
+  //     const insertedSymptoms = [];
+  //     for (const sintoma of sintomas) {
+  //       const result = await db.query(
+  //         `INSERT INTO registro_sintomas (
+  //           registro_dialise_id,
+  //           sintoma_id,
+  //           severidade,
+  //           observacoes
+  //         ) VALUES ($1, $2, $3, $4)
+  //         RETURNING *`,
+  //         [
+  //           registro_dialise_id,
+  //           sintoma.sintoma_id,
+  //           sintoma.severidade || 'leve',
+  //           sintoma.observacoes || null
+  //         ]
+  //       );
+  //       insertedSymptoms.push(result.rows[0]);
+  //     }
+
+  //     res.status(201).json({
+  //       message: 'Sintomas registrados com sucesso',
+  //       symptoms: insertedSymptoms
+  //     });
+  //   } catch (error) {
+  //       console.error('Erro ao registrar sintomas:', error);
+  //       res.status(500).json({ error: 'Erro ao registrar sintomas' });
+  //     }
+
+  // },
   registerSymptoms: async (req, res) => {
-    try {
-      const userId = req.user.id;
-      const { registro_dialise_id, sintomas } = req.body;
+  try {
+    const userId = req.user.id;
+    const { registro_dialise_id, sintomas } = req.body;
 
-      // Validações
-      if (!registro_dialise_id || !sintomas || sintomas.length === 0) {
-        return res.status(400).json({ 
-          error: 'ID do registro de diálise e sintomas são obrigatórios' 
-        });
-      }
-
-      // Buscar paciente_id
-      const patientResult = await db.query(
-        'SELECT id FROM pacientes WHERE usuario_id = $1',
-        [userId]
-      );
-
-      if (patientResult.rows.length === 0) {
-        return res.status(404).json({ error: 'Paciente não encontrado' });
-      }
-
-      const pacienteId = patientResult.rows[0].id;
-
-      // Verificar se o registro de diálise pertence ao paciente
-      const dialysisCheck = await db.query(
-        'SELECT id FROM registros_dialise WHERE id = $1 AND paciente_id = $2',
-        [registro_dialise_id, pacienteId]
-      );
-
-      if (dialysisCheck.rows.length === 0) {
-        return res.status(404).json({ error: 'Registro de diálise não encontrado' });
-      }
-
-      // Deletar sintomas anteriores deste registro
-      await db.query(
-        'DELETE FROM registro_sintomas WHERE registro_dialise_id = $1',
-        [registro_dialise_id]
-      );
-
-      // Inserir novos sintomas
-      const insertedSymptoms = [];
-      for (const sintoma of sintomas) {
-        const result = await db.query(
-          `INSERT INTO registro_sintomas (
-            registro_dialise_id,
-            sintoma_id,
-            severidade,
-            observacoes
-          ) VALUES ($1, $2, $3, $4)
-          RETURNING *`,
-          [
-            registro_dialise_id,
-            sintoma.sintoma_id,
-            sintoma.severidade || 'leve',
-            sintoma.observacoes || null
-          ]
-        );
-        insertedSymptoms.push(result.rows[0]);
-      }
-
-      res.status(201).json({
-        message: 'Sintomas registrados com sucesso',
-        symptoms: insertedSymptoms
+    // Verifica se os dados obrigatórios foram enviados
+    if (!registro_dialise_id || !sintomas || sintomas.length === 0) {
+      return res.status(400).json({
+        error: 'ID do registro de diálise e sintomas são obrigatórios'
       });
-    } catch (error) {
-      console.error('Erro ao registrar sintomas:', error);
-      res.status(500).json({ error: 'Erro ao registrar sintomas' });
     }
-  },
+
+    // Busca paciente
+    const pacienteResult = await db.query(
+      'SELECT id FROM pacientes WHERE usuario_id = $1',
+      [userId]
+    );
+
+    // Caso paciente não encontrado
+    if (!pacienteResult || pacienteResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Paciente não encontrado' });
+    }
+
+    const pacienteId = pacienteResult.rows[0].id;
+
+    // Verifica se o registro de diálise pertence ao paciente
+    const registroResult = await db.query(
+      'SELECT id FROM registros_dialise WHERE id = $1 AND paciente_id = $2',
+      [registro_dialise_id, pacienteId]
+    );
+
+    // Caso registro não pertença ao paciente
+    if (!registroResult || registroResult.rows.length === 0) {
+      return res
+        .status(404)
+        .json({ error: 'Registro de diálise não encontrado ou não pertence ao paciente' });
+    }
+
+    // Remove sintomas anteriores
+    await db.query(
+      'DELETE FROM registro_sintomas WHERE registro_dialise_id = $1',
+      [registro_dialise_id]
+    );
+
+    // Insere novos sintomas
+    const insertedSymptoms = [];
+
+    for (const sintoma of sintomas) {
+      const result = await db.query(
+        `INSERT INTO registro_sintomas (
+          registro_dialise_id,
+          sintoma_id,
+          severidade,
+          observacoes
+        ) VALUES ($1, $2, $3, $4)
+        RETURNING *`,
+        [
+          registro_dialise_id,
+          sintoma.sintoma_id,
+          sintoma.severidade || 'leve',
+          sintoma.observacoes || null
+        ]
+      );
+
+      insertedSymptoms.push(result.rows[0]);
+    }
+
+    return res.status(201).json({
+      message: 'Sintomas registrados com sucesso',
+      symptoms: insertedSymptoms
+    });
+  } catch (error) {
+    console.error('Erro ao registrar sintomas:', error);
+    // ⚠️ Aqui estava o problema: devia ser 500, não 400
+    return res.status(500).json({ error: 'Erro ao registrar sintomas' });
+  }
+},
+
+
+
 
   // Registrar sintoma sem vínculo com registro de diálise (sintoma isolado)
   registerIsolatedSymptom: async (req, res) => {

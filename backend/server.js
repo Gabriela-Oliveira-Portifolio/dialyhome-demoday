@@ -12,7 +12,7 @@ const patientRoutes = require('./src/routes/patients');
 const symptomsRoutes = require('./src/routes/symptoms');
 const adminRoutes = require('./src/routes/admin');
 const doctorRoutes = require('./src/routes/doctor');
-const messagingRoutes = require('./src/routes/messaging');
+// const messagingRoutes = require('./src/routes/messaging');
 const alertaMedicoRoutes = require('./src/routes/alertaMedico');
 
 
@@ -49,7 +49,7 @@ app.use('/api/symptoms', symptomsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/doctor', doctorRoutes);
 // app.use('/api/messaging', messagingRoutes);
-app.use('/api/messaging', messagingRoutes);
+// app.use('/api/messaging', messagingRoutes);
 // app.use('/api/doctor/alerta/enviar', emailLimiter); // Aplicar limite específico para envio
 // app.use('/api/doctor/alerta', alertaMedicoRoutes);
 
