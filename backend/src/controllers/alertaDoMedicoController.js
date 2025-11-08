@@ -1,6 +1,6 @@
 // src/controllers/alertaMedicoController.js
 // Controller para gerenciar alertas médicos enviados por email
-
+  // NÃO É AQUI QUE O ALERTA É ENVIADO
 const db = require('../config/database');
 const nodemailer = require('nodemailer');
 
