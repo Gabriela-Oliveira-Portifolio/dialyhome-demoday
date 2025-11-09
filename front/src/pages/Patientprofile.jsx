@@ -434,7 +434,7 @@ const PatientProfile = () => {
   };
 
   const handleBack = () => {
-    navigate('/dashboard');
+    navigate(-1);
   };
 
   const handleLogout = () => {
@@ -525,7 +525,7 @@ const PatientProfile = () => {
               <Heart size={22} color="white" strokeWidth={2.5} />
             </div>
             <span style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1f2937' }}>
-              DialyHome - Meu Perfil
+              DialyHome
             </span>
           </div>
           

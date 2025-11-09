@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Heart, Activity, Droplet, FileText, Calendar, 
-  TrendingUp, ArrowLeft, Filter, Download,
+  ArrowLeft, Filter, Download,
   AlertCircle, CheckCircle, Bell, User, LogOut
 } from 'lucide-react';
 import { getPatientRecords } from '../services/dialysis';
 import { getSymptomsHistory } from '../services/symptoms';
 import { getDetailedStats } from '../services/patient';
+import { useNavigate } from 'react-router-dom';
 
 const PatientHistory = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dialise');
   const [dateFilter, setDateFilter] = useState('30');
@@ -28,39 +30,58 @@ const PatientHistory = () => {
     setLoading(true);
     setError('');
     try {
+      // Calcular a data de início do filtro
+      const daysAgo = parseInt(dateFilter);
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - daysAgo);
+      
       // Carregar dados reais da API
       const [dialysisData, symptomsData, statsData] = await Promise.all([
         getPatientRecords(100), // Buscar muitos registros para o histórico
         getSymptomsHistory(100, 0),
-        getDetailedStats(parseInt(dateFilter))
+        getDetailedStats(daysAgo)
       ]);
 
-      // Processar registros de diálise
-      const processedDialysis = dialysisData.records.map(record => ({
-        id: record.id,
-        data: new Date(record.data_registro).toLocaleDateString('pt-BR'),
-        pressaoSistolica: record.pressao_arterial_sistolica,
-        pressaoDiastolica: record.pressao_arterial_diastolica,
-        ufTotal: record.uf_total ? (record.uf_total / 1000).toFixed(1) : 'N/A',
-        glicose: record.concentracao_glicose || 'N/A',
-        tempoPermanencia: record.tempo_permanencia || 'N/A',
-        dextrose: record.concentracao_dextrose || 'N/A',
-        observacoes: record.observacoes,
-        status: determineStatus(record)
-      }));
+      // Processar registros de diálise e filtrar por data
+      const processedDialysis = dialysisData.records
+        .filter(record => {
+          const recordDate = new Date(record.data_registro);
+          return recordDate >= startDate;
+        })
+        .map(record => ({
+          id: record.id,
+          data: new Date(record.data_registro).toLocaleDateString('pt-BR'),
+          dataOriginal: record.data_registro, // Manter para ordenação
+          pressaoSistolica: record.pressao_arterial_sistolica,
+          pressaoDiastolica: record.pressao_arterial_diastolica,
+          ufTotal: record.uf_total ? (record.uf_total / 1000).toFixed(1) : 'N/A',
+          glicose: record.concentracao_glicose || 'N/A',
+          tempoPermanencia: record.tempo_permanencia || 'N/A',
+          dextrose: record.concentracao_dextrose || 'N/A',
+          observacoes: record.observacoes,
+          status: determineStatus(record)
+        }))
+        .sort((a, b) => new Date(b.dataOriginal) - new Date(a.dataOriginal)); // Ordenar do mais recente para o mais antigo
 
-      // Processar sintomas
-      const processedSymptoms = symptomsData.symptoms.map(symptom => ({
-        id: symptom.sintoma_registro_id,
-        registroId: symptom.registro_id,
-        data: new Date(symptom.data_registro).toLocaleDateString('pt-BR'),
-        sintoma: symptom.sintoma_nome,
-        categoria: symptom.categoria,
-        severidade: symptom.severidade,
-        intensidade: getSeverityLevel(symptom.severidade),
-        descricao: symptom.observacoes || 'Sem observações adicionais',
-        resolvido: false // Você pode adicionar lógica para determinar isso
-      }));
+      // Processar sintomas e filtrar por data
+      const processedSymptoms = symptomsData.symptoms
+        .filter(symptom => {
+          const symptomDate = new Date(symptom.data_registro);
+          return symptomDate >= startDate;
+        })
+        .map(symptom => ({
+          id: symptom.sintoma_registro_id,
+          registroId: symptom.registro_id,
+          data: new Date(symptom.data_registro).toLocaleDateString('pt-BR'),
+          dataOriginal: symptom.data_registro, // Manter para ordenação
+          sintoma: symptom.sintoma_nome,
+          categoria: symptom.categoria,
+          severidade: symptom.severidade,
+          intensidade: getSeverityLevel(symptom.severidade),
+          descricao: symptom.observacoes || 'Sem observações adicionais',
+          resolvido: false // Você pode adicionar lógica para determinar isso
+        }))
+        .sort((a, b) => new Date(b.dataOriginal) - new Date(a.dataOriginal)); // Ordenar do mais recente para o mais antigo
 
       // Processar estatísticas
       const processedStats = {
@@ -123,6 +144,9 @@ const PatientHistory = () => {
     globalThis.location.href = '/login';
   };
 
+  const handleProfile = () => {
+    navigate('/perfil');
+  };
   const handleExport = () => {
     // Criar relatório para exportação
     const report = {
@@ -205,12 +229,12 @@ const PatientHistory = () => {
               <Heart size={22} color="white" strokeWidth={2.5} />
             </div>
             <span style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1f2937' }}>
-              DialyHome - Histórico
+              DialyHome
             </span>
           </div>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <button style={{
+            {/* <button style={{
               width: '40px',
               height: '40px',
               borderRadius: '10px',
@@ -222,8 +246,9 @@ const PatientHistory = () => {
               justifyContent: 'center'
             }}>
               <Bell size={20} color="#6b7280" strokeWidth={2} />
-            </button>
-            <button style={{
+            </button> */}
+            <button onClick={handleProfile} style={{
+              
               width: '40px',
               height: '40px',
               borderRadius: '10px',
@@ -236,22 +261,6 @@ const PatientHistory = () => {
             }}>
               <User size={20} color="#6b7280" strokeWidth={2} />
             </button>
-            <button 
-                        onClick={() => navigate('/perfil')}
-                        style={{
-                          width: '40px',
-                          height: '40px',
-                          borderRadius: '10px',
-                          border: 'none',
-                          background: '#f3f4f6',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        <User size={20} color="#6b7280" strokeWidth={2} />
-                      </button>
             <button
               onClick={handleLogout}
               style={{
@@ -382,7 +391,7 @@ const PatientHistory = () => {
               </select>
             </div>
             
-            <button
+            {/* <button
               onClick={handleExport}
               disabled={loading}
               style={{
@@ -403,7 +412,7 @@ const PatientHistory = () => {
             >
               <Download size={18} />
               Exportar Relatório
-            </button>
+            </button> */}
           </div>
 
           {/* Tabs */}
@@ -428,12 +437,12 @@ const PatientHistory = () => {
               icon={Activity}
               label="Sintomas"
             />
-            <TabButton
+            {/* <TabButton
               active={activeTab === 'graficos'}
               onClick={() => setActiveTab('graficos')}
               icon={TrendingUp}
               label="Gráficos"
-            />
+            /> */}
           </div>
 
           {/* Content Area */}
@@ -447,9 +456,9 @@ const PatientHistory = () => {
               {activeTab === 'sintomas' && (
                 <SymptomsHistory symptoms={historyData.symptoms} />
               )}
-              {activeTab === 'graficos' && (
+              {/* {activeTab === 'graficos' && (
                 <GraphicsView stats={historyData.stats} />
-              )}
+              )} */}
             </>
           )}
         </div>
@@ -760,71 +769,71 @@ const SymptomsHistory = ({ symptoms }) => {
   );
 };
 
-const GraphicsView = () => (
-  <div style={{
-    background: 'white',
-    borderRadius: '16px',
-    padding: '3rem 1.5rem',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-    textAlign: 'center'
-  }}>
-    <div style={{
-      width: '80px',
-      height: '80px',
-      background: 'linear-gradient(135deg, #14b8a6 0%, #10b981 100%)',
-      borderRadius: '20px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      margin: '0 auto 1.5rem',
-      boxShadow: '0 10px 25px -5px rgba(20, 184, 166, 0.4)'
-    }}>
-      <TrendingUp size={40} color="white" strokeWidth={2} />
-    </div>
-    <h2 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '1rem', color: '#111827' }}>
-      Visualização de Gráficos
-    </h2>
-    <p style={{ color: '#6b7280', marginBottom: '2rem', maxWidth: '500px', margin: '0 auto 2rem' }}>
-      Esta funcionalidade será implementada em breve com gráficos interativos mostrando tendências de pressão arterial, UF, glicose e outros parâmetros ao longo do tempo.
-    </p>
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-      gap: '1rem',
-      marginTop: '2rem',
-      maxWidth: '600px',
-      margin: '2rem auto 0'
-    }}>
-      <div style={{
-        padding: '1rem',
-        background: '#f0fdfa',
-        borderRadius: '12px',
-        border: '1px solid #ccfbf1'
-      }}>
-        <TrendingUp size={24} color="#14b8a6" style={{ marginBottom: '0.5rem' }} />
-        <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>Tendências</p>
-      </div>
-      <div style={{
-        padding: '1rem',
-        background: '#f0fdfa',
-        borderRadius: '12px',
-        border: '1px solid #ccfbf1'
-      }}>
-        <Activity size={24} color="#10b981" style={{ marginBottom: '0.5rem' }} />
-        <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>Comparações</p>
-      </div>
-      <div style={{
-        padding: '1rem',
-        background: '#f0fdfa',
-        borderRadius: '12px',
-        border: '1px solid #ccfbf1'
-      }}>
-        <FileText size={24} color="#0891b2" style={{ marginBottom: '0.5rem' }} />
-        <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>Relatórios</p>
-      </div>
-    </div>
-  </div>
-);
+// const GraphicsView = () => (
+//   <div style={{
+//     background: 'white',
+//     borderRadius: '16px',
+//     padding: '3rem 1.5rem',
+//     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+//     textAlign: 'center'
+//   }}>
+//     <div style={{
+//       width: '80px',
+//       height: '80px',
+//       background: 'linear-gradient(135deg, #14b8a6 0%, #10b981 100%)',
+//       borderRadius: '20px',
+//       display: 'flex',
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//       margin: '0 auto 1.5rem',
+//       boxShadow: '0 10px 25px -5px rgba(20, 184, 166, 0.4)'
+//     }}>
+//       <TrendingUp size={40} color="white" strokeWidth={2} />
+//     </div>
+//     <h2 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '1rem', color: '#111827' }}>
+//       Visualização de Gráficos
+//     </h2>
+//     <p style={{ color: '#6b7280', marginBottom: '2rem', maxWidth: '500px', margin: '0 auto 2rem' }}>
+//       Esta funcionalidade será implementada em breve com gráficos interativos mostrando tendências de pressão arterial, UF, glicose e outros parâmetros ao longo do tempo.
+//     </p>
+//     <div style={{
+//       display: 'grid',
+//       gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+//       gap: '1rem',
+//       marginTop: '2rem',
+//       maxWidth: '600px',
+//       margin: '2rem auto 0'
+//     }}>
+//       <div style={{
+//         padding: '1rem',
+//         background: '#f0fdfa',
+//         borderRadius: '12px',
+//         border: '1px solid #ccfbf1'
+//       }}>
+//         <TrendingUp size={24} color="#14b8a6" style={{ marginBottom: '0.5rem' }} />
+//         <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>Tendências</p>
+//       </div>
+//       <div style={{
+//         padding: '1rem',
+//         background: '#f0fdfa',
+//         borderRadius: '12px',
+//         border: '1px solid #ccfbf1'
+//       }}>
+//         <Activity size={24} color="#10b981" style={{ marginBottom: '0.5rem' }} />
+//         <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>Comparações</p>
+//       </div>
+//       <div style={{
+//         padding: '1rem',
+//         background: '#f0fdfa',
+//         borderRadius: '12px',
+//         border: '1px solid #ccfbf1'
+//       }}>
+//         <FileText size={24} color="#0891b2" style={{ marginBottom: '0.5rem' }} />
+//         <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>Relatórios</p>
+//       </div>
+//     </div>
+//   </div>
+// );
 
 const LoadingState = () => (
   <div style={{
@@ -869,4 +878,4 @@ const tableCellStyle = {
   color: '#374151'
 };
 
-export default PatientHistory
+export default PatientHistory;
