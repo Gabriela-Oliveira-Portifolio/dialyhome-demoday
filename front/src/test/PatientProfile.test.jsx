@@ -184,7 +184,9 @@ describe('🧪 PatientProfile', () => {
       expect(screen.getByText(/Dados Pessoais/i)).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByText(/Segurança/i))
+    fireEvent.click(
+    screen.getByRole('button', { name: /Segurança/i })
+    )
     fireEvent.submit(screen.getByText(/Alterar Senha/i))
 
     await waitFor(() => {
@@ -204,10 +206,13 @@ describe('🧪 PatientProfile', () => {
       expect(screen.getByText(/Dados Pessoais/i)).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByText(/Segurança/i))
+    fireEvent.click(
+    screen.getByRole('button', { name: /Segurança/i })
+    )
+
 
     fireEvent.change(screen.getByPlaceholderText(/senha atual/i), { target: { value: '123456' } })
-    fireEvent.change(screen.getByPlaceholderText(/nova senha/i), { target: { value: 'abcdef' } })
+    fireEvent.change(screen.getByPlaceholderText(/digite sua nova senha/i), { target: { value: 'abcdef' } })
     fireEvent.change(screen.getByPlaceholderText(/confirme sua nova senha/i), { target: { value: '123abc' } })
 
     fireEvent.submit(screen.getByText(/Alterar Senha/i))
@@ -231,10 +236,14 @@ describe('🧪 PatientProfile', () => {
       expect(screen.getByText(/Dados Pessoais/i)).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByText(/Segurança/i))
+    fireEvent.click(
+    screen.getByRole('button', { name: /Segurança/i })
+    )
+
 
     fireEvent.change(screen.getByPlaceholderText(/senha atual/i), { target: { value: '123456' } })
-    fireEvent.change(screen.getByPlaceholderText(/nova senha/i), { target: { value: 'abcdef' } })
+    fireEvent.change(screen.getByPlaceholderText(/digite sua nova senha/i), { target: { value: 'abcdef' } })
+
     fireEvent.change(screen.getByPlaceholderText(/confirme sua nova senha/i), { target: { value: 'abcdef' } })
 
     fireEvent.submit(screen.getByText(/Alterar Senha/i))
