@@ -143,7 +143,7 @@ const getRecords = async (req, res) => {
         observacoes,
         data_criacao
       FROM registros_dialise
-      WHERE paciente_id = $1
+      WHERE paciente_id = $1 AND sintomas is null
       ORDER BY data_registro DESC, data_criacao DESC
       LIMIT $2 OFFSET $3`,
       [pacienteId, limit, offset]
@@ -189,7 +189,7 @@ const getStats = async (req, res) => {
         concentracao_glicose,
         tempo_permanencia
       FROM registros_dialise
-      WHERE paciente_id = $1
+      WHERE paciente_id = $1 AND sintomas is null
       ORDER BY data_registro DESC, data_criacao DESC
       LIMIT 1`,
       [pacienteId]
@@ -203,7 +203,7 @@ const getStats = async (req, res) => {
         AVG(uf_total) as avg_uf,
         AVG(concentracao_glicose) as avg_glicose
       FROM registros_dialise
-      WHERE paciente_id = $1
+      WHERE paciente_id = $1 AND sintomas is null
         AND data_registro >= CURRENT_DATE - INTERVAL '7 days'`,
       [pacienteId]
     );
@@ -259,9 +259,9 @@ const getRecordById = async (req, res) => {
 
     const result = await db.query(
       `SELECT rd.* 
-      FROM registros_dialise rd
+      FROM registros_dialise rd 
       JOIN pacientes p ON rd.paciente_id = p.id
-      WHERE rd.id = $1 AND p.usuario_id = $2`,
+      WHERE rd.id = $1 AND rd.sintomas is null AND p.usuario_id = $2`,
       [recordId, userId]
     );
 
@@ -287,7 +287,7 @@ const updateRecord = async (req, res) => {
       `SELECT rd.id 
       FROM registros_dialise rd
       JOIN pacientes p ON rd.paciente_id = p.id
-      WHERE rd.id = $1 AND p.usuario_id = $2`,
+      WHERE rd.id = $1 AND rd.sintomas is null AND p.usuario_id = $2`,
       [recordId, userId]
     );
 

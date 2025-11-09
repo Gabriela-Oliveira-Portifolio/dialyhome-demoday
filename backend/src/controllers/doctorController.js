@@ -19,7 +19,7 @@ const analyticsHelpers = {
         140 as "systolicIdeal",
         90 as "diastolicIdeal"
       FROM registros_dialise
-      WHERE paciente_id = $1 AND data_registro >= $2
+      WHERE paciente_id = $1 AND data_registro >= $2 AND sintomas is null
       ORDER BY data_registro ASC
     `;
     const result = await db.query(query, [patientId, startDate]);
@@ -36,6 +36,7 @@ const analyticsHelpers = {
       WHERE paciente_id = $1 
         AND data_registro >= $2
         AND uf_total IS NOT NULL
+        AND sintomas is null
       ORDER BY data_registro ASC
     `;
     const result = await db.query(query, [patientId, startDate]);
@@ -52,6 +53,7 @@ const analyticsHelpers = {
       WHERE paciente_id = $1 
         AND data_registro >= $2
         AND concentracao_glicose IS NOT NULL
+        AND sintomas is null
       ORDER BY data_registro ASC
     `;
     const result = await db.query(query, [patientId, startDate]);
@@ -66,7 +68,7 @@ const analyticsHelpers = {
         COUNT(*) FILTER (WHERE data_registro >= CURRENT_DATE - INTERVAL '7 days') as last_week,
         COUNT(*) FILTER (WHERE sintomas IS NOT NULL AND sintomas != '') as with_symptoms
       FROM registros_dialise
-      WHERE paciente_id = $1 AND data_registro >= $2
+      WHERE paciente_id = $1 AND data_registro >= $2 AND sintomas is null
     `;
     const result = await db.query(query, [patientId, startDate]);
     return result.rows[0];
@@ -589,7 +591,7 @@ const getPatientDetails = async (req, res) => {
     // Últimos 10 registros de diálise
     const dialysisQuery = `
       SELECT * FROM registros_dialise 
-      WHERE paciente_id = $1 
+      WHERE paciente_id = $1  AND sintomas is null
       ORDER BY data_registro DESC, horario_inicio DESC 
       LIMIT 10
     `;
@@ -618,7 +620,7 @@ const getPatientDetails = async (req, res) => {
         AVG(uf_total) as media_uf,
         AVG(concentracao_glicose) as media_glicose
       FROM registros_dialise
-      WHERE paciente_id = $1 
+      WHERE paciente_id = $1  AND sintomas is null
         AND data_registro >= CURRENT_DATE - INTERVAL '30 days'
     `;
     
@@ -673,7 +675,7 @@ const getPatientDialysisHistory = async (req, res) => {
 
     let query = `
       SELECT * FROM registros_dialise 
-      WHERE paciente_id = $1
+      WHERE paciente_id = $1 AND sintomas is null
     `;
     const params = [patientId];
 
@@ -713,7 +715,7 @@ const getPatientDocuments = async (req, res) => {
     }
 
     const result = await db.query(
-      'SELECT * FROM documentos WHERE paciente_id = $1 ORDER BY data_upload DESC',
+      'SELECT * FROM documentos WHERE paciente_id = $1  ORDER BY data_upload DESC',
       [patientId]
     );
 
@@ -1088,7 +1090,7 @@ const getDashboardStats = async (req, res) => {
     const sessionsToday = await db.query(`
       SELECT COUNT(*) as total FROM registros_dialise rd
       JOIN pacientes p ON rd.paciente_id = p.id
-      WHERE p.medico_responsavel_id = $1 
+      WHERE p.medico_responsavel_id = $1  AND rd.sintomas is null
         AND rd.data_registro = CURRENT_DATE
     `, [medico_id]);
 
@@ -1097,7 +1099,7 @@ const getDashboardStats = async (req, res) => {
       SELECT COUNT(DISTINCT rd.paciente_id) as total
       FROM registros_dialise rd
       JOIN pacientes p ON rd.paciente_id = p.id
-      WHERE p.medico_responsavel_id = $1
+      WHERE p.medico_responsavel_id = $1 AND rd.sintomas is null
         AND rd.data_registro >= CURRENT_DATE - INTERVAL '7 days'
         AND (
           rd.pressao_arterial_sistolica > 140 
@@ -1147,7 +1149,7 @@ const getPatientReport = async (req, res) => {
     // Registros de diálise no período
     const dialysisRecords = await db.query(`
       SELECT * FROM registros_dialise 
-      WHERE paciente_id = $1 
+      WHERE paciente_id = $1 AND sintomas is null
         AND data_registro BETWEEN $2 AND $3
       ORDER BY data_registro DESC
     `, [patientId, startDate, endDate]);
@@ -1163,6 +1165,7 @@ const getPatientReport = async (req, res) => {
         COUNT(CASE WHEN sintomas IS NOT NULL AND sintomas != '' THEN 1 END) as sessoes_com_sintomas
       FROM registros_dialise
       WHERE paciente_id = $1 
+        AND sintomas is null
         AND data_registro BETWEEN $2 AND $3
     `, [patientId, startDate, endDate]);
 
@@ -1359,7 +1362,7 @@ const getGeneralReport = async (req, res) => {
           AVG(pressao_arterial_sistolica) as avg_systolic,
           AVG(pressao_arterial_diastolica) as avg_diastolic
         FROM registros_dialise 
-        WHERE paciente_id = $1 
+        WHERE paciente_id = $1  AND sintomas is null
           AND data_registro BETWEEN $2 AND $3
       `, [patient.id, startDate, endDate]);
 
@@ -1367,7 +1370,7 @@ const getGeneralReport = async (req, res) => {
       const alerts = await db.query(`
         SELECT COUNT(*) as count
         FROM registros_dialise
-        WHERE paciente_id = $1 
+        WHERE paciente_id = $1  AND sintomas is null
           AND data_registro BETWEEN $2 AND $3
           AND (
             pressao_arterial_sistolica > 140 

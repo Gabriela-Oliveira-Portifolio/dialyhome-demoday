@@ -572,7 +572,7 @@ const DoctorProfile = () => {
           </div>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <button style={{
+            {/* <button style={{
               width: '40px',
               height: '40px',
               borderRadius: '10px',
@@ -584,7 +584,7 @@ const DoctorProfile = () => {
               justifyContent: 'center'
             }}>
               <Bell size={20} color="#6b7280" strokeWidth={2} />
-            </button>
+            </button> */}
             <button
               onClick={handleLogout}
               style={{

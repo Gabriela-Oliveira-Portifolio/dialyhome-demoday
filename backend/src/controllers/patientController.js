@@ -167,7 +167,7 @@ const patientController = {
           MIN(data_registro) as primeira_sessao,
           MAX(data_registro) as ultima_sessao
         FROM registros_dialise
-        WHERE paciente_id = $1
+        WHERE paciente_id = $1 AND sintomas is null
         AND data_registro >= CURRENT_DATE - INTERVAL '1 day' * $2`,
         [pacienteId, days]
       );
@@ -182,7 +182,7 @@ const patientController = {
           tempo_permanencia,
           data_registro
         FROM registros_dialise
-        WHERE paciente_id = $1
+        WHERE paciente_id = $1 AND sintomas is null
         ORDER BY data_registro DESC, data_criacao DESC
         LIMIT 1`,
         [pacienteId]
@@ -200,7 +200,7 @@ const patientController = {
           AVG(uf_total) as avg_uf,
           AVG(concentracao_glicose) as avg_glicose
         FROM registros_dialise
-        WHERE paciente_id = $1
+        WHERE paciente_id = $1 AND sintomas is null
           AND data_registro >= CURRENT_DATE - INTERVAL '14 days'
         GROUP BY period`,
         [pacienteId]

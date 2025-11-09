@@ -153,179 +153,909 @@ const DoctorDashboard = () => {
     }
   };
 
+  
   const generatePDF = (reportData) => {
-    const { jsPDF } = globalThis.jspdf;
-    const doc = new jsPDF();
+  const { jsPDF } = globalThis.jspdf;
+  const doc = new jsPDF();
+  
+  const { patient, period, statistics, dialysisRecords, medications } = reportData;
+  
+  let yPos = 20;
+  const pageWidth = doc.internal.pageSize.width;
+  const pageHeight = doc.internal.pageSize.height;
+  const margin = 20;
+  const contentWidth = pageWidth - (margin * 2);
+  
+  // Função para verificar se precisa de nova página
+  const checkPageBreak = (spaceNeeded = 25) => {
+    if (yPos + spaceNeeded > pageHeight - 30) {
+      doc.addPage();
+      yPos = margin;
+      return true;
+    }
+    return false;
+  };
+  
+  // Função para truncar texto longo
+  const truncateText = (text, maxWidth) => {
+    const textWidth = doc.getTextWidth(text);
+    if (textWidth <= maxWidth) return text;
     
-    const { patient, period, statistics, dialysisRecords, medications } = reportData;
+    let truncated = text;
+    while (doc.getTextWidth(truncated + '...') > maxWidth && truncated.length > 0) {
+      truncated = truncated.slice(0, -1);
+    }
+    return truncated + '...';
+  };
+  
+  // ==================== HEADER MINIMALISTA ====================
+  
+  // Fundo branco simples
+  doc.setFillColor(255, 255, 255);
+  doc.rect(0, 0, pageWidth, 40, 'F');
+  
+  // Logo e título
+  doc.setTextColor(20, 184, 166);
+  doc.setFontSize(24);
+  doc.setFont('helvetica', 'bold');
+  doc.text('DialCare', margin, 20);
+  
+  doc.setTextColor(100, 100, 100);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Sistema de Monitoramento de Dialise', margin, 27);
+  
+  // Data de geração
+  doc.setFontSize(8);
+  doc.setTextColor(120, 120, 120);
+  const dataGeracao = new Date().toLocaleDateString('pt-BR');
+  const horaGeracao = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  doc.text(`Gerado em: ${dataGeracao} as ${horaGeracao}`, pageWidth - margin, 20, { align: 'right' });
+  
+  // Linha divisória sutil
+  doc.setDrawColor(230, 230, 230);
+  doc.setLineWidth(0.5);
+  doc.line(margin, 35, pageWidth - margin, 35);
+  
+  yPos = 50;
+  
+  // ==================== TÍTULO DO RELATÓRIO ====================
+  
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(40, 40, 40);
+  doc.text('Relatorio Medico do Paciente', margin, yPos);
+  
+  yPos += 8;
+  
+  // Período
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(120, 120, 120);
+  const periodoTexto = `Periodo: ${new Date(period.startDate).toLocaleDateString('pt-BR')} a ${new Date(period.endDate).toLocaleDateString('pt-BR')}`;
+  doc.text(periodoTexto, margin, yPos);
+  
+  yPos += 15;
+  
+  // ==================== DADOS DO PACIENTE ====================
+  
+  checkPageBreak(35);
+  
+  // Box simples
+  doc.setDrawColor(220, 220, 220);
+  doc.setLineWidth(1);
+  doc.rect(margin, yPos, contentWidth, 30, 'D');
+  
+  yPos += 8;
+  
+  // Título da seção
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(20, 184, 166);
+  doc.text('DADOS DO PACIENTE', margin + 5, yPos);
+  
+  yPos += 8;
+  
+  // Informações
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(80, 80, 80);
+  
+  // Nome
+  doc.text('Nome:', margin + 5, yPos);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(40, 40, 40);
+  doc.text(truncateText(patient.nome, 90), margin + 20, yPos);
+  
+  yPos += 6;
+  
+  // Email
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(80, 80, 80);
+  doc.text('Email:', margin + 5, yPos);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(40, 40, 40);
+  doc.text(truncateText(patient.email, 90), margin + 20, yPos);
+  
+  yPos += 6;
+  
+  // Idade
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(80, 80, 80);
+  doc.text('Idade:', margin + 5, yPos);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(40, 40, 40);
+  const idade = new Date().getFullYear() - new Date(patient.data_nascimento).getFullYear();
+  doc.text(`${idade} anos`, margin + 20, yPos);
+  
+  yPos += 15;
+  
+  // ==================== RESUMO ESTATÍSTICO ====================
+  
+  checkPageBreak(55);
+  
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(40, 40, 40);
+  doc.text('Resumo Estatistico', margin, yPos);
+  
+  yPos += 10;
+  
+  // Cards de estatísticas simples
+  const statCards = [
+    {
+      label: 'Total de Sessoes',
+      value: String(statistics.totalSessions || 0),
+      color: [20, 184, 166]
+    },
+    {
+      label: 'Pressao Arterial Media',
+      value: `${Math.round(statistics.averageSystolic || 0)}/${Math.round(statistics.averageDiastolic || 0)} mmHg`,
+      color: [239, 68, 68]
+    },
+    {
+      label: 'UF Medio',
+      value: statistics.averageUF ? `${parseFloat(statistics.averageUF).toFixed(1)} L` : 'N/A',
+      color: [16, 185, 129]
+    },
+    {
+      label: 'Glicose Media',
+      value: statistics.averageGlucose ? `${Math.round(statistics.averageGlucose)} mg/dL` : 'N/A',
+      color: [251, 191, 36]
+    }
+  ];
+  
+  const cardWidth = (contentWidth - 6) / 2;
+  const cardHeight = 22;
+  
+  statCards.forEach((stat, index) => {
+    const col = index % 2;
+    const row = Math.floor(index / 2);
+    const xPos = margin + col * (cardWidth + 6);
+    const currentY = yPos + row * (cardHeight + 4);
     
-    let yPos = 20;
-    const lineHeight = 7;
-    const pageHeight = doc.internal.pageSize.height;
+    // Borda simples
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(1);
+    doc.rect(xPos, currentY, cardWidth, cardHeight, 'D');
     
-    // Função para verificar se precisa de nova página
-    const checkPageBreak = (spaceNeeded = 20) => {
-      if (yPos + spaceNeeded > pageHeight - 20) {
-        doc.addPage();
-        yPos = 20;
-        return true;
-      }
-      return false;
-    };
+    // Barra superior colorida
+    doc.setFillColor(...stat.color);
+    doc.rect(xPos, currentY, cardWidth, 3, 'F');
     
-    // Header
-    doc.setFillColor(20, 184, 166);
-    doc.rect(0, 0, doc.internal.pageSize.width, 40, 'F');
+    // Label
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text(stat.label, xPos + 5, currentY + 10);
     
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(22);
-    doc.setFont(undefined, 'bold');
-    doc.text('DialCare - Relatório do Paciente', 105, 20, { align: 'center' });
+    // Valor
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(40, 40, 40);
+    doc.text(truncateText(stat.value, cardWidth - 10), xPos + 5, currentY + 18);
+  });
+  
+  yPos += (Math.ceil(statCards.length / 2) * (cardHeight + 4)) + 12;
+  
+  // ==================== MEDICAMENTOS ====================
+  
+  if (medications && medications.length > 0) {
+    checkPageBreak(40);
     
     doc.setFontSize(12);
-    doc.setFont(undefined, 'normal');
-    doc.text(`Período: ${new Date(period.startDate).toLocaleDateString('pt-BR')} - ${new Date(period.endDate).toLocaleDateString('pt-BR')}`, 105, 30, { align: 'center' });
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(40, 40, 40);
+    doc.text('Medicamentos Ativos', margin, yPos);
     
-    yPos = 50;
+    yPos += 10;
     
-    // Informações do Paciente
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(16);
-    doc.setFont(undefined, 'bold');
-    doc.text('Informações do Paciente', 20, yPos);
-    
-    yPos += lineHeight + 3;
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'normal');
-    
-    const patientInfo = [
-      `Nome: ${patient.nome}`,
-      `Email: ${patient.email}`,
-      `CPF: ${patient.cpf || 'N/A'}`,
-      `Data de Nascimento: ${new Date(patient.data_nascimento).toLocaleDateString('pt-BR')}`
-    ];
-    
-    patientInfo.forEach(info => {
-      doc.text(info, 20, yPos);
-      yPos += lineHeight;
+    medications.forEach((med, index) => {
+      checkPageBreak(18);
+      
+      // Box do medicamento
+      doc.setDrawColor(220, 220, 220);
+      doc.setLineWidth(0.5);
+      doc.rect(margin, yPos, contentWidth, 14, 'D');
+      
+      // Barra lateral
+      doc.setFillColor(16, 185, 129);
+      doc.rect(margin, yPos, 3, 14, 'F');
+      
+      // Número
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(16, 185, 129);
+      doc.text(`${index + 1}.`, margin + 6, yPos + 6);
+      
+      // Nome
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(40, 40, 40);
+      doc.text(truncateText(med.nome, 85), margin + 12, yPos + 6);
+      
+      // Dosagem e frequência
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 100, 100);
+      const info = `${med.dosagem} - ${med.frequencia}`;
+      doc.text(truncateText(info, 90), margin + 12, yPos + 11);
+      
+      yPos += 17;
     });
     
     yPos += 5;
+  }
+  
+  // ==================== HISTÓRICO DE SESSÕES ====================
+  
+  if (dialysisRecords && dialysisRecords.length > 0) {
     checkPageBreak(40);
     
-    // Estatísticas do Período
-    doc.setFontSize(16);
-    doc.setFont(undefined, 'bold');
-    doc.text('Estatísticas do Período', 20, yPos);
-    
-    yPos += lineHeight + 3;
-    
-    // Box com estatísticas
-    doc.setFillColor(240, 253, 250);
-    doc.roundedRect(20, yPos - 5, 170, 45, 3, 3, 'F');
-    
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'normal');
-    
-    const stats = [
-      `Total de Sessões: ${statistics.totalSessions}`,
-      `Pressão Arterial Média: ${statistics.averageSystolic}/${statistics.averageDiastolic} mmHg`,
-      `UF Médio: ${statistics.averageUF || 'N/A'} L`,
-      `Glicose Média: ${statistics.averageGlucose || 'N/A'} mg/dL`,
-      `Sessões com Sintomas: ${statistics.sessionsWithSymptoms}`
-    ];
-    
-    stats.forEach(stat => {
-      doc.text(stat, 25, yPos);
-      yPos += lineHeight;
-    });
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(40, 40, 40);
+    doc.text('Historico de Sessoes de Dialise', margin, yPos);
     
     yPos += 10;
-    checkPageBreak(40);
     
-    // Medicamentos Ativos
-    if (medications && medications.length > 0) {
-      doc.setFontSize(16);
-      doc.setFont(undefined, 'bold');
-      doc.text('Medicamentos Ativos', 20, yPos);
+    dialysisRecords.forEach((record, index) => {
+      const hasSintomas = record.sintomas && record.sintomas.trim().length > 0;
+      const recordHeight = hasSintomas ? 28 : 22;
       
-      yPos += lineHeight + 3;
-      doc.setFontSize(10);
-      doc.setFont(undefined, 'normal');
+      checkPageBreak(recordHeight + 3);
       
-      medications.forEach((med, index) => {
-        checkPageBreak(20);
-        
-        doc.setFillColor(236, 253, 245);
-        doc.roundedRect(20, yPos - 3, 170, 15, 2, 2, 'F');
-        
-        doc.setFont(undefined, 'bold');
-        doc.text(`${index + 1}. ${med.nome}`, 25, yPos);
-        yPos += lineHeight;
-        
-        doc.setFont(undefined, 'normal');
-        doc.text(`Dosagem: ${med.dosagem} | Frequência: ${med.frequencia}`, 25, yPos);
-        yPos += lineHeight + 3;
-      });
+      // Box do registro
+      doc.setDrawColor(220, 220, 220);
+      doc.setLineWidth(0.5);
+      doc.rect(margin, yPos, contentWidth, recordHeight, 'D');
+      
+      // Barra lateral
+      const corLateral = hasSintomas ? [251, 191, 36] : [59, 130, 246];
+      doc.setFillColor(...corLateral);
+      doc.rect(margin, yPos, 3, recordHeight, 'F');
+      
+      // Data
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(40, 40, 40);
+      const dataRegistro = new Date(record.data_registro).toLocaleDateString('pt-BR');
+      doc.text(dataRegistro, margin + 6, yPos + 6);
+      
+      // Horário
+      if (record.horario_inicio) {
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100, 100, 100);
+        doc.text(record.horario_inicio, margin + 6, yPos + 11);
+      }
+      
+      // Dados da sessão
+      yPos += 14;
+      
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(80, 80, 80);
+      
+      // PA
+      doc.text('PA:', margin + 6, yPos);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(40, 40, 40);
+      doc.text(`${record.pressao_arterial_sistolica}/${record.pressao_arterial_diastolica} mmHg`, margin + 14, yPos);
+      
+      // UF
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(80, 80, 80);
+      doc.text('UF:', margin + 55, yPos);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(40, 40, 40);
+      const ufValue = record.uf_total ? `${(record.uf_total / 1000).toFixed(1)} L` : 'N/A';
+      doc.text(ufValue, margin + 62, yPos);
+      
+      // Glicose
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(80, 80, 80);
+      doc.text('Glicose:', margin + 90, yPos);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(40, 40, 40);
+      doc.text(`${record.concentracao_glicose || 'N/A'} mg/dL`, margin + 105, yPos);
       
       yPos += 5;
-    }
-    
-    // Registros de Diálise
-    if (dialysisRecords && dialysisRecords.length > 0) {
-      checkPageBreak(40);
       
-      doc.setFontSize(16);
-      doc.setFont(undefined, 'bold');
-      doc.text('Registros de Diálise', 20, yPos);
+      // Sintomas
+      if (hasSintomas) {
+        yPos += 2;
+        doc.setFillColor(255, 250, 230);
+        doc.rect(margin + 6, yPos - 2, contentWidth - 12, 8, 'F');
+        
+        doc.setFontSize(7);
+        doc.setTextColor(150, 100, 30);
+        doc.setFont('helvetica', 'bold');
+        doc.text('SINTOMAS:', margin + 8, yPos + 1);
+        doc.setFont('helvetica', 'normal');
+        doc.text(truncateText(record.sintomas, contentWidth - 35), margin + 8, yPos + 5);
+      }
       
-      yPos += lineHeight + 3;
-      doc.setFontSize(9);
+      yPos += recordHeight - 16;
+    });
+  }
+  
+  // ==================== FOOTER SIMPLES ====================
+  
+  const pageCount = doc.internal.getNumberOfPages();
+  
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    
+    const footerY = pageHeight - 20;
+    
+    // Linha divisória
+    doc.setDrawColor(230, 230, 230);
+    doc.setLineWidth(0.5);
+    doc.line(margin, footerY, pageWidth - margin, footerY);
+    
+    // Textos do footer
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(120, 120, 120);
+    
+    doc.text('DialCare - Sistema de Monitoramento de Dialise', margin, footerY + 7);
+    doc.text(`Pagina ${i} de ${pageCount}`, pageWidth - margin, footerY + 7, { align: 'right' });
+    
+    doc.setFontSize(7);
+    doc.setTextColor(150, 150, 150);
+    doc.text(
+      'Documento Confidencial - Uso Exclusivo do Medico Responsavel',
+      pageWidth / 2,
+      footerY + 12,
+      { align: 'center' }
+    );
+  }
+  
+  // ==================== SALVAR PDF ====================
+  
+  const fileName = `Relatorio_${patient.nome.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+  doc.save(fileName);
+};
+
+//   const generatePDF = (reportData) => {
+//   const { jsPDF } = globalThis.jspdf;
+//   const doc = new jsPDF();
+  
+//   const { patient, period, statistics, dialysisRecords, medications } = reportData;
+  
+//   let yPos = 20;
+//   const lineHeight = 7;
+//   const pageWidth = doc.internal.pageSize.width;
+//   const pageHeight = doc.internal.pageSize.height;
+//   const margin = 20;
+//   const contentWidth = pageWidth - (margin * 2);
+  
+//   // Função para verificar se precisa de nova página
+//   const checkPageBreak = (spaceNeeded = 25) => {
+//     if (yPos + spaceNeeded > pageHeight - 30) {
+//       doc.addPage();
+//       yPos = margin;
+//       return true;
+//     }
+//     return false;
+//   };
+  
+//   // Função para truncar texto longo
+//   const truncateText = (text, maxWidth) => {
+//     const textWidth = doc.getTextWidth(text);
+//     if (textWidth <= maxWidth) return text;
+    
+//     let truncated = text;
+//     while (doc.getTextWidth(truncated + '...') > maxWidth && truncated.length > 0) {
+//       truncated = truncated.slice(0, -1);
+//     }
+//     return truncated + '...';
+//   };
+  
+//   // ==================== HEADER ====================
+  
+//   // Fundo branco
+//   doc.setFillColor(255, 255, 255);
+//   doc.rect(0, 0, pageWidth, 50, 'F');
+  
+//   // Barra colorida inferior do header
+//   doc.setFillColor(20, 184, 166);
+//   doc.rect(0, 48, pageWidth, 3, 'F');
+  
+//   // Logo/Título
+//   doc.setTextColor(20, 184, 166);
+//   doc.setFontSize(26);
+//   doc.setFont('helvetica', 'bold');
+//   doc.text('DialCare', margin, 28);
+  
+//   doc.setTextColor(107, 114, 128);
+//   doc.setFontSize(9);
+//   doc.setFont('helvetica', 'normal');
+//   doc.text('Sistema de Monitoramento de Dialise', margin, 36);
+  
+//   // Data de geração
+//   doc.setFontSize(8);
+//   doc.setTextColor(107, 114, 128);
+//   const dataGeracao = `Gerado em: ${new Date().toLocaleDateString('pt-BR')}`;
+//   const horaGeracao = new Date().toLocaleTimeString('pt-BR');
+//   doc.text(dataGeracao, pageWidth - margin, 28, { align: 'right' });
+//   doc.text(horaGeracao, pageWidth - margin, 34, { align: 'right' });
+  
+//   yPos = 60;
+  
+//   // ==================== TÍTULO DO RELATÓRIO ====================
+  
+//   doc.setFontSize(18);
+//   doc.setFont('helvetica', 'bold');
+//   doc.setTextColor(17, 24, 39);
+//   doc.text('Relatorio Medico do Paciente', margin, yPos);
+  
+//   yPos += 8;
+  
+//   // Período
+//   doc.setFontSize(9);
+//   doc.setFont('helvetica', 'normal');
+//   doc.setTextColor(107, 114, 128);
+//   const periodoTexto = `Periodo: ${new Date(period.startDate).toLocaleDateString('pt-BR')} - ${new Date(period.endDate).toLocaleDateString('pt-BR')}`;
+//   doc.text(periodoTexto, margin, yPos);
+  
+//   yPos += 12;
+  
+//   // ==================== DADOS DO PACIENTE ====================
+  
+//   checkPageBreak(40);
+  
+//   // Card de fundo
+//   doc.setFillColor(240, 253, 250);
+//   doc.roundedRect(margin, yPos, contentWidth, 36, 3, 3, 'F');
+  
+//   yPos += 8;
+  
+//   // Título da seção
+//   doc.setFontSize(10);
+//   doc.setFont('helvetica', 'bold');
+//   doc.setTextColor(20, 184, 166);
+//   doc.text('DADOS DO PACIENTE', margin + 5, yPos);
+  
+//   yPos += 8;
+  
+//   // Informações em grid
+//   doc.setFontSize(8);
+//   doc.setFont('helvetica', 'normal');
+//   doc.setTextColor(107, 114, 128);
+  
+//   // Linha 1: Nome e Email
+//   doc.text('Nome:', margin + 5, yPos);
+//   doc.setFont('helvetica', 'bold');
+//   doc.setTextColor(17, 24, 39);
+//   const nomeTruncado = truncateText(patient.nome, 50);
+//   doc.text(nomeTruncado, margin + 20, yPos);
+  
+//   doc.setFont('helvetica', 'normal');
+//   doc.setTextColor(107, 114, 128);
+//   doc.text('Email:', margin + 95, yPos);
+//   doc.setFont('helvetica', 'bold');
+//   doc.setTextColor(17, 24, 39);
+//   const emailTruncado = truncateText(patient.email, 65);
+//   doc.text(emailTruncado, margin + 110, yPos);
+  
+//   yPos += 7;
+  
+//   // Linha 2: CPF e Data de Nascimento
+//   doc.setFont('helvetica', 'normal');
+//   doc.setTextColor(107, 114, 128);
+//   doc.text('CPF:', margin + 5, yPos);
+//   doc.setFont('helvetica', 'bold');
+//   doc.setTextColor(17, 24, 39);
+//   doc.text(patient.cpf || 'N/A', margin + 20, yPos);
+  
+//   doc.setFont('helvetica', 'normal');
+//   doc.setTextColor(107, 114, 128);
+//   doc.text('Data de Nascimento:', margin + 95, yPos);
+//   doc.setFont('helvetica', 'bold');
+//   doc.setTextColor(17, 24, 39);
+//   doc.text(new Date(patient.data_nascimento).toLocaleDateString('pt-BR'), margin + 134, yPos);
+  
+//   yPos += 14;
+  
+//   // ==================== RESUMO ESTATÍSTICO ====================
+  
+//   checkPageBreak(50);
+  
+//   doc.setFontSize(13);
+//   doc.setFont('helvetica', 'bold');
+//   doc.setTextColor(17, 24, 39);
+//   doc.text('Resumo Estatistico', margin, yPos);
+  
+//   yPos += 10;
+  
+//   // Cards de estatísticas em grid 2x2
+//   const statCards = [
+//     {
+//       label: 'Total de Sessoes',
+//       value: String(statistics.totalSessions || 0),
+//       borderColor: [20, 184, 166],
+//       icon: 'Sessions'
+//     },
+//     {
+//       label: 'Pressao Arterial Media',
+//       value: `${Math.round(statistics.averageSystolic || 0)}/${Math.round(statistics.averageDiastolic || 0)} mmHg`,
+//       borderColor: [239, 68, 68],
+//       icon: 'BP'
+//     },
+//     {
+//       label: 'UF Medio',
+//       value: statistics.averageUF ? `${parseFloat(statistics.averageUF).toFixed(1)} L` : 'N/A',
+//       borderColor: [16, 185, 129],
+//       icon: 'UF'
+//     },
+//     {
+//       label: 'Glicose Media',
+//       value: statistics.averageGlucose ? `${Math.round(statistics.averageGlucose)} mg/dL` : 'N/A',
+//       borderColor: [251, 191, 36],
+//       icon: 'Glucose'
+//     }
+//   ];
+  
+//   const cardWidth = (contentWidth - 5) / 2;
+//   const cardHeight = 22;
+  
+//   statCards.forEach((stat, index) => {
+//     const col = index % 2;
+//     const row = Math.floor(index / 2);
+//     const xPos = margin + col * (cardWidth + 5);
+//     const currentY = yPos + row * (cardHeight + 4);
+    
+//     // Borda colorida
+//     doc.setDrawColor(...stat.borderColor);
+//     doc.setLineWidth(1.5);
+//     doc.setFillColor(255, 255, 255);
+//     doc.roundedRect(xPos, currentY, cardWidth, cardHeight, 2, 2, 'FD');
+    
+//     // Label
+//     doc.setFontSize(8);
+//     doc.setFont('helvetica', 'normal');
+//     doc.setTextColor(107, 114, 128);
+//     doc.text(stat.label, xPos + 5, currentY + 7);
+    
+//     // Valor
+//     doc.setFontSize(14);
+//     doc.setFont('helvetica', 'bold');
+//     doc.setTextColor(17, 24, 39);
+//     const valorTruncado = truncateText(stat.value, cardWidth - 10);
+//     doc.text(valorTruncado, xPos + 5, currentY + 16);
+//   });
+  
+//   yPos += (Math.ceil(statCards.length / 2) * (cardHeight + 4)) + 10;
+  
+//   // ==================== MEDICAMENTOS ATIVOS ====================
+  
+//   if (medications && medications.length > 0) {
+//     checkPageBreak(40);
+    
+//     doc.setFontSize(13);
+//     doc.setFont('helvetica', 'bold');
+//     doc.setTextColor(17, 24, 39);
+//     doc.text('Medicamentos Ativos', margin, yPos);
+    
+//     yPos += 10;
+    
+//     medications.forEach((med, index) => {
+//       checkPageBreak(20);
       
-      dialysisRecords.forEach((record, index) => {
-        checkPageBreak(25);
-        
-        doc.setFillColor(249, 250, 251);
-        doc.roundedRect(20, yPos - 3, 170, 22, 2, 2, 'F');
-        
-        doc.setFont(undefined, 'bold');
-        doc.text(`${new Date(record.data_registro).toLocaleDateString('pt-BR')}`, 25, yPos);
-        yPos += lineHeight;
-        
-        doc.setFont(undefined, 'normal');
-        const recordInfo = `PA: ${record.pressao_arterial_sistolica}/${record.pressao_arterial_diastolica} mmHg | UF: ${record.uf_total ? (record.uf_total / 1000).toFixed(1) : 'N/A'}L | Glicose: ${record.concentracao_glicose || 'N/A'} mg/dL`;
-        doc.text(recordInfo, 25, yPos);
-        yPos += lineHeight;
-        
-        if (record.sintomas) {
-          doc.setTextColor(146, 64, 14);
-          doc.text(`Sintomas: ${record.sintomas}`, 25, yPos);
-          doc.setTextColor(0, 0, 0);
-          yPos += lineHeight;
-        }
-        
-        yPos += 3;
-      });
-    }
+//       // Card do medicamento
+//       doc.setFillColor(236, 253, 245);
+//       doc.roundedRect(margin, yPos, contentWidth, 16, 2, 2, 'F');
+      
+//       // Número e nome
+//       doc.setFontSize(9);
+//       doc.setFont('helvetica', 'bold');
+//       doc.setTextColor(17, 24, 39);
+//       const nomeMedicamento = truncateText(`${index + 1}. ${med.nome}`, contentWidth - 10);
+//       doc.text(nomeMedicamento, margin + 4, yPos + 6);
+      
+//       // Dosagem e frequência
+//       doc.setFontSize(8);
+//       doc.setFont('helvetica', 'normal');
+//       doc.setTextColor(107, 114, 128);
+//       const dosagem = truncateText(`Dosagem: ${med.dosagem}`, 70);
+//       const frequencia = truncateText(`Frequencia: ${med.frequencia}`, 70);
+//       doc.text(dosagem, margin + 4, yPos + 11);
+//       doc.text(frequencia, margin + 4, yPos + 14);
+      
+//       yPos += 19;
+//     });
     
-    // Footer em todas as páginas
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(9);
-      doc.setTextColor(128, 128, 128);
-      doc.text(
-        `Gerado em ${new Date().toLocaleString('pt-BR')} - Página ${i} de ${pageCount}`,
-        105,
-        pageHeight - 10,
-        { align: 'center' }
-      );
-      doc.text('DialCare - Sistema de Gerenciamento de Diálise', 105, pageHeight - 5, { align: 'center' });
-    }
+//     yPos += 5;
+//   }
+  
+//   // ==================== HISTÓRICO DE SESSÕES ====================
+  
+//   if (dialysisRecords && dialysisRecords.length > 0) {
+//     checkPageBreak(40);
     
-    // Salvar PDF
-    doc.save(`relatorio_${patient.nome.replaceAll(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
-  };
+//     doc.setFontSize(13);
+//     doc.setFont('helvetica', 'bold');
+//     doc.setTextColor(17, 24, 39);
+//     doc.text('Historico de Sessoes de Dialise', margin, yPos);
+    
+//     yPos += 10;
+    
+//     dialysisRecords.forEach((record, index) => {
+//       const hasSintomas = record.sintomas && record.sintomas.trim().length > 0;
+//       const recordHeight = hasSintomas ? 26 : 20;
+      
+//       checkPageBreak(recordHeight + 2);
+      
+//       // Card do registro
+//       doc.setFillColor(249, 250, 251);
+//       doc.roundedRect(margin, yPos, contentWidth, recordHeight, 2, 2, 'F');
+      
+//       // Data
+//       doc.setFontSize(9);
+//       doc.setFont('helvetica', 'bold');
+//       doc.setTextColor(17, 24, 39);
+//       const dataRegistro = new Date(record.data_registro).toLocaleDateString('pt-BR');
+//       doc.text(dataRegistro, margin + 4, yPos + 6);
+      
+//       // Dados da sessão
+//       doc.setFontSize(8);
+//       doc.setFont('helvetica', 'normal');
+//       doc.setTextColor(107, 114, 128);
+      
+//       const pa = `PA: ${record.pressao_arterial_sistolica}/${record.pressao_arterial_diastolica} mmHg`;
+//       const uf = `UF: ${record.uf_total ? (record.uf_total / 1000).toFixed(1) : 'N/A'}L`;
+//       const glicose = `Glicose: ${record.concentracao_glicose || 'N/A'} mg/dL`;
+      
+//       doc.text(pa, margin + 4, yPos + 11);
+//       doc.text(uf, margin + 60, yPos + 11);
+//       doc.text(glicose, margin + 90, yPos + 11);
+      
+//       // Sintomas (se houver)
+//       if (hasSintomas) {
+//         doc.setFillColor(254, 243, 199);
+//         doc.roundedRect(margin + 4, yPos + 14, contentWidth - 8, 8, 1, 1, 'F');
+        
+//         doc.setFontSize(7);
+//         doc.setTextColor(146, 64, 14);
+//         const sintomasTruncado = truncateText(`Sintomas: ${record.sintomas}`, contentWidth - 15);
+//         doc.text(sintomasTruncado, margin + 6, yPos + 19);
+//       }
+      
+//       yPos += recordHeight + 3;
+//     });
+//   }
+  
+//   // ==================== FOOTER EM TODAS AS PÁGINAS ====================
+  
+//   const pageCount = doc.internal.getNumberOfPages();
+  
+//   for (let i = 1; i <= pageCount; i++) {
+//     doc.setPage(i);
+    
+//     // Linha divisória
+//     doc.setDrawColor(229, 231, 235);
+//     doc.setLineWidth(0.5);
+//     doc.line(margin, pageHeight - 20, pageWidth - margin, pageHeight - 20);
+    
+//     // Textos do footer
+//     doc.setFontSize(8);
+//     doc.setFont('helvetica', 'normal');
+//     doc.setTextColor(107, 114, 128);
+    
+//     doc.text('DialCare - Sistema de Monitoramento de Dialise', margin, pageHeight - 13);
+//     doc.text(`Pagina ${i} de ${pageCount}`, pageWidth - margin, pageHeight - 13, { align: 'right' });
+    
+//     doc.setFontSize(7);
+//     doc.text(
+//       'Documento confidencial - Uso exclusivo do medico responsavel',
+//       pageWidth / 2,
+//       pageHeight - 8,
+//       { align: 'center' }
+//     );
+//   }
+  
+//   // ==================== SALVAR PDF ====================
+  
+//   const fileName = `relatorio_${patient.nome.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+//   doc.save(fileName);
+// };
+
+
+
+  // const generatePDF = (reportData) => {
+  //   const { jsPDF } = globalThis.jspdf;
+  //   const doc = new jsPDF();
+    
+  //   const { patient, period, statistics, dialysisRecords, medications } = reportData;
+    
+  //   let yPos = 20;
+  //   const lineHeight = 7;
+  //   const pageHeight = doc.internal.pageSize.height;
+    
+  //   // Função para verificar se precisa de nova página
+  //   const checkPageBreak = (spaceNeeded = 20) => {
+  //     if (yPos + spaceNeeded > pageHeight - 20) {
+  //       doc.addPage();
+  //       yPos = 20;
+  //       return true;
+  //     }
+  //     return false;
+  //   };
+    
+  //   // Header
+  //   doc.setFillColor(20, 184, 166);
+  //   doc.rect(0, 0, doc.internal.pageSize.width, 40, 'F');
+    
+  //   doc.setTextColor(255, 255, 255);
+  //   doc.setFontSize(22);
+  //   doc.setFont(undefined, 'bold');
+  //   doc.text('DialCare - Relatório do Paciente', 105, 20, { align: 'center' });
+    
+  //   doc.setFontSize(12);
+  //   doc.setFont(undefined, 'normal');
+  //   doc.text(`Período: ${new Date(period.startDate).toLocaleDateString('pt-BR')} - ${new Date(period.endDate).toLocaleDateString('pt-BR')}`, 105, 30, { align: 'center' });
+    
+  //   yPos = 50;
+    
+  //   // Informações do Paciente
+  //   doc.setTextColor(0, 0, 0);
+  //   doc.setFontSize(16);
+  //   doc.setFont(undefined, 'bold');
+  //   doc.text('Informações do Paciente', 20, yPos);
+    
+  //   yPos += lineHeight + 3;
+  //   doc.setFontSize(11);
+  //   doc.setFont(undefined, 'normal');
+    
+  //   const patientInfo = [
+  //     `Nome: ${patient.nome}`,
+  //     `Email: ${patient.email}`,
+  //     `CPF: ${patient.cpf || 'N/A'}`,
+  //     `Data de Nascimento: ${new Date(patient.data_nascimento).toLocaleDateString('pt-BR')}`
+  //   ];
+    
+  //   patientInfo.forEach(info => {
+  //     doc.text(info, 20, yPos);
+  //     yPos += lineHeight;
+  //   });
+    
+  //   yPos += 5;
+  //   checkPageBreak(40);
+    
+  //   // Estatísticas do Período
+  //   doc.setFontSize(16);
+  //   doc.setFont(undefined, 'bold');
+  //   doc.text('Estatísticas do Período', 20, yPos);
+    
+  //   yPos += lineHeight + 3;
+    
+  //   // Box com estatísticas
+  //   doc.setFillColor(240, 253, 250);
+  //   doc.roundedRect(20, yPos - 5, 170, 45, 3, 3, 'F');
+    
+  //   doc.setFontSize(11);
+  //   doc.setFont(undefined, 'normal');
+    
+  //   const stats = [
+  //     `Total de Sessões: ${statistics.totalSessions}`,
+  //     `Pressão Arterial Média: ${statistics.averageSystolic}/${statistics.averageDiastolic} mmHg`,
+  //     `UF Médio: ${statistics.averageUF || 'N/A'} L`,
+  //     `Glicose Média: ${statistics.averageGlucose || 'N/A'} mg/dL`,
+  //     `Sessões com Sintomas: ${statistics.sessionsWithSymptoms}`
+  //   ];
+    
+  //   stats.forEach(stat => {
+  //     doc.text(stat, 25, yPos);
+  //     yPos += lineHeight;
+  //   });
+    
+  //   yPos += 10;
+  //   checkPageBreak(40);
+    
+  //   // Medicamentos Ativos
+  //   if (medications && medications.length > 0) {
+  //     doc.setFontSize(16);
+  //     doc.setFont(undefined, 'bold');
+  //     doc.text('Medicamentos Ativos', 20, yPos);
+      
+  //     yPos += lineHeight + 3;
+  //     doc.setFontSize(10);
+  //     doc.setFont(undefined, 'normal');
+      
+  //     medications.forEach((med, index) => {
+  //       checkPageBreak(20);
+        
+  //       doc.setFillColor(236, 253, 245);
+  //       doc.roundedRect(20, yPos - 3, 170, 15, 2, 2, 'F');
+        
+  //       doc.setFont(undefined, 'bold');
+  //       doc.text(`${index + 1}. ${med.nome}`, 25, yPos);
+  //       yPos += lineHeight;
+        
+  //       doc.setFont(undefined, 'normal');
+  //       doc.text(`Dosagem: ${med.dosagem} | Frequência: ${med.frequencia}`, 25, yPos);
+  //       yPos += lineHeight + 3;
+  //     });
+      
+  //     yPos += 5;
+  //   }
+    
+  //   // Registros de Diálise
+  //   if (dialysisRecords && dialysisRecords.length > 0) {
+  //     checkPageBreak(40);
+      
+  //     doc.setFontSize(16);
+  //     doc.setFont(undefined, 'bold');
+  //     doc.text('Registros de Diálise', 20, yPos);
+      
+  //     yPos += lineHeight + 3;
+  //     doc.setFontSize(9);
+      
+  //     dialysisRecords.forEach((record, index) => {
+  //       checkPageBreak(25);
+        
+  //       doc.setFillColor(249, 250, 251);
+  //       doc.roundedRect(20, yPos - 3, 170, 22, 2, 2, 'F');
+        
+  //       doc.setFont(undefined, 'bold');
+  //       doc.text(`${new Date(record.data_registro).toLocaleDateString('pt-BR')}`, 25, yPos);
+  //       yPos += lineHeight;
+        
+  //       doc.setFont(undefined, 'normal');
+  //       const recordInfo = `PA: ${record.pressao_arterial_sistolica}/${record.pressao_arterial_diastolica} mmHg | UF: ${record.uf_total ? (record.uf_total / 1000).toFixed(1) : 'N/A'}L | Glicose: ${record.concentracao_glicose || 'N/A'} mg/dL`;
+  //       doc.text(recordInfo, 25, yPos);
+  //       yPos += lineHeight;
+        
+  //       if (record.sintomas) {
+  //         doc.setTextColor(146, 64, 14);
+  //         doc.text(`Sintomas: ${record.sintomas}`, 25, yPos);
+  //         doc.setTextColor(0, 0, 0);
+  //         yPos += lineHeight;
+  //       }
+        
+  //       yPos += 3;
+  //     });
+  //   }
+    
+  //   // Footer em todas as páginas
+  //   const pageCount = doc.internal.getNumberOfPages();
+  //   for (let i = 1; i <= pageCount; i++) {
+  //     doc.setPage(i);
+  //     doc.setFontSize(9);
+  //     doc.setTextColor(128, 128, 128);
+  //     doc.text(
+  //       `Gerado em ${new Date().toLocaleString('pt-BR')} - Página ${i} de ${pageCount}`,
+  //       105,
+  //       pageHeight - 10,
+  //       { align: 'center' }
+  //     );
+  //     doc.text('DialCare - Sistema de Gerenciamento de Diálise', 105, pageHeight - 5, { align: 'center' });
+  //   }
+    
+  //   // Salvar PDF
+  //   doc.save(`relatorio_${patient.nome.replaceAll(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+  // };
 
   const filteredPatients = patients.filter(patient => {
     const matchesSearch = patient.nome.toLowerCase().includes(searchTerm.toLowerCase());
@@ -406,7 +1136,7 @@ const DoctorDashboard = () => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <button
+            {/* <button
               onClick={() => setShowNotifications(!showNotifications)}
               style={{
                 width: '40px',
@@ -433,7 +1163,7 @@ const DoctorDashboard = () => {
                   borderRadius: '50%'
                 }} />
               )}
-            </button>
+            </button> */}
             <button
               onClick={() => navigate('/perfilDoutor')}
               style={{

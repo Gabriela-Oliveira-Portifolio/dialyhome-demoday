@@ -8,7 +8,7 @@ import RemindersModal from '../components/ui/RemindersModal';
 import { getUpcomingReminders } from '../services/reminder';
 import SymptomsModal from '../components/ui/SymptomsModal';
 import ChartsModal from '../components/ui/ChartsModal';
-import MessagingComponent from '../components/ui/MessagingComponent';
+import MessagingComponent from '../../excluit/MessagingComponent';
 
 
 const PatientDashboard = () => {
@@ -290,10 +290,10 @@ const PatientDashboard = () => {
           </div>
           
           <div className="header-right">
-            <button className="icon-button">
+            {/* <button className="icon-button">
               <Bell className="icon" />
               <span className="notification-badge">3</span>
-            </button>
+            </button> */}
             <button 
             onClick={() => navigate('/perfil')}
             style={{

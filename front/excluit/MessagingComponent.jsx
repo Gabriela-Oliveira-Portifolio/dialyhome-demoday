@@ -8,7 +8,7 @@ import {
   getConversations,
   getMessages,
   getContactInfo
-} from '../../services/messaging';
+} from './messaging';
 
 // ===============================
 // COMPONENTES AUXILIARES
