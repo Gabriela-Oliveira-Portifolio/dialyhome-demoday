@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  # 1. Serviço de Back-end (API) - Ajuste nas variáveis de ambiente
+  backend:
+    build: ./backend
+    ports:
+      - "8080:3000"
+    environment:
+      # Novo: Mantenha estas variáveis para o seu Backend Node.js
+      NODE_ENV: production
+      # NOVO: A URL de conexão deve apontar para o serviço 'postgres'
+      # Ajuste o nome do banco de dados (dialyhome_db), usuário e senha
+      DATABASE_URL: postgres://user_app:mypassword@postgres:5432/dialyhome_db
+    depends_on:
+      - postgres # Depende do novo serviço 'postgres'
+
+  # 2. Serviço de Front-end (Aplicativo Web) - Inalterado
+
+  frontend:
+    build: ./front
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+  # 3. NOVO SERVIÇO DE BANCO DE DADOS: PostgreSQL
+  postgres:
+    image: postgres:14-alpine # Usa uma imagem oficial leve do PostgreSQL
+    restart: always
+    environment:
+      # Variáveis de ambiente que o PostgreSQL usa para configurar o banco
+      POSTGRES_USER: user_app # Deve ser o mesmo usuário da DATABASE_URL do backend
+      POSTGRES_PASSWORD: mypassword # Deve ser a mesma senha da DATABASE_URL do backend
+      POSTGRES_DB: dialyhome_db # Nome do banco de dados
+    ports:
+      - "5432:5432" # Mapeia a porta padrão do PostgreSQL
+    volumes:
+      # Persiste os dados em um volume seguro para que não sejam perdidos
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data: # Define o volume de persistência do PostgreSQL
