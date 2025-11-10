@@ -1,6 +1,8 @@
+# backend/Dockerfile
 # Usa uma imagem oficial do Node como base para o build.
 # Use uma versão específica que você sabe que funciona.
-FROM node:18-alpine AS build
+FROM node:20-alpine AS build  
+# CORREÇÃO: Mudar de 18 para 20
 
 # Define o diretório de trabalho dentro do container
 WORKDIR /app

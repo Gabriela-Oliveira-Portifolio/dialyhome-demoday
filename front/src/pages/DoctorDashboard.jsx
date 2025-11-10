@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Users, Heart, Activity, AlertCircle, FileText, Bell, User, LogOut, Search, Eye, Calendar, Clock, X, ClipboardList, Pill, TrendingDown, BarChart3 } from 'lucide-react';
 import { getDoctorProfile, getPatients, getDashboardStats, getNotifications, markNotificationAsRead, getPatientDetails } from '../services/doctor';
 import ModalEnviarAlerta from '../components/ui/ModalEnviarAlerta';
-import PatientAnalytics from '../components/ui/PatientAnalytics';
+import PatientAnalytics from '../components/ui/Patientanalytics';
 
 
 const DoctorDashboard = () => {
