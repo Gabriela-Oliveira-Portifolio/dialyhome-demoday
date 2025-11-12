@@ -1,66 +1,75 @@
+version: '3.8'
+
 services:
-  # 1. Serviço de Back-end (API)
-  backend:
-    build: ./backend
-    # O Railway gerencia as portas e o tráfego de rede. 
-    # Não precisamos de 'ports:' ou 'depends_on:'
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: dialyhome-postgres
+    restart: always
     environment:
-      # A Railway irá injetar a variável DATABASE_URL aqui automaticamente.
-      # Se o seu código precisar de outras variáveis, adicione-as aqui.
-      NODE_ENV: production
-      # REMOVIDO: DATABASE_URL: postgres://user_app:mypassword@postgres:5432/dialyhome_db
-      # O Railway injeta as credenciais corretas do banco gerenciado.
-      
-  # 2. Serviço de Front-end (Web App)
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - dialyhome-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dialyhome-backend
+    restart: always
+    env_file:
+      - .env
+    environment:
+      CONNECTION_STRING: ${CONNECTION_STRING}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: ${DB_HOST}
+      DB_NAME: ${DB_NAME}
+      NODE_ENV: ${NODE_ENV}
+      JWT_SECRET: ${JWT_SECRET}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_HOST: ${SMTP_HOST}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      FRONTEND_URL: ${FRONTEND_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - dialyhome-network
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  # Frontend Web App
   frontend:
-    build: ./front
-    # O Railway gerencia as portas. A porta 5173 ainda está no Dockerfile, 
-    # e o Railway detecta isso automaticamente.
-    # Não precisamos de 'ports:' ou 'depends_on:'
-    
-    # IMPORTANTE: Você precisará definir a variável VITE_API_URL 
-    # na interface do Railway APÓS o deploy, apontando para o seu serviço 'backend'.
-    
-    # version: '3.8'
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_API_URL: https://dialyhome.com.br/api
+    container_name: dialyhome-frontend
+    restart: always
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      - backend
+    networks:
+      - dialyhome-network
 
-# services:
-#   # 1. Serviço de Back-end (API) - Ajuste nas variáveis de ambiente
-#   backend:
-#     build: ./backend
-#     ports:
-#       - "8080:3000"
-#     environment:
-#       # Novo: Mantenha estas variáveis para o seu Backend Node.js
-#       NODE_ENV: production
-#       # NOVO: A URL de conexão deve apontar para o serviço 'postgres'
-#       # Ajuste o nome do banco de dados (dialyhome_db), usuário e senha
-#       DATABASE_URL: postgres://user_app:mypassword@postgres:5432/dialyhome_db
-#     depends_on:
-#       - postgres # Depende do novo serviço 'postgres'
+volumes:
+  postgres_data:
+    driver: local
 
-#   # 2. Serviço de Front-end (Aplicativo Web) - Inalterado
-
-#   frontend:
-#     build: ./front
-#     ports:
-#       - "5173:5173"
-#     depends_on:
-#       - backend
-
-#   # 3. NOVO SERVIÇO DE BANCO DE DADOS: PostgreSQL
-#   postgres:
-#     image: postgres:14-alpine # Usa uma imagem oficial leve do PostgreSQL
-#     restart: always
-#     environment:
-#       # Variáveis de ambiente que o PostgreSQL usa para configurar o banco
-#       POSTGRES_USER: user_app # Deve ser o mesmo usuário da DATABASE_URL do backend
-#       POSTGRES_PASSWORD: mypassword # Deve ser a mesma senha da DATABASE_URL do backend
-#       POSTGRES_DB: dialyhome_db # Nome do banco de dados
-#     ports:
-#       - "5432:5432" # Mapeia a porta padrão do PostgreSQL
-#     volumes:
-#       # Persiste os dados em um volume seguro para que não sejam perdidos
-#       - postgres-data:/var/lib/postgresql/data
-
-# volumes:
-#   postgres-data: # Define o volume de persistência do PostgreSQL
+networks:
+  dialyhome-network:
+    driver: bridge
