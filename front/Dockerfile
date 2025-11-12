@@ -1,34 +1,53 @@
-# front/Dockerfile
-
-# --- ESTÁGIO 1: BUILD (Compila o código JavaScript/Front-end) ---
+# Build stage
 FROM node:20-alpine AS builder
 
-# Define o diretório de trabalho
 WORKDIR /app
 
-# Copia os arquivos de dependência e instala
-COPY package.json ./
-COPY package-lock.json ./
+# Copiar package files
+COPY package*.json ./
+
+# Instalar dependências
 RUN npm install
 
-# Copia o código fonte e executa o build
+# Copiar código
 COPY . .
-RUN npm run build 
 
-# --- ESTÁGIO 2: PRODUÇÃO (Serve os arquivos estáticos) ---
-FROM node:20-alpine
+# Receber variável de ambiente no build
+ARG REACT_APP_API_URL
+ENV REACT_APP_API_URL=$REACT_APP_API_URL
 
-# Instala o pacote 'serve' globalmente para servir os arquivos estáticos
-RUN npm install -g serve
+# Build da aplicação
+RUN npm run build
 
-# Define o diretório de trabalho
-WORKDIR /usr/src/app
+# Production stage com Nginx
+FROM nginx:alpine
 
-# COPIA CORRIGIDA: Usa /app/dist (pasta de saída padrão do Vite)
-COPY --from=builder /app/dist ./
+# Copiar build do Vite (pasta dist)
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# A porta que o servidor 'serve' irá escutar
-EXPOSE 5173
+# Configuração Nginx para SPA
+RUN echo 'server { \
+    listen 80; \
+    server_name _; \
+    root /usr/share/nginx/html; \
+    index index.html; \
+    \
+    location / { \
+        try_files $uri $uri/ /index.html; \
+    } \
+    \
+    # Cache para assets \
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ { \
+        expires 1y; \
+        add_header Cache-Control "public, immutable"; \
+    } \
+    \
+    # Segurança \
+    add_header X-Frame-Options "SAMEORIGIN" always; \
+    add_header X-Content-Type-Options "nosniff" always; \
+    add_header X-XSS-Protection "1; mode=block" always; \
+}' > /etc/nginx/conf.d/default.conf
 
-# Comando para iniciar o servidor 'serve' na porta 5173
-CMD ["serve", "-s", ".", "-l", "5173"]
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
