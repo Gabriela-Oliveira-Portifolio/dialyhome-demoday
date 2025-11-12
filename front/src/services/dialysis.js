@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000/api/dialysis';
+const API_URL = 'https://dialyhome.com.br/api/dialysis';
 
 // Função para pegar o token do sessionStorage
 const getAuthHeader = () => {

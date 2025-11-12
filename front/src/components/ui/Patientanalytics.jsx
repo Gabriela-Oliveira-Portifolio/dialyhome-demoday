@@ -16,7 +16,7 @@ const PatientAnalytics = ({ patientId, patientName }) => {
     setLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:3000/api/doctor/patients/${patientId}/analytics?days=${selectedPeriod}`,
+        `https://dialyhome.com.br/api/doctor/patients/${patientId}/analytics?days=${selectedPeriod}`,
         {
           headers: {
             'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`

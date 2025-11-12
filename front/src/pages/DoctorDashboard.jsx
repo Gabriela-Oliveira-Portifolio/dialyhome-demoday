@@ -128,7 +128,7 @@ const DoctorDashboard = () => {
       
       // Buscar relatório do backend
       const response = await fetch(
-        `http://localhost:3000/api/doctor/reports/patient/${selectedPatient}?startDate=${startDate}&endDate=${endDate}`,
+        `https://dialyhome.com.br/api/doctor/reports/patient/${selectedPatient}?startDate=${startDate}&endDate=${endDate}`,
         {
           headers: {
             'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`

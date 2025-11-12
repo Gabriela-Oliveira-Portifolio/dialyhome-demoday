@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000/api/reminders';
+const API_URL = 'https://dialyhome.com.br/api/reminders';
 
 const getAuthHeader = () => {
   const token = sessionStorage.getItem('accessToken');
