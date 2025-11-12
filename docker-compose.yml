@@ -53,11 +53,11 @@ services:
   # Frontend Web App
   front:
     build:
-      context: ./frontend
+      context: ./front
       dockerfile: Dockerfile
       args:
         REACT_APP_API_URL: https://dialyhome.com.br/api
-    container_name: dialyhome-frontend
+    container_name: dialyhome-front
     restart: always
     ports:
       - "127.0.0.1:8080:80"
