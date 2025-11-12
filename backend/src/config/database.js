@@ -18,14 +18,10 @@ const pool = connectionString
       database: process.env.DB_NAME || 'dialyhome',
       password: process.env.DB_PASSWORD || 'admin',
       port: process.env.DB_PORT || 5432,
+      ssl: false
     });
 
-// Log para saber onde está conectando
-console.log(
-  connectionString
-    ? '🌐 Conectado ao banco da Railway'
-    : `💻 Conectado ao banco local (${process.env.DB_NAME || 'dialyhome'})`
-);
+
 
 module.exports = {
   query: (text, params) => pool.query(text, params),
