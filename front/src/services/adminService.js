@@ -1,7 +1,7 @@
 // front/src/services/adminService.js
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://dialyhome.com.br/api';
 
 // Configurar interceptor para adicionar token
 const getAuthHeader = () => {
