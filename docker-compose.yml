@@ -7,18 +7,19 @@ services:
     container_name: dialyhome-postgres
     restart: always
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: dialyhome_user
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: dialyhome
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - dialyhome-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U dialyhome_user -d dialyhome"]
       interval: 10s
       timeout: 5s
       retries: 5
+
 
   # Backend API
   backend:
