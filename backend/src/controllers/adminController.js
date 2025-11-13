@@ -627,27 +627,28 @@ const adminController = {
     }
   },
 // Crescimento de usuários ao longo do tempo
-  getUserGrowthData: async (req, res) => {
-    try {
-      const { meses = 6 } = req.query;
-      
-      const result = await db.query(`
-        SELECT 
-          DATE_TRUNC('month', data_criacao) as mes,
-          tipo_usuario,
-          COUNT(*) as total
-        FROM usuarios
-        WHERE data_criacao >= CURRENT_DATE - INTERVAL '${meses} months'
-        GROUP BY DATE_TRUNC('month', data_criacao), tipo_usuario
-        ORDER BY mes ASC
-      `);
+ getUserGrowthData: async (req, res) => {
+  try {
+    const { meses = 6 } = req.query;
+    
+    // ✅ CORREÇÃO: Usar prepared statement
+    const result = await db.query(`
+      SELECT 
+        DATE_TRUNC('month', data_criacao) as mes,
+        tipo_usuario,
+        COUNT(*) as total
+      FROM usuarios
+      WHERE data_criacao >= CURRENT_DATE - ($1 || ' months')::INTERVAL
+      GROUP BY DATE_TRUNC('month', data_criacao), tipo_usuario
+      ORDER BY mes ASC
+    `, [meses]);
 
-      res.json({ data: result.rows });
-    } catch (error) {
-      console.error('Erro ao buscar crescimento de usuários:', error);
-      res.status(500).json({ error: 'Erro ao buscar dados de crescimento' });
-    }
-  },
+    res.json({ data: result.rows });
+  } catch (error) {
+    console.error('Erro ao buscar crescimento de usuários:', error);
+    res.status(500).json({ error: 'Erro ao buscar dados de crescimento' });
+  }
+},
 
   // Distribuição de pacientes por médico (carga de trabalho)
   getDoctorWorkload: async (req, res) => {
