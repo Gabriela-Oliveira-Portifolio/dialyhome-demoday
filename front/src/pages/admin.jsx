@@ -1,3 +1,5 @@
+import adminService from '../services/adminService';
+
 import React, { useState, useEffect } from 'react';
 import { 
   Users, UserPlus, Activity, Shield, FileText, Database,
@@ -5,7 +7,6 @@ import {
   RefreshCw, Settings, LogOut,
   BarChart3, PieChart, X, Save, Edit, Trash2
 } from 'lucide-react';
-import adminService from '../services/adminService';
 import PropTypes from 'prop-types';
 
 const AdminDashboard = () => {
