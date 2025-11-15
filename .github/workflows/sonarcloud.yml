@@ -33,7 +33,8 @@ jobs:
 
       - name: Run frontend tests with coverage
         working-directory: ./front
-        run: npm test -- --coverage --watchAll=false
+        run: npm test
+
 
       # Confirma que o arquivo existe
       - name: Show frontend coverage
