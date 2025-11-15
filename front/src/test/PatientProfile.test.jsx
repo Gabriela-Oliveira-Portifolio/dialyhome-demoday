@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
-import PatientProfile from '../pages/PatientProfile'
+import PatientProfile from '../pages/Patientprofile'
 import { getPatientInfo } from '../services/patient'
 import { updatePatientProfile, changePassword } from '../services/Userservice'
 
