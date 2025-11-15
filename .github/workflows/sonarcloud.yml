@@ -14,73 +14,55 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Histórico completo para análise
+          fetch-depth: 0
 
+      # ================================
+      # FRONTEND - React
+      # ================================
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install frontend dependencies
+        working-directory: ./front
+        run: npm install
+
+      - name: Run frontend tests with coverage
+        working-directory: ./front
+        run: npm test -- --coverage --watchAll=false
+
+      # Confirma que o arquivo existe
+      - name: Show frontend coverage
+        run: ls -R front/coverage || echo "Coverage not found"
+
+      # ================================
+      # BACKEND (opcional, já que você tem outra pipeline que testa)
+      # ================================
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm install --legacy-peer-deps
+
+      - name: Run backend tests with coverage
+        working-directory: ./backend
+        run: npm run test:coverage || true
+
+      # Confirma que o arquivo existe
+      - name: Show backend coverage
+        run: ls -R backend/coverage || echo "Coverage not found"
+
+      # ================================
+      # SONAR CLOUD SCAN
+      # ================================
       - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@0303d6b62e310685c0e34d0b9cde218036885c4d   #v5.0.0
-
+        uses: SonarSource/sonarqube-scan-action@v5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: >
             -Dsonar.organization=gabriela-oliveira-portifolio
             -Dsonar.projectKey=Gabriela-Oliveira-Portifolio_dialyhome-demoday
-            -Dsonar.exclusions=**/node_modules/**,**/*.min.js,**/*.d.ts
-            -Dsonar.coverage.exclusions=**/node_modules/**,**/*.min.js,**/*.d.ts
-# on:
-
-#   push:
-
-#     branches:
-
-#       - main
-
-#       - develop
-
-#   pull_request:
-
-#     types: [opened, synchronize, reopened]
-
-
-
-# jobs:
-
-#   sonarcloud:
-
-#     name: SonarCloud
-
-#     runs-on: ubuntu-latest
-
-   
-
-#     steps:
-
-#       - uses: actions/checkout@v3
-
-#         with:
-
-#           fetch-depth: 0  # Histórico completo para análise
-
-     
-
-#       - name: SonarCloud Scan
-
-#         # uses: SonarSource/sonarcloud-github-action@master
-#         uses: SonarSource/sonarqube-scan-action@v5.0.0
-        
-#         env:
-#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-#           run: |
-#             sonar-scanner \
-#               -Dsonar.organization="gabriela-oliveira-portifolio" \
-#               -Dsonar.projectKey="Gabriela-Oliveira-Portifolio_dialyhome-demoday"
-
-#         # env:
-
-#         #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-#         #   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
+            -Dsonar.projectBaseDir=.
