@@ -25,9 +25,9 @@ const setupTestDatabase = async () => {
                 email VARCHAR(255) UNIQUE NOT NULL,
                 senha_hash VARCHAR(255) NOT NULL,
                 tipo_usuario VARCHAR(50) NOT NULL CHECK (tipo_usuario IN ('admin', 'medico', 'paciente')),
-                ativo BOOLEAN DEFAULT true,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                ativo BOOLEAN DEFAULT true
+                data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                ultima_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
 
@@ -39,7 +39,6 @@ const setupTestDatabase = async () => {
                 crm VARCHAR(50) NOT NULL,
                 especialidade VARCHAR(100),
                 telefone_contato varchar(20) NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
             );
         `);
@@ -58,7 +57,6 @@ const setupTestDatabase = async () => {
                 medico_responsavel_id int4 NULL,
                 data_inicio_tratamento date NULL,
                 observacoes_medicas text NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
                 FOREIGN KEY (medico_responsavel_id) REFERENCES medicos(id) ON DELETE SET NULL
             );
@@ -118,13 +116,11 @@ const setupTestDatabase = async () => {
                 usuario_id INTEGER NOT NULL,
                 operacao VARCHAR(100) NOT NULL,
                 tabela_afetada VARCHAR(100),
-                registro_id INTEGER,
                 dados_anteriores JSONB,
                 dados_novos JSONB,
                 ip_address VARCHAR(50),
                 user_agent TEXT,
                 data_operacao DATE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
             );
         `);
