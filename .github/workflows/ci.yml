@@ -67,6 +67,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 40   # <--- AQUI
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
@@ -76,6 +77,7 @@ jobs:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_SSH_KEY }}
+        command_timeout: 60m     # <--- AQUI
         script: |
           set -e
           
@@ -114,5 +116,5 @@ jobs:
         if [ ${{ job.status }} == 'success' ]; then
           echo "✅ Deploy realizado com sucesso!"
         else
-          echo "❌ Deploy falhou. Verifique os logs."
+          echo "❌ Deploy deu erro. Veja os logs."
         fi
