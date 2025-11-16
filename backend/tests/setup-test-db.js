@@ -114,14 +114,16 @@ const setupTestDatabase = async () => {
         // 6. Tabela de logs de auditoria
         await pool.query(`
             CREATE TABLE IF NOT EXISTS logs_auditoria (
-                id serial4 NOT NULL,
-                usuario_id INTEGER NULL,
-                tabela_afetada varchar(100) NULL,
-                operacao varchar(20) NULL,
-                dados_anteriores VARCHAR(200 NULL,
-                dados_novos VARCHAR(200) NULL,
-                data_operacao timestamp DEFAULT CURRENT_TIMESTAMP NULL,
-                ip_address varchar(45) NULL,
+                id SERIAL PRIMARY KEY,
+                usuario_id INTEGER NOT NULL,
+                operacao VARCHAR(100) NOT NULL,
+                tabela_afetada VARCHAR(100),
+                registro_id INTEGER,
+                dados_anteriores JSONB,
+                dados_novos JSONB,
+                ip_address VARCHAR(50),
+                user_agent TEXT,
+                data_operacao DATE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
             );
