@@ -48,13 +48,16 @@ const setupTestDatabase = async () => {
         await pool.query(`
             CREATE TABLE IF NOT EXISTS pacientes (
                 id SERIAL PRIMARY KEY,
-                usuario_id INTEGER UNIQUE NOT NULL,
-                data_nascimento DATE,
-                telefone VARCHAR(20),
-                cpf VARCHAR(20),
-                endereco TEXT,
-                medico_id INTEGER,
-                observacoes_medicas TEXT,
+                usuario_id int4 NULL,
+                cpf varchar(11) NULL,
+                data_nascimento date NULL,
+                telefone varchar(20) NULL,
+                endereco text NULL,
+                peso_inicial numeric(5, 2) NULL,
+                altura numeric(3, 2) NULL,
+                medico_responsavel_id int4 NULL,
+                data_inicio_tratamento date NULL,
+                observacoes_medicas text NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
                 FOREIGN KEY (medico_id) REFERENCES medicos(id) ON DELETE SET NULL
