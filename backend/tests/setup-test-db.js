@@ -50,6 +50,7 @@ const setupTestDatabase = async () => {
                 usuario_id INTEGER UNIQUE NOT NULL,
                 data_nascimento DATE,
                 telefone VARCHAR(20),
+                cpf VARCHAR(20),
                 endereco TEXT,
                 medico_id INTEGER,
                 observacoes_medicas TEXT,
