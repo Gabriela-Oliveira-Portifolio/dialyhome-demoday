@@ -124,6 +124,18 @@ const setupTestDatabase = async () => {
             );
         `);
 
+         await pool.query(`
+            CREATE TABLE IF NOT EXISTS notificacoes (
+                id serial4 NOT NULL,
+                usuario_id INTEGER NULL,
+                titulo varchar(200) NULL,
+                mensagem text NULL,
+                tipo varchar(50) NULL,
+                lida bool DEFAULT false NULL,
+                data_criacao timestamp DEFAULT CURRENT_TIMESTAMP NULL
+            );
+        `);
+
         // ⭐ ADICIONAR COLUNAS FALTANTES (caso as tabelas já existam)
         console.log('🔧 Verificando e adicionando colunas faltantes...');
         
