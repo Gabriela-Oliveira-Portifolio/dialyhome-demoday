@@ -178,7 +178,7 @@ const setupTestDatabase = async () => {
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_registros_dialise_paciente ON registros_dialise(paciente_id);`);
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_registros_dialise_data ON registros_dialise(data);`);
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_logs_auditoria_usuario ON logs_auditoria(usuario_id);`);
-        await pool.query(`CREATE INDEX IF NOT EXISTS idx_logs_auditoria_acao ON logs_auditoria(acao);`);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_logs_auditoria_acao ON logs_auditoria(operacao);`);
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_logs_auditoria_created ON logs_auditoria(created_at);`);
 
         console.log('✅ Tabelas criadas com sucesso!');
