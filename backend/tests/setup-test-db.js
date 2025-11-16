@@ -38,6 +38,7 @@ const setupTestDatabase = async () => {
                 usuario_id INTEGER UNIQUE NOT NULL,
                 crm VARCHAR(50) NOT NULL,
                 especialidade VARCHAR(100),
+                telefone_contato varchar(20) NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
             );
