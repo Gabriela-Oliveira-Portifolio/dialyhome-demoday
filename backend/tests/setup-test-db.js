@@ -24,7 +24,7 @@ const setupTestDatabase = async () => {
                 nome VARCHAR(255) NOT NULL,
                 email VARCHAR(255) UNIQUE NOT NULL,
                 senha VARCHAR(255) NOT NULL,
-                tipo_usuario VARCHAR(50) NOT NULL CHECK (tipo IN ('admin', 'medico', 'paciente')),
+                tipo_usuario VARCHAR(50) NOT NULL CHECK (tipo_usuario IN ('admin', 'medico', 'paciente')),
                 ativo BOOLEAN DEFAULT true,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
