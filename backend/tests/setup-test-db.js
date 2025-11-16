@@ -81,6 +81,7 @@ const setupTestDatabase = async () => {
                 concentracao_dextrose numeric(6, 2) NULL,
                 sintomas text NULL,
                 data_criacao timestamp DEFAULT CURRENT_TIMESTAMP NULL,
+                data DATE,
                 FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE CASCADE
             );
         `);
