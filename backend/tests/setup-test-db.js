@@ -98,6 +98,15 @@ const setupTestDatabase = async () => {
             );
         `);
 
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS registro_sintomas (
+                id serial4 NOT NULL,
+                registro_dialise_id INTEGER NULL,
+                sintoma_id int4 NULL,
+                severidade varchar(20) NULL
+            );
+        `);
+
         // 6. Tabela de logs de auditoria
         await pool.query(`
             CREATE TABLE IF NOT EXISTS logs_auditoria (
