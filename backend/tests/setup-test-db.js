@@ -60,7 +60,7 @@ const setupTestDatabase = async () => {
                 observacoes_medicas text NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
-                FOREIGN KEY (medico_id) REFERENCES medicos(id) ON DELETE SET NULL
+                FOREIGN KEY (medico_responsavel_id) REFERENCES medicos(id) ON DELETE SET NULL
             );
         `);
 
