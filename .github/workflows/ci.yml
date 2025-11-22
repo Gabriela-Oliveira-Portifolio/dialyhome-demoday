@@ -67,7 +67,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 40   # <--- AQUI
+    timeout-minutes: 120   # <--- AQUI
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
