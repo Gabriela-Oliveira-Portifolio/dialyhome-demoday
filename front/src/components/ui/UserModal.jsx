@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, User, Shield, Activity } from 'lucide-react';
 
+
 const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) => {
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
@@ -23,6 +25,7 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
     especialidade: ''
   });
 
+
   useEffect(() => {
     if (editUser) {
       setFormData({
@@ -32,6 +35,7 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
     }
   }, [editUser]);
 
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -40,10 +44,12 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
     }));
   };
 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+
 
     try {
       // Validações básicas
@@ -51,9 +57,11 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
         throw new Error('Nome e email são obrigatórios');
       }
 
+
       if (!editUser && !formData.senha) {
         throw new Error('Senha é obrigatória para novos usuários');
       }
+
 
       // Remover campos vazios específicos do tipo
       const cleanData = { ...formData };
@@ -82,6 +90,7 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
         delete cleanData.especialidade;
       }
 
+
       await onSave(cleanData);
       onClose();
     } catch (err) {
@@ -91,7 +100,9 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
     }
   };
 
+
   if (!isOpen) return null;
+
 
   return (
     <div style={{
@@ -164,6 +175,7 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
           </div>
         </div>
 
+
         {/* Body */}
         <div style={{
           flex: 1,
@@ -183,6 +195,7 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
             </div>
           )}
 
+
           <form onSubmit={handleSubmit}>
             {/* Dados Básicos */}
             <div style={{ marginBottom: '2rem' }}>
@@ -199,12 +212,16 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
                 Dados Básicos
               </h3>
 
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
+                  <label 
+                    htmlFor="nome" // CORRIGIDO: Adicionado htmlFor
+                    style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
                     Nome Completo *
                   </label>
                   <input
+                    id="nome" // CORRIGIDO: Adicionado id
                     type="text"
                     name="nome"
                     value={formData.nome}
@@ -222,11 +239,15 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
                   />
                 </div>
 
+
                 <div>
-                  <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
+                  <label 
+                    htmlFor="email" // CORRIGIDO: Adicionado htmlFor
+                    style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
                     Email *
                   </label>
                   <input
+                    id="email" // CORRIGIDO: Adicionado id
                     type="email"
                     name="email"
                     value={formData.email}
@@ -244,11 +265,15 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
                   />
                 </div>
 
+
                 <div>
-                  <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
+                  <label 
+                    htmlFor="senha" // CORRIGIDO: Adicionado htmlFor
+                    style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
                     Senha {!editUser && '*'}
                   </label>
                   <input
+                    id="senha" // CORRIGIDO: Adicionado id
                     type="password"
                     name="senha"
                     value={formData.senha}
@@ -267,11 +292,15 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
                   />
                 </div>
 
+
                 <div>
-                  <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
+                  <label 
+                    htmlFor="tipo_usuario" // CORRIGIDO: Adicionado htmlFor
+                    style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
                     Tipo de Usuário *
                   </label>
                   <select
+                    id="tipo_usuario" // CORRIGIDO: Adicionado id
                     name="tipo_usuario"
                     value={formData.tipo_usuario}
                     onChange={handleChange}
@@ -293,9 +322,13 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
                 </div>
               </div>
 
+
               <div style={{ marginTop: '1rem' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                <label 
+                  htmlFor="ativo" // CORRIGIDO: Adicionado htmlFor
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                   <input
+                    id="ativo" // CORRIGIDO: Adicionado id
                     type="checkbox"
                     name="ativo"
                     checked={formData.ativo}
@@ -307,6 +340,7 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
                 </label>
               </div>
             </div>
+
 
             {/* Campos específicos de Paciente */}
             {formData.tipo_usuario === 'paciente' && (
@@ -324,12 +358,16 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
                   Dados do Paciente
                 </h3>
 
+
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div>
-                    <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
+                    <label 
+                      htmlFor="cpf" // CORRIGIDO: Adicionado htmlFor
+                      style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
                       CPF
                     </label>
                     <input
+                      id="cpf" // CORRIGIDO: Adicionado id
                       type="text"
                       name="cpf"
                       value={formData.cpf}
@@ -347,11 +385,15 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
                     />
                   </div>
 
+
                   <div>
-                    <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
+                    <label 
+                      htmlFor="data_nascimento" // CORRIGIDO: Adicionado htmlFor
+                      style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
                       Data de Nascimento
                     </label>
                     <input
+                      id="data_nascimento" // CORRIGIDO: Adicionado id
                       type="date"
                       name="data_nascimento"
                       value={formData.data_nascimento}
@@ -368,11 +410,15 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
                     />
                   </div>
 
+
                   <div>
-                    <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
+                    <label 
+                      htmlFor="telefone" // CORRIGIDO: Adicionado htmlFor
+                      style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
                       Telefone
                     </label>
                     <input
+                      id="telefone" // CORRIGIDO: Adicionado id
                       type="tel"
                       name="telefone"
                       value={formData.telefone}
@@ -390,11 +436,15 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
                     />
                   </div>
 
+
                   <div>
-                    <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
+                    <label 
+                      htmlFor="medico_responsavel_id" // CORRIGIDO: Adicionado htmlFor
+                      style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
                       Médico Responsável
                     </label>
                     <select
+                      id="medico_responsavel_id" // CORRIGIDO: Adicionado id
                       name="medico_responsavel_id"
                       value={formData.medico_responsavel_id}
                       onChange={handleChange}
@@ -418,11 +468,15 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
                     </select>
                   </div>
 
+
                   <div>
-                    <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
+                    <label 
+                      htmlFor="peso_inicial" // CORRIGIDO: Adicionado htmlFor
+                      style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
                       Peso Inicial (kg)
                     </label>
                     <input
+                      id="peso_inicial" // CORRIGIDO: Adicionado id
                       type="number"
                       step="0.1"
                       name="peso_inicial"
@@ -440,11 +494,15 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
                     />
                   </div>
 
+
                   <div>
-                    <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
+                    <label 
+                      htmlFor="altura" // CORRIGIDO: Adicionado htmlFor
+                      style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
                       Altura (m)
                     </label>
                     <input
+                      id="altura" // CORRIGIDO: Adicionado id
                       type="number"
                       step="0.01"
                       name="altura"
@@ -462,11 +520,15 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
                     />
                   </div>
 
+
                   <div style={{ gridColumn: '1 / -1' }}>
-                    <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
+                    <label 
+                      htmlFor="endereco" // CORRIGIDO: Adicionado htmlFor
+                      style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
                       Endereço
                     </label>
                     <input
+                      id="endereco" // CORRIGIDO: Adicionado id
                       type="text"
                       name="endereco"
                       value={formData.endereco}
@@ -486,6 +548,7 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
               </div>
             )}
 
+
             {/* Campos específicos de Médico */}
             {formData.tipo_usuario === 'medico' && (
               <div style={{ marginBottom: '2rem' }}>
@@ -502,12 +565,16 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
                   Dados do Médico
                 </h3>
 
+
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div>
-                    <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
+                    <label 
+                      htmlFor="crm" // CORRIGIDO: Adicionado htmlFor
+                      style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
                       CRM *
                     </label>
                     <input
+                      id="crm" // CORRIGIDO: Adicionado id
                       type="text"
                       name="crm"
                       value={formData.crm}
@@ -525,11 +592,15 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
                     />
                   </div>
 
+
                   <div>
-                    <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
+                    <label 
+                      htmlFor="especialidade" // CORRIGIDO: Adicionado htmlFor
+                      style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
                       Especialidade
                     </label>
                     <input
+                      id="especialidade" // CORRIGIDO: Adicionado id
                       type="text"
                       name="especialidade"
                       value={formData.especialidade}
@@ -551,6 +622,7 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
             )}
           </form>
         </div>
+
 
         {/* Footer */}
         <div style={{
@@ -603,5 +675,6 @@ const UserModal = ({ isOpen, onClose, onSave, editUser = null, doctors = [] }) =
     </div>
   );
 };
+
 
 export default UserModal;
