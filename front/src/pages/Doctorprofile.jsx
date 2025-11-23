@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   User, Lock, Heart, ArrowLeft, Save, Eye, EyeOff,
   Phone, MapPin, Stethoscope, CreditCard, AlertCircle,
-  CheckCircle, Bell, LogOut, Plus, X
+  CheckCircle, LogOut, Plus, X
 } from 'lucide-react';
 import { getDoctorProfile, updateDoctorProfile, changeDoctorPassword } from '../services/doctor';
 import './PatientProfile.css';

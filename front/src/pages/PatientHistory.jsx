@@ -234,19 +234,7 @@ const PatientHistory = () => {
           </div>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {/* <button style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '10px',
-              border: 'none',
-              background: '#f3f4f6',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Bell size={20} color="#6b7280" strokeWidth={2} />
-            </button> */}
+           
             <button onClick={handleProfile} style={{
               
               width: '40px',
@@ -391,28 +379,8 @@ const PatientHistory = () => {
               </select>
             </div>
             
-            {/* <button
-              onClick={handleExport}
-              disabled={loading}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.75rem 1.5rem',
-                background: loading ? '#d1d5db' : 'linear-gradient(90deg, #14b8a6 0%, #10b981 100%)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '10px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                fontSize: '0.95rem',
-                fontWeight: '600',
-                boxShadow: '0 10px 25px -5px rgba(20, 184, 166, 0.4)',
-                transition: 'all 0.2s'
-              }}
-            >
-              <Download size={18} />
-              Exportar Relatório
-            </button> */}
+           
+           
           </div>
 
           {/* Tabs */}
@@ -456,9 +424,7 @@ const PatientHistory = () => {
               {activeTab === 'sintomas' && (
                 <SymptomsHistory symptoms={historyData.symptoms} />
               )}
-              {/* {activeTab === 'graficos' && (
-                <GraphicsView stats={historyData.stats} />
-              )} */}
+              
             </>
           )}
         </div>
@@ -768,72 +734,6 @@ const SymptomsHistory = ({ symptoms }) => {
     </div>
   );
 };
-
-// const GraphicsView = () => (
-//   <div style={{
-//     background: 'white',
-//     borderRadius: '16px',
-//     padding: '3rem 1.5rem',
-//     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-//     textAlign: 'center'
-//   }}>
-//     <div style={{
-//       width: '80px',
-//       height: '80px',
-//       background: 'linear-gradient(135deg, #14b8a6 0%, #10b981 100%)',
-//       borderRadius: '20px',
-//       display: 'flex',
-//       alignItems: 'center',
-//       justifyContent: 'center',
-//       margin: '0 auto 1.5rem',
-//       boxShadow: '0 10px 25px -5px rgba(20, 184, 166, 0.4)'
-//     }}>
-//       <TrendingUp size={40} color="white" strokeWidth={2} />
-//     </div>
-//     <h2 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '1rem', color: '#111827' }}>
-//       Visualização de Gráficos
-//     </h2>
-//     <p style={{ color: '#6b7280', marginBottom: '2rem', maxWidth: '500px', margin: '0 auto 2rem' }}>
-//       Esta funcionalidade será implementada em breve com gráficos interativos mostrando tendências de pressão arterial, UF, glicose e outros parâmetros ao longo do tempo.
-//     </p>
-//     <div style={{
-//       display: 'grid',
-//       gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-//       gap: '1rem',
-//       marginTop: '2rem',
-//       maxWidth: '600px',
-//       margin: '2rem auto 0'
-//     }}>
-//       <div style={{
-//         padding: '1rem',
-//         background: '#f0fdfa',
-//         borderRadius: '12px',
-//         border: '1px solid #ccfbf1'
-//       }}>
-//         <TrendingUp size={24} color="#14b8a6" style={{ marginBottom: '0.5rem' }} />
-//         <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>Tendências</p>
-//       </div>
-//       <div style={{
-//         padding: '1rem',
-//         background: '#f0fdfa',
-//         borderRadius: '12px',
-//         border: '1px solid #ccfbf1'
-//       }}>
-//         <Activity size={24} color="#10b981" style={{ marginBottom: '0.5rem' }} />
-//         <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>Comparações</p>
-//       </div>
-//       <div style={{
-//         padding: '1rem',
-//         background: '#f0fdfa',
-//         borderRadius: '12px',
-//         border: '1px solid #ccfbf1'
-//       }}>
-//         <FileText size={24} color="#0891b2" style={{ marginBottom: '0.5rem' }} />
-//         <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>Relatórios</p>
-//       </div>
-//     </div>
-//   </div>
-// );
 
 const LoadingState = () => (
   <div style={{

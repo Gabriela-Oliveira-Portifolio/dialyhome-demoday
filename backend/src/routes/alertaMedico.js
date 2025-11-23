@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { enviarAlerta, listarAlertasEnviados, buscarAlerta, obterEstatisticas } = require('../controllers/alertaDoMedicoController');
-// const { register, login, logout, refreshToken  } = require('../controllers/authController');
 
 // Middleware de autenticação e autorização
 router.use(authenticateToken);

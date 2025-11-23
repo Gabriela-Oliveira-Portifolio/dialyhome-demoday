@@ -10,9 +10,6 @@ router.use(authorizeRole(['paciente']));
 // GET /api/patients/profile - Buscar perfil completo
 // router.get('/profile', patientController.getProfile);
 
-// // GET /api/patients/stats - Buscar estatísticas detalhadas
-// router.get('/stats', patientController.getStats);
-// GET /api/patients/profile
 router.get('/profile', authorizeRole(['paciente']), patientController.getProfile);
 // GET /api/patients/stats
 router.get('/stats', authorizeRole(['paciente']), patientController.getStats);

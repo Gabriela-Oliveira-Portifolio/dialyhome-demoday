@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Activity, Droplet, Heart, Clock, TrendingUp, FileText, Plus, Bell, User, LogOut, X, Save, Calendar, Weight, Ruler } from "lucide-react";
+import { Activity, Droplet, Heart, Clock, TrendingUp, FileText, Plus, User, LogOut, X, Save, Calendar, Weight, Ruler } from "lucide-react";
 import { createDialysisRecord, getPatientRecords } from '../services/dialysis';
 import { getPatientInfo, getDetailedStats } from '../services/patient';
 import './PatientDashboard2.css';
@@ -8,7 +8,6 @@ import RemindersModal from '../components/ui/RemindersModal';
 import { getUpcomingReminders } from '../services/reminder';
 import SymptomsModal from '../components/ui/SymptomsModal';
 import ChartsModal from '../components/ui/ChartsModal';
-import MessagingComponent from '../../excluit/MessagingComponent';
 
 
 const PatientDashboard = () => {
@@ -40,12 +39,6 @@ const PatientDashboard = () => {
     dextrose: '',
     observacoes: ''
   });
-
-  // const reminders = [
-  //   { title: "Sessão de Diálise", time: "Hoje às 14:00", icon: Clock, color: "reminder-primary" },
-  //   { title: "Tomar Medicamento", time: "Hoje às 16:00", icon: Activity, color: "reminder-info" },
-  //   { title: "Consulta Médica", time: "Amanhã às 10:00", icon: Heart, color: "reminder-warning" },
-  // ];
 
   useEffect(() => {
     const userData = JSON.parse(sessionStorage.getItem('user') || '{}');
@@ -183,27 +176,6 @@ const PatientDashboard = () => {
       console.error('Erro ao carregar lembretes:', err);
       setRemindersData([]);
     }
-    // // Carregar lembretes próximos
-    // try {
-    //   const upcomingData = await getUpcomingReminders();
-    //   if (upcomingData && upcomingData.reminders) {
-    //     setRemindersData(upcomingData.reminders.map(r => ({
-    //       title: r.titulo,
-    //       time: new Date(r.data_hora).toLocaleString('pt-BR', {
-    //         day: '2-digit',
-    //         month: '2-digit',
-    //         hour: '2-digit',
-    //         minute: '2-digit'
-    //       }),
-    //       icon: Clock,
-    //       color: "reminder-primary"
-    //     })));
-    //   }
-    // } catch (err) {
-    //   console.error('Erro ao carregar lembretes:', err);
-    //   setRemindersData([]);
-    // }
-
 
 
 
@@ -480,23 +452,6 @@ const PatientDashboard = () => {
 
 
 
-          {/* <button 
-              className="action-button"
-              onClick={() => setShowRemindersModal(true)}
-            >
-              <Clock className="icon-small" />
-              Ver Lembretes
-            </button> */}
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -640,10 +595,7 @@ const PatientDashboard = () => {
                     </p>
                   )}
                 </div>
-                {/* <button className="btn-outline">
-                  <FileText className="icon-small" />
-                  Ver Histórico Completoqqqqq
-                </button> */}
+              
                 <button 
                   className="action-button"
                   onClick={() => navigate('/historico')}
@@ -663,10 +615,7 @@ const PatientDashboard = () => {
               </div>
               <div className="card-body">
                 <div className="actions-list">
-                  {/* <button className="action-button">
-                    <Activity className="icon-small" />
-                    Registrar Sintomas
-                  </button> */}
+            
                   <button 
                     className="action-button"
                     onClick={() => setShowSymptomsModal(true)}
@@ -674,10 +623,7 @@ const PatientDashboard = () => {
                     <Activity className="icon-small" />
                     Registrar Sintomas
                   </button>
-                  {/* <button className="action-button">
-                    <Clock className="icon-small" />
-                    Ver Lembretes
-                  </button> */}
+                
                   <button 
                       className="action-button"
                       onClick={() => setShowRemindersModal(true)}
@@ -685,10 +631,6 @@ const PatientDashboard = () => {
                       <Clock className="icon-small" />
                       Ver Lembretes
                     </button>
-                  {/* <button className="action-button">
-                    <FileText className="icon-small" />
-                    Upload de Exames
-                  </button> */}
                   <button 
                     className="action-button"
                     onClick={() => setShowChartsModal(true)}
@@ -696,10 +638,7 @@ const PatientDashboard = () => {
                     <TrendingUp className="icon-small" />
                     Visualizar Gráficos
                   </button>
-                  {/* <button className="action-button">
-                    <TrendingUp className="icon-small" />
-                    Visualizar Gráficos
-                  </button> */}
+
                 </div>
               </div>
             </div>
@@ -725,10 +664,6 @@ const PatientDashboard = () => {
             {remindersData.length > 0 ? (
               <div className="reminders-grid">
                 {remindersData.map((reminder, i) => {
-                  // DEBUG - Ver o que está vindo
-                  // console.log('Lembrete:', reminder);
-                  // console.log('Data/Hora:', reminder.data_hora);
-                  // console.log('Tipo da data:', typeof reminder.data_hora);
                   
                   const getTipoIcon = (tipo) => {
                     switch (tipo) {
@@ -795,32 +730,6 @@ const PatientDashboard = () => {
           </div>
         </div>
 
-          {/* <div className="card reminders-card">
-            <div className="card-header">
-              <div>
-                <h2 className="card-title">Próximos Lembretes</h2>
-                <p className="card-description">Não esqueça de suas atividades</p>
-              </div>
-            </div>
-            <div className="card-body">
-              <div className="reminders-grid">
-                {remindersData.map((reminder, i) => {
-                  const Icon = reminder.icon;
-                  return (
-                    <div key={i} className="reminder-item">
-                      <div className={`reminder-icon-wrapper ${reminder.color}`}>
-                        <Icon className="reminder-icon" />
-                      </div>
-                      <div className="reminder-content">
-                        <p className="reminder-title">{reminder.title}</p>
-                        <p className="reminder-time">{reminder.time}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div> */}
 
         </div>
       </main>

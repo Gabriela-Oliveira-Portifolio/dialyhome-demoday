@@ -190,16 +190,6 @@ const Login = () => {
                 </div>
               </div>
 
-              {/* <div className="form-options">
-                <label className="checkbox-label">
-                  <input type="checkbox" />
-                  <span>Lembrar-me</span>
-                </label>
-                <button type="button" className="forgot-password">
-                  Esqueceu a senha?
-                </button>
-              </div> */}
-
               <button 
                 onClick={handleLogin} 
                 className="login-button"
@@ -209,14 +199,6 @@ const Login = () => {
               </button>
             </div>
 
-            {/* <div className="card-footer">
-              <p>
-                Não tem uma conta?{' '}
-                <button className="signup-link">
-                  Entre em contato com seu médico nefrologista e solicite a criação de acesso
-                </button>
-              </p>
-            </div> */}
           </div>
         </div>
       </div>
