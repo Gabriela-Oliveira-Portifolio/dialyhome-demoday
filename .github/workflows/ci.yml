@@ -95,11 +95,7 @@ jobs:
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        args: >
-          -Dsonar.organization=gabriela-oliveira-portifolio
-          -Dsonar.projectKey=Gabriela-Oliveira-Portifolio_dialyhome-demoday
-          -Dsonar.projectBaseDir=.
+      # Todas as configurações estão no sonar-project.properties
 
     - name: 📊 Test and Analysis Summary
       if: always()
