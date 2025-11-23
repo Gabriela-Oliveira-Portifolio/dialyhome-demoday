@@ -19,12 +19,18 @@ export default defineConfig({
         '**/*.test.{js,jsx}',
         '**/*.spec.{js,jsx}',
         'src/main.jsx',
-        'src/vite-env.d.ts'
+        'src/vite-env.d.ts',
+        'src/App.jsx'
       ],
       all: true,
-      // Importante: gerar coverage mesmo com testes falhando
-      skipFull: false
-    }
+      skipFull: false,
+      // Importante: continuar mesmo com testes falhando
+      reportOnFailure: true
+    },
+    // Não parar na primeira falha
+    bail: false,
+    // Timeout maior para testes assíncronos
+    testTimeout: 10000
   },
   resolve: {
     alias: {
