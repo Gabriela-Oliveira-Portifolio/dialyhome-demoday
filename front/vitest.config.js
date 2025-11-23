@@ -10,7 +10,7 @@ export default defineConfig({
     setupFiles: './src/test/setup.js',
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'lcov', 'html'],
+      reporter: ['text', 'lcov', 'html', 'json'],
       reportsDirectory: './coverage',
       include: ['src/**/*.{js,jsx}'],
       exclude: [
@@ -19,10 +19,11 @@ export default defineConfig({
         '**/*.test.{js,jsx}',
         '**/*.spec.{js,jsx}',
         'src/main.jsx',
-        'src/vite-env.d.ts',
-        'src/App.jsx' // Se necessário
+        'src/vite-env.d.ts'
       ],
-      all: true // Importante: inclui todos os arquivos mesmo sem teste
+      all: true,
+      // Importante: gerar coverage mesmo com testes falhando
+      skipFull: false
     }
   },
   resolve: {

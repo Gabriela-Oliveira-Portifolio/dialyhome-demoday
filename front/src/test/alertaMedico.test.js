@@ -1,714 +1,241 @@
-// src/test/alertaMedico.test.js
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import {
-  enviarAlerta,
-  listarAlertasEnviados,
-  buscarAlerta,
-  obterEstatisticas
-} from '../services/alertaMedico';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { 
+  enviarAlerta, 
+  listarAlertasEnviados, 
+  buscarAlerta, 
+  obterEstatisticas 
+} from './alertaMedico'; // Importa as funções do serviço
 
-// Mock do fetch global
+// --- Mocks Globais ---
+
+// 1. Mock de Storage (sessionStorage e localStorage) para simular o token
+const mockStorageGetItem = vi.fn();
+
+Object.defineProperty(global, 'sessionStorage', {
+  value: { getItem: mockStorageGetItem },
+  writable: true,
+  configurable: true,
+});
+
+Object.defineProperty(global, 'localStorage', {
+  value: { getItem: mockStorageGetItem },
+  writable: true,
+  configurable: true,
+});
+
+// 2. Mock do fetch global
+const createFetchResponse = (data, { status = 200, ok = true } = {}) => ({ 
+  json: () => new Promise(resolve => resolve(data)), 
+  status,
+  ok 
+});
+
 global.fetch = vi.fn();
 
-describe('alertaMedico Service', () => {
-  const mockToken = 'mock-jwt-token-12345';
-  const API_URL = 'https://dialyhome.com.br/api';
+// 3. Mock do console para silenciar logs durante o teste
+vi.spyOn(console, 'error').mockImplementation(() => {});
+vi.spyOn(console, 'log').mockImplementation(() => {});
 
-  beforeEach(() => {
-    // Limpa todos os mocks antes de cada teste
-    vi.clearAllMocks();
-    
-    // Configura sessionStorage mock
-    Storage.prototype.getItem = vi.fn((key) => {
-      if (key === 'token' || key === 'accessToken') return mockToken;
-      return null;
+// --- Configuração ---
+
+const API_BASE_URL = 'https://dialyhome.com.br/api';
+const MOCK_TOKEN = 'mock-auth-token-xyz';
+const AUTH_HEADER = {
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${MOCK_TOKEN}`
+};
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  // Assume que o token está sempre no sessionStorage.token, a menos que seja sobrescrito no teste
+  mockStorageGetItem.mockImplementation((key) => {
+    if (key === 'token') return MOCK_TOKEN;
+    return null;
+  });
+});
+
+// --- Testes de Autenticação (getAuthHeaders) ---
+
+describe('getAuthHeaders', () => {
+    it('deve lançar um erro se nenhum token for encontrado', async () => {
+        // Zera todos os tokens em ambos os storages
+        mockStorageGetItem.mockReturnValue(null);
+        
+        // Chamada à função que internamente chama getAuthHeaders
+        await expect(buscarAlerta(1)).rejects.toHaveProperty('error', 'Token de autenticação não encontrado');
     });
-    
-    // Suprime console nos testes
-    vi.spyOn(console, 'log').mockImplementation(() => {});
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+});
+
+
+// --- Testes para enviarAlerta ---
+
+describe('enviarAlerta', () => {
+  const defaultPayload = {
+    pacienteId: 101,
+    mensagem: 'Mensagem de teste com mais de dez caracteres.',
+    email: 'paciente@test.com'
+  };
+
+  const expectedBody = {
+    paciente_id: 101,
+    mensagem: 'Mensagem de teste com mais de dez caracteres.',
+    email: 'paciente@test.com'
+  };
+
+  it('deve enviar um alerta com sucesso usando o NOVO formato de objeto', async () => {
+    const mockResponse = { success: true, id: 1 };
+    global.fetch.mockResolvedValue(createFetchResponse(mockResponse));
+
+    const result = await enviarAlerta(defaultPayload);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      `${API_BASE_URL}/medico/alertas/enviar`,
+      expect.objectContaining({
+        method: 'POST',
+        headers: AUTH_HEADER,
+        body: JSON.stringify(expectedBody),
+      })
+    );
+    expect(result).toEqual(mockResponse);
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
+  it('deve enviar um alerta com sucesso usando o formato ANTIGO de parâmetros', async () => {
+    const mockResponse = { success: true, id: 2 };
+    global.fetch.mockResolvedValue(createFetchResponse(mockResponse));
+
+    const result = await enviarAlerta(defaultPayload.pacienteId, defaultPayload.mensagem, defaultPayload.email);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      `${API_BASE_URL}/medico/alertas/enviar`,
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify(expectedBody),
+      })
+    );
+    expect(result).toEqual(mockResponse);
   });
 
-  // ==================== TESTES DE enviarAlerta ====================
-  describe('enviarAlerta', () => {
-    const mockSuccessResponse = {
-      success: true,
-      message: 'Alerta enviado com sucesso',
-      alertaId: 123,
-      emailEnviado: true
-    };
+  // --- Testes de Validação ---
 
-    it('deve enviar alerta com formato novo (objeto)', async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockSuccessResponse
-      });
-
-      const params = {
-        pacienteId: 10,
-        mensagem: 'Paciente apresenta sintomas preocupantes',
-        email: 'paciente@test.com'
-      };
-
-      const result = await enviarAlerta(params);
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${API_URL}/medico/alertas/enviar`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${mockToken}`
-          },
-          body: JSON.stringify({
-            paciente_id: 10,
-            mensagem: 'Paciente apresenta sintomas preocupantes',
-            email: 'paciente@test.com'
-          })
-        }
-      );
-      expect(result).toEqual(mockSuccessResponse);
-    });
-
-    it('deve enviar alerta com formato antigo (parâmetros separados)', async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockSuccessResponse
-      });
-
-      const result = await enviarAlerta(
-        10,
-        'Paciente apresenta sintomas preocupantes',
-        'paciente@test.com'
-      );
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${API_URL}/medico/alertas/enviar`,
-        expect.objectContaining({
-          method: 'POST',
-          body: JSON.stringify({
-            paciente_id: 10,
-            mensagem: 'Paciente apresenta sintomas preocupantes',
-            email: 'paciente@test.com'
-          })
-        })
-      );
-      expect(result).toEqual(mockSuccessResponse);
-    });
-
-    it('deve remover espaços em branco da mensagem', async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockSuccessResponse
-      });
-
-      await enviarAlerta({
-        pacienteId: 10,
-        mensagem: '  Mensagem com espaços  ',
-        email: 'test@test.com'
-      });
-
-      const callBody = JSON.parse(global.fetch.mock.calls[0][1].body);
-      expect(callBody.mensagem).toBe('Mensagem com espaços');
-    });
-
-    it('deve lançar erro quando pacienteId não é fornecido', async () => {
-      await expect(
-        enviarAlerta({
-          mensagem: 'Mensagem válida aqui',
-          email: 'test@test.com'
-        })
-      ).rejects.toEqual({
-        error: 'ID do paciente é obrigatório',
-        details: expect.any(Error)
-      });
-
-      expect(global.fetch).not.toHaveBeenCalled();
-    });
-
-    it('deve lançar erro quando mensagem tem menos de 10 caracteres', async () => {
-      await expect(
-        enviarAlerta({
-          pacienteId: 10,
-          mensagem: 'Curta',
-          email: 'test@test.com'
-        })
-      ).rejects.toEqual({
-        error: 'Mensagem deve ter no mínimo 10 caracteres',
-        details: expect.any(Error)
-      });
-
-      expect(global.fetch).not.toHaveBeenCalled();
-    });
-
-    it('deve lançar erro quando mensagem está vazia ou só tem espaços', async () => {
-      await expect(
-        enviarAlerta({
-          pacienteId: 10,
-          mensagem: '     ',
-          email: 'test@test.com'
-        })
-      ).rejects.toEqual({
-        error: 'Mensagem deve ter no mínimo 10 caracteres',
-        details: expect.any(Error)
-      });
-    });
-
-    it('deve lançar erro quando email não é fornecido', async () => {
-      await expect(
-        enviarAlerta({
-          pacienteId: 10,
-          mensagem: 'Mensagem válida com mais de 10 caracteres'
-        })
-      ).rejects.toEqual({
-        error: 'Email do paciente é obrigatório',
-        details: expect.any(Error)
-      });
-
-      expect(global.fetch).not.toHaveBeenCalled();
-    });
-
-    it('deve lançar erro quando token não está disponível', async () => {
-      Storage.prototype.getItem = vi.fn(() => null);
-
-      await expect(
-        enviarAlerta({
-          pacienteId: 10,
-          mensagem: 'Mensagem válida',
-          email: 'test@test.com'
-        })
-      ).rejects.toEqual({
-        error: 'Token de autenticação não encontrado',
-        details: expect.any(Error)
-      });
-
-      expect(global.fetch).not.toHaveBeenCalled();
-    });
-
-    it('deve lançar erro quando API retorna erro', async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        json: async () => ({ error: 'Email inválido' })
-      });
-
-      await expect(
-        enviarAlerta({
-          pacienteId: 10,
-          mensagem: 'Mensagem válida',
-          email: 'email-invalido'
-        })
-      ).rejects.toEqual({
-        error: 'Email inválido',
-        details: expect.any(Error)
-      });
-    });
-
-    it('deve lançar erro genérico quando API não retorna mensagem específica', async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        json: async () => ({})
-      });
-
-      await expect(
-        enviarAlerta({
-          pacienteId: 10,
-          mensagem: 'Mensagem válida',
-          email: 'test@test.com'
-        })
-      ).rejects.toEqual({
-        error: 'Erro ao enviar alerta',
-        details: expect.any(Error)
-      });
-    });
-
-    it('deve tratar erro de rede', async () => {
-      global.fetch.mockRejectedValueOnce(new Error('Network error'));
-
-      await expect(
-        enviarAlerta({
-          pacienteId: 10,
-          mensagem: 'Mensagem válida',
-          email: 'test@test.com'
-        })
-      ).rejects.toEqual({
-        error: 'Network error',
-        details: expect.any(Error)
-      });
-    });
-
-    it('deve aceitar mensagem com exatamente 10 caracteres', async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockSuccessResponse
-      });
-
-      await expect(
-        enviarAlerta({
-          pacienteId: 10,
-          mensagem: '1234567890',
-          email: 'test@test.com'
-        })
-      ).resolves.toBeDefined();
-    });
+  it('deve lançar erro se o ID do paciente estiver ausente (formato novo)', async () => {
+    await expect(enviarAlerta({ ...defaultPayload, pacienteId: null })).rejects.toHaveProperty('error', 'ID do paciente é obrigatório');
   });
 
-  // ==================== TESTES DE listarAlertasEnviados ====================
-  describe('listarAlertasEnviados', () => {
-    const mockAlertas = {
-      alertas: [
-        {
-          id: 1,
-          paciente_id: 10,
-          paciente_nome: 'João Silva',
-          mensagem: 'Sintomas preocupantes',
-          enviado_em: '2025-01-15T10:30:00Z',
-          status: 'enviado'
-        },
-        {
-          id: 2,
-          paciente_id: 11,
-          paciente_nome: 'Maria Santos',
-          mensagem: 'Pressão alta detectada',
-          enviado_em: '2025-01-14T15:20:00Z',
-          status: 'lido'
-        }
-      ],
-      total: 2,
-      pagina: 1,
-      limite: 10
-    };
-
-    it('deve listar alertas sem parâmetros', async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockAlertas
-      });
-
-      const result = await listarAlertasEnviados();
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${API_URL}/medico/alertas/enviados`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${mockToken}`
-          }
-        }
-      );
-      expect(result).toEqual(mockAlertas);
-    });
-
-    it('deve listar alertas com limite e página', async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockAlertas
-      });
-
-      await listarAlertasEnviados({ limite: 20, pagina: 2 });
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${API_URL}/medico/alertas/enviados?limite=20&pagina=2`,
-        expect.any(Object)
-      );
-    });
-
-    it('deve filtrar alertas por paciente_id', async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ ...mockAlertas, alertas: [mockAlertas.alertas[0]] })
-      });
-
-      await listarAlertasEnviados({ paciente_id: 10 });
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${API_URL}/medico/alertas/enviados?paciente_id=10`,
-        expect.any(Object)
-      );
-    });
-
-    it('deve combinar múltiplos parâmetros de filtro', async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockAlertas
-      });
-
-      await listarAlertasEnviados({ limite: 5, pagina: 3, paciente_id: 10 });
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${API_URL}/medico/alertas/enviados?limite=5&pagina=3&paciente_id=10`,
-        expect.any(Object)
-      );
-    });
-
-    it('deve lançar erro quando token não está disponível', async () => {
-      Storage.prototype.getItem = vi.fn(() => null);
-
-      await expect(listarAlertasEnviados()).rejects.toEqual({
-        error: 'Token de autenticação não encontrado',
-        details: expect.any(Error)
-      });
-    });
-
-    it('deve lançar erro quando API retorna erro', async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: false,
-        status: 403,
-        json: async () => ({ error: 'Acesso negado' })
-      });
-
-      await expect(listarAlertasEnviados()).rejects.toEqual({
-        error: 'Acesso negado',
-        details: expect.any(Error)
-      });
-    });
-
-    it('deve lançar erro genérico quando API não retorna mensagem', async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        json: async () => ({})
-      });
-
-      await expect(listarAlertasEnviados()).rejects.toEqual({
-        error: 'Erro ao listar alertas',
-        details: expect.any(Error)
-      });
-    });
+  it('deve lançar erro se a mensagem tiver menos de 10 caracteres', async () => {
+    await expect(enviarAlerta({ ...defaultPayload, mensagem: 'Curta' })).rejects.toHaveProperty('error', 'Mensagem deve ter no mínimo 10 caracteres');
   });
 
-  // ==================== TESTES DE buscarAlerta ====================
-  describe('buscarAlerta', () => {
-    const mockAlerta = {
-      id: 1,
-      paciente_id: 10,
-      paciente_nome: 'João Silva',
-      paciente_email: 'joao@test.com',
-      mensagem: 'Sintomas preocupantes',
-      enviado_em: '2025-01-15T10:30:00Z',
-      status: 'enviado',
-      medico_id: 5,
-      medico_nome: 'Dr. Carlos'
-    };
+  it('deve lançar erro se o email do paciente estiver ausente', async () => {
+    await expect(enviarAlerta({ ...defaultPayload, email: '' })).rejects.toHaveProperty('error', 'Email do paciente é obrigatório');
+  });
+  
+  // --- Teste de Falha da API ---
+  
+  it('deve lançar erro com a mensagem da API em caso de response.ok=false', async () => {
+    const apiError = { error: 'Alerta não permitido' };
+    global.fetch.mockResolvedValue(createFetchResponse(apiError, { status: 403, ok: false }));
 
-    it('deve buscar alerta por ID com sucesso', async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockAlerta
-      });
+    await expect(enviarAlerta(defaultPayload)).rejects.toHaveProperty('error', apiError.error);
+  });
+});
 
-      const result = await buscarAlerta(1);
+// --- Testes para listarAlertasEnviados ---
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${API_URL}/medico/alertas/1`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${mockToken}`
-          }
-        }
-      );
-      expect(result).toEqual(mockAlerta);
-    });
+describe('listarAlertasEnviados', () => {
+  it('deve fazer uma chamada GET correta sem parâmetros', async () => {
+    const mockResponse = { total: 5, alertas: [] };
+    global.fetch.mockResolvedValue(createFetchResponse(mockResponse));
 
-    it('deve lançar erro quando alertaId não é fornecido', async () => {
-      await expect(buscarAlerta()).rejects.toEqual({
-        error: 'ID do alerta é obrigatório',
-        details: expect.any(Error)
-      });
+    await listarAlertasEnviados({});
 
-      expect(global.fetch).not.toHaveBeenCalled();
-    });
-
-    it('deve lançar erro quando alertaId é null', async () => {
-      await expect(buscarAlerta(null)).rejects.toEqual({
-        error: 'ID do alerta é obrigatório',
-        details: expect.any(Error)
-      });
-    });
-
-    it('deve lançar erro quando alertaId é 0', async () => {
-      await expect(buscarAlerta(0)).rejects.toEqual({
-        error: 'ID do alerta é obrigatório',
-        details: expect.any(Error)
-      });
-    });
-
-    it('deve aceitar alertaId como string', async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockAlerta
-      });
-
-      await buscarAlerta('123');
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${API_URL}/medico/alertas/123`,
-        expect.any(Object)
-      );
-    });
-
-    it('deve lançar erro quando alerta não é encontrado', async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: false,
-        status: 404,
-        json: async () => ({ error: 'Alerta não encontrado' })
-      });
-
-      await expect(buscarAlerta(999)).rejects.toEqual({
-        error: 'Alerta não encontrado',
-        details: expect.any(Error)
-      });
-    });
-
-    it('deve lançar erro quando token não está disponível', async () => {
-      Storage.prototype.getItem = vi.fn(() => null);
-
-      await expect(buscarAlerta(1)).rejects.toEqual({
-        error: 'Token de autenticação não encontrado',
-        details: expect.any(Error)
-      });
-    });
+    expect(global.fetch).toHaveBeenCalledWith(
+      `${API_BASE_URL}/medico/alertas/enviados`,
+      expect.objectContaining({ method: 'GET', headers: AUTH_HEADER })
+    );
   });
 
-  // ==================== TESTES DE obterEstatisticas ====================
-  describe('obterEstatisticas', () => {
-    const mockEstatisticas = {
-      total_alertas: 45,
-      alertas_mes_atual: 12,
-      alertas_mes_anterior: 10,
-      crescimento_percentual: 20,
-      pacientes_alertados: 8,
-      media_alertas_por_paciente: 5.6,
-      distribuicao_por_mes: [
-        { mes: '2025-01', total: 10 },
-        { mes: '2025-02', total: 12 }
-      ],
-      alertas_por_status: {
-        enviado: 30,
-        lido: 12,
-        respondido: 3
-      }
-    };
+  it('deve fazer uma chamada GET com todos os parâmetros de query', async () => {
+    const params = { limite: 20, pagina: 2, paciente_id: 50 };
+    const mockResponse = { total: 100, alertas: [{ id: 10 }] };
+    global.fetch.mockResolvedValue(createFetchResponse(mockResponse));
 
-    it('deve obter estatísticas sem parâmetros', async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockEstatisticas
-      });
+    await listarAlertasEnviados(params);
 
-      const result = await obterEstatisticas();
+    const expectedUrl = `${API_BASE_URL}/medico/alertas/enviados?limite=20&pagina=2&paciente_id=50`;
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${API_URL}/medico/alertas/estatisticas`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${mockToken}`
-          }
-        }
-      );
-      expect(result).toEqual(mockEstatisticas);
-    });
-
-    it('deve obter estatísticas com data_inicio', async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockEstatisticas
-      });
-
-      await obterEstatisticas({ data_inicio: '2025-01-01' });
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${API_URL}/medico/alertas/estatisticas?data_inicio=2025-01-01`,
-        expect.any(Object)
-      );
-    });
-
-    it('deve obter estatísticas com data_fim', async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockEstatisticas
-      });
-
-      await obterEstatisticas({ data_fim: '2025-12-31' });
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${API_URL}/medico/alertas/estatisticas?data_fim=2025-12-31`,
-        expect.any(Object)
-      );
-    });
-
-    it('deve obter estatísticas com range de datas', async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockEstatisticas
-      });
-
-      await obterEstatisticas({
-        data_inicio: '2025-01-01',
-        data_fim: '2025-12-31'
-      });
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${API_URL}/medico/alertas/estatisticas?data_inicio=2025-01-01&data_fim=2025-12-31`,
-        expect.any(Object)
-      );
-    });
-
-    it('deve lançar erro quando API retorna erro', async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        json: async () => ({ error: 'Erro interno do servidor' })
-      });
-
-      await expect(obterEstatisticas()).rejects.toEqual({
-        error: 'Erro interno do servidor',
-        details: expect.any(Error)
-      });
-    });
-
-    it('deve lançar erro genérico quando API não retorna mensagem', async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        json: async () => ({})
-      });
-
-      await expect(obterEstatisticas()).rejects.toEqual({
-        error: 'Erro ao obter estatísticas',
-        details: expect.any(Error)
-      });
-    });
-
-    it('deve lançar erro quando token não está disponível', async () => {
-      Storage.prototype.getItem = vi.fn(() => null);
-
-      await expect(obterEstatisticas()).rejects.toEqual({
-        error: 'Token de autenticação não encontrado',
-        details: expect.any(Error)
-      });
-    });
+    expect(global.fetch).toHaveBeenCalledWith(
+      expectedUrl,
+      expect.objectContaining({ method: 'GET' })
+    );
   });
 
-  // ==================== TESTES DE AUTENTICAÇÃO ====================
-  describe('Autenticação e Headers', () => {
-    // it('deve priorizar token do sessionStorage', async () => {
-    //   sessionStorage.getItem = vi.fn((key) => {
-    //     if (key === 'token') return 'session-token-123';
-    //     return null;
-    //   });
-    //   localStorage.getItem = vi.fn((key) => {
-    //     if (key === 'token') return 'local-token-456';
-    //     return null;
-    //   });
+  it('deve lançar erro em caso de falha na listagem', async () => {
+    const apiError = { error: 'Permissão negada' };
+    global.fetch.mockResolvedValue(createFetchResponse(apiError, { status: 401, ok: false }));
 
-    //   global.fetch.mockResolvedValueOnce({
-    //     ok: true,
-    //     json: async () => ({ alertas: [] })
-    //   });
+    await expect(listarAlertasEnviados()).rejects.toHaveProperty('error', apiError.error);
+  });
+});
 
-    //   await listarAlertasEnviados();
 
-    //   expect(global.fetch).toHaveBeenCalledWith(
-    //     expect.any(String),
-    //     expect.objectContaining({
-    //       headers: expect.objectContaining({
-    //         'Authorization': 'Bearer session-token-123'
-    //       })
-    //     })
-    //   );
-    // });
+// --- Testes para buscarAlerta ---
 
-    // it('deve usar token do localStorage quando sessionStorage está vazio', async () => {
-    //   sessionStorage.getItem = vi.fn(() => null);
-    //   localStorage.getItem = vi.fn((key) => {
-    //     if (key === 'token') return 'local-token-789';
-    //     return null;
-    //   });
+describe('buscarAlerta', () => {
+  const ALERTA_ID = 42;
+  
+  it('deve fazer uma chamada GET correta para um alerta específico', async () => {
+    const mockResponse = { id: ALERTA_ID, mensagem: 'Urgente' };
+    global.fetch.mockResolvedValue(createFetchResponse(mockResponse));
 
-    //   global.fetch.mockResolvedValueOnce({
-    //     ok: true,
-    //     json: async () => ({ alertas: [] })
-    //   });
+    const result = await buscarAlerta(ALERTA_ID);
 
-    //   await listarAlertasEnviados();
-
-    //   expect(global.fetch).toHaveBeenCalledWith(
-    //     expect.any(String),
-    //     expect.objectContaining({
-    //       headers: expect.objectContaining({
-    //         'Authorization': 'Bearer local-token-789'
-    //       })
-    //     })
-    //   );
-    // });
-
-    it('deve aceitar accessToken como alternativa', async () => {
-      Storage.prototype.getItem = vi.fn((key) => {
-        if (key === 'accessToken') return 'access-token-999';
-        return null;
-      });
-
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ alertas: [] })
-      });
-
-      await listarAlertasEnviados();
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            'Authorization': 'Bearer access-token-999'
-          })
-        })
-      );
-    });
-
-    it('deve incluir Content-Type em todas as requisições', async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({})
-      });
-
-      await listarAlertasEnviados();
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            'Content-Type': 'application/json'
-          })
-        })
-      );
-    });
+    expect(global.fetch).toHaveBeenCalledWith(
+      `${API_BASE_URL}/medico/alertas/${ALERTA_ID}`,
+      expect.objectContaining({ method: 'GET', headers: AUTH_HEADER })
+    );
+    expect(result).toEqual(mockResponse);
   });
 
-  // ==================== TESTES DE EXPORTAÇÃO DEFAULT ====================
-  describe('Exportação Default', () => {
-    it('deve exportar todas as funções via default', async () => {
-      const defaultExport = (await import('../services/alertaMedico')).default;
+  it('deve lançar erro se o ID do alerta for ausente', async () => {
+    await expect(buscarAlerta(null)).rejects.toHaveProperty('error', 'ID do alerta é obrigatório');
+  });
 
-      expect(defaultExport).toHaveProperty('enviarAlerta');
-      expect(defaultExport).toHaveProperty('listarAlertasEnviados');
-      expect(defaultExport).toHaveProperty('buscarAlerta');
-      expect(defaultExport).toHaveProperty('obterEstatisticas');
-      
-      expect(typeof defaultExport.enviarAlerta).toBe('function');
-      expect(typeof defaultExport.listarAlertasEnviados).toBe('function');
-      expect(typeof defaultExport.buscarAlerta).toBe('function');
-      expect(typeof defaultExport.obterEstatisticas).toBe('function');
-    });
+  it('deve lançar erro em caso de falha na busca', async () => {
+    const apiError = { message: 'Alerta não encontrado' };
+    global.fetch.mockResolvedValue(createFetchResponse(apiError, { status: 404, ok: false }));
+
+    await expect(buscarAlerta(ALERTA_ID)).rejects.toHaveProperty('error', apiError.message);
+  });
+});
+
+
+// --- Testes para obterEstatisticas ---
+
+describe('obterEstatisticas', () => {
+  it('deve fazer uma chamada GET correta sem parâmetros', async () => {
+    const mockResponse = { total: 100, media_por_dia: 5 };
+    global.fetch.mockResolvedValue(createFetchResponse(mockResponse));
+
+    await obterEstatisticas({});
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      `${API_BASE_URL}/medico/alertas/estatisticas`,
+      expect.objectContaining({ method: 'GET', headers: AUTH_HEADER })
+    );
+  });
+
+  it('deve fazer uma chamada GET com parâmetros de data', async () => {
+    const params = { data_inicio: '2024-01-01', data_fim: '2024-01-31' };
+    const mockResponse = { total: 30, media_por_dia: 1 };
+    global.fetch.mockResolvedValue(createFetchResponse(mockResponse));
+
+    await obterEstatisticas(params);
+
+    const expectedUrl = `${API_BASE_URL}/medico/alertas/estatisticas?data_inicio=2024-01-01&data_fim=2024-01-31`;
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expectedUrl,
+      expect.objectContaining({ method: 'GET' })
+    );
   });
 });

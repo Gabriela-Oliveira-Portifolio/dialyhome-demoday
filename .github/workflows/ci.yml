@@ -81,11 +81,19 @@ jobs:
 
     - name: Run frontend tests with coverage
       working-directory: ./front
-      run: npm run test:coverage || echo "Frontend tests failed, continuing..."
+      run: npm run test:coverage || true
       continue-on-error: true
 
     - name: Show frontend coverage
-      run: ls -R front/coverage || echo "Frontend coverage not found"
+      run: |
+        echo "=== Frontend Coverage Files ==="
+        ls -la front/coverage/ || echo "Frontend coverage not found"
+        echo ""
+        echo "=== LCOV file exists? ==="
+        test -f front/coverage/lcov.info && echo "✅ LCOV found" || echo "❌ LCOV not found"
+        echo ""
+        echo "=== First 20 lines of LCOV ==="
+        head -n 20 front/coverage/lcov.info || echo "Cannot read LCOV"
 
     # ================================
     # SONARCLOUD ANALYSIS
