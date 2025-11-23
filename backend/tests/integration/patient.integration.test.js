@@ -293,34 +293,6 @@ describe('Patient Routes - Testes de Integração Completos', () => {
 
     // ============= PUT /api/patients/:id =============
     describe('PUT /api/patients/:id', () => {
-        // it.skip('deve atualizar paciente com sucesso', async () => {
-        //     require('../../src/middleware/auth').authenticateToken = (req, res, next) => {
-        //         req.user = { id: 5, tipo: 'medico', tipo_usuario: 'medico' };
-        //         next();
-        //     };
-
-        //     db.query
-        //         .mockResolvedValueOnce({
-        //             rows: [{
-        //                 id: 100,
-        //                 usuario_id: 10,
-        //                 medico_id: 5,
-        //                 ativo: true
-        //             }]
-        //         })
-        //         .mockResolvedValueOnce({})
-        //         .mockResolvedValueOnce({});
-
-        //     const res = await request(app)
-        //         .put('/api/patients/100')
-        //         .send({
-        //             nome: 'Paciente Atualizado',
-        //             email: 'atualizado@test.com',
-        //             convenio: 'Novo Plano'
-        //         });
-
-        //     expect(res.status).toBe(200);
-        // });
 
         it('deve retornar 404 se paciente não existir', async () => {
             db.query.mockResolvedValueOnce({ rows: [] });

@@ -220,6 +220,7 @@ describe('BackupService', () => {
       expect(exec).toHaveBeenCalledTimes(1);
     });
     
+    // test desabilitado temporariamente
     it.skip('deve realizar limpeza após backup manual bem-sucedido', async () => {
       // CORREÇÃO: Espionamos o método cleanOldBackups na instância atual.
       const cleanSpy = jest.spyOn(backupService, 'cleanOldBackups').mockResolvedValue();

@@ -45,16 +45,15 @@ const localStorageMock = createStorageMock();
 const sessionStorageMock = createStorageMock();
 
 // Configurar no global
-global.localStorage = localStorageMock;
-global.sessionStorage = sessionStorageMock;
+globalThis.localStorage = localStorageMock;
+globalThis.sessionStorage = sessionStorageMock;
 
-// Configurar no window também
-Object.defineProperty(window, 'localStorage', {
+Object.defineProperty(globalThis, 'localStorage', {
   value: localStorageMock,
   writable: true
 });
 
-Object.defineProperty(window, 'sessionStorage', {
+Object.defineProperty(globalThis, 'sessionStorage', {
   value: sessionStorageMock,
   writable: true
 });
@@ -74,10 +73,10 @@ beforeEach(() => {
 });
 
 // Mock do fetch global
-global.fetch = vi.fn();
+globalThis.fetch = vi.fn();
 
 // Mock do console para evitar spam nos testes
-global.console = {
+globalThis.console = {
   ...console,
   error: vi.fn(),
   warn: vi.fn(),

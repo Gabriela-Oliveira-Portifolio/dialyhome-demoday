@@ -112,7 +112,7 @@ describe('SymptomsModal', () => {
     expect(textarea.value).toBe('Tosse seca persistente');
   });
 
- // --- CORREÇÃO: exibe erro se tentar registrar sem selecionar sintomas ---
+  // test desabilitado temporariamente
   it.skip('exibe erro se tentar registrar sem selecionar sintomas', async () => {
     getPredefinedSymptoms.mockResolvedValueOnce(mockSymptomsData);
 
@@ -145,7 +145,7 @@ describe('SymptomsModal', () => {
   });
 
 
-  // --- CORREÇÃO: envia sintomas e exibe mensagem de sucesso ---
+  // test desabilitado temporariamente
   it.skip('envia sintomas e exibe mensagem de sucesso', async () => {
     getPredefinedSymptoms.mockResolvedValueOnce(mockSymptomsData);
     // Mockando a chamada de sucesso

@@ -9,6 +9,86 @@ import { getUpcomingReminders } from '../services/reminder';
 import SymptomsModal from '../components/ui/SymptomsModal';
 import ChartsModal from '../components/ui/ChartsModal';
 
+// Funções auxiliares para reduzir complexidade cognitiva
+const getTrendIcon = (trend) => {
+  if (trend === 'up') return '↑';
+  if (trend === 'down') return '↓';
+  return '→';
+};
+
+const buildStatsFromData = (statsData) => {
+  if (!statsData?.current) return getDefaultStats();
+
+  return [
+    {
+      title: "Pressão Arterial",
+      value: statsData.current.pressao_arterial.sistolica && statsData.current.pressao_arterial.diastolica
+        ? `${statsData.current.pressao_arterial.sistolica}/${statsData.current.pressao_arterial.diastolica}`
+        : 'N/A',
+      average: statsData.averages.pressao_sistolica.value && statsData.averages.pressao_diastolica.value
+        ? `Média: ${statsData.averages.pressao_sistolica.value}/${statsData.averages.pressao_diastolica.value}`
+        : null,
+      unit: "mmHg",
+      icon: Heart,
+      trend: statsData.averages.pressao_sistolica.trend || "stable",
+      trendIcon: getTrendIcon(statsData.averages.pressao_sistolica.trend),
+      color: "stat-success"
+    },
+    {
+      title: "UF Total",
+      value: statsData.current.uf_total || 'N/A',
+      average: statsData.averages.uf_total.value ? `Média: ${statsData.averages.uf_total.value} L` : null,
+      unit: "L",
+      icon: Droplet,
+      trend: statsData.averages.uf_total.trend || "stable",
+      trendIcon: getTrendIcon(statsData.averages.uf_total.trend),
+      color: "stat-info"
+    },
+    {
+      title: "Glicose",
+      value: statsData.current.glicose || 'N/A',
+      average: statsData.averages.glicose.value ? `Média: ${statsData.averages.glicose.value} mg/dL` : null,
+      unit: "mg/dL",
+      icon: Activity,
+      trend: statsData.averages.glicose.trend || "stable",
+      trendIcon: getTrendIcon(statsData.averages.glicose.trend),
+      color: "stat-primary"
+    },
+    {
+      title: "Tempo Permanência",
+      value: statsData.current.tempo_permanencia || 'N/A',
+      average: statsData.averages.tempo_permanencia.value ? `Média: ${statsData.averages.tempo_permanencia.value} h` : null,
+      unit: "horas",
+      icon: Clock,
+      trend: "stable",
+      trendIcon: '→',
+      color: "stat-warning"
+    },
+  ];
+};
+
+const getDefaultStats = () => [
+  { title: "Pressão Arterial", value: 'N/A', unit: "mmHg", icon: Heart, trend: "stable", trendIcon: '→', color: "stat-success" },
+  { title: "UF Total", value: 'N/A', unit: "L", icon: Droplet, trend: "stable", trendIcon: '→', color: "stat-info" },
+  { title: "Glicose", value: 'N/A', unit: "mg/dL", icon: Activity, trend: "stable", trendIcon: '→', color: "stat-primary" },
+  { title: "Tempo Permanência", value: 'N/A', unit: "horas", icon: Clock, trend: "stable", trendIcon: '→', color: "stat-warning" },
+];
+
+const transformRecordsData = (recordsData) => {
+  if (!recordsData?.records?.length) return [];
+
+  return recordsData.records.map(record => ({
+    date: new Date(record.data_registro).toLocaleDateString('pt-BR'),
+    pa: `${record.pressao_arterial_sistolica}/${record.pressao_arterial_diastolica}`,
+    uf: record.uf_total ? `${(record.uf_total / 1000).toFixed(1)}L` : 'N/A',
+    glicose: record.concentracao_glicose ? `${record.concentracao_glicose} mg/dL` : 'N/A',
+    status: "Normal"
+  }));
+};
+
+const shouldRedirectToLogin = (error) => {
+  return error?.error?.includes('Token') || error?.error?.includes('necessário');
+};
 
 const PatientDashboard = () => {
   const navigate = useNavigate();
@@ -27,8 +107,6 @@ const PatientDashboard = () => {
   const [showSymptomsModal, setShowSymptomsModal] = useState(false);
   const [showChartsModal, setShowChartsModal] = useState(false);
 
-
-  
   const [formData, setFormData] = useState({
     pressaoSistolica: '',
     pressaoDiastolica: '',
@@ -58,132 +136,51 @@ const PatientDashboard = () => {
     }
   };
 
-  const loadDashboardData = async () => {
-    try {
-      const statsData = await getDetailedStats(30);
-      setDetailedStats(statsData);
-      console.log('Estatísticas:', statsData);
+  const loadStatsData = async () => {
+    const statsData = await getDetailedStats(30);
+    setDetailedStats(statsData);
+    console.log('Estatísticas:', statsData);
 
-      if (statsData && statsData.current) {
-        const getTrendIcon = (trend) => {
-          if (trend === 'up') return '↑';
-          if (trend === 'down') return '↓';
-          return '→';
-        };
+    const statsArray = buildStatsFromData(statsData);
+    setStats(statsArray);
+  };
 
-        setStats([
-          { 
-            title: "Pressão Arterial", 
-            value: statsData.current.pressao_arterial.sistolica && statsData.current.pressao_arterial.diastolica
-              ? `${statsData.current.pressao_arterial.sistolica}/${statsData.current.pressao_arterial.diastolica}`
-              : 'N/A',
-            average: statsData.averages.pressao_sistolica.value && statsData.averages.pressao_diastolica.value
-              ? `Média: ${statsData.averages.pressao_sistolica.value}/${statsData.averages.pressao_diastolica.value}`
-              : null,
-            unit: "mmHg", 
-            icon: Heart, 
-            trend: statsData.averages.pressao_sistolica.trend || "stable",
-            trendIcon: getTrendIcon(statsData.averages.pressao_sistolica.trend),
-            color: "stat-success"
-          },
-          { 
-            title: "UF Total", 
-            value: statsData.current.uf_total || 'N/A',
-            average: statsData.averages.uf_total.value ? `Média: ${statsData.averages.uf_total.value} L` : null,
-            unit: "L", 
-            icon: Droplet, 
-            trend: statsData.averages.uf_total.trend || "stable",
-            trendIcon: getTrendIcon(statsData.averages.uf_total.trend),
-            color: "stat-info"
-          },
-          { 
-            title: "Glicose", 
-            value: statsData.current.glicose || 'N/A',
-            average: statsData.averages.glicose.value ? `Média: ${statsData.averages.glicose.value} mg/dL` : null,
-            unit: "mg/dL", 
-            icon: Activity, 
-            trend: statsData.averages.glicose.trend || "stable",
-            trendIcon: getTrendIcon(statsData.averages.glicose.trend),
-            color: "stat-primary"
-          },
-          { 
-            title: "Tempo Permanência", 
-            value: statsData.current.tempo_permanencia || 'N/A',
-            average: statsData.averages.tempo_permanencia.value ? `Média: ${statsData.averages.tempo_permanencia.value} h` : null,
-            unit: "horas", 
-            icon: Clock, 
-            trend: "stable",
-            trendIcon: '→',
-            color: "stat-warning"
-          },
-        ]);
-      }
+  const loadRecordsData = async () => {
+    const recordsData = await getPatientRecords(3);
+    const transformedRecords = transformRecordsData(recordsData);
+    setRecentRecords(transformedRecords);
+  };
 
-      const recordsData = await getPatientRecords(3);
-
-      
-      if (recordsData && recordsData.records && recordsData.records.length > 0) {
-        setRecentRecords(recordsData.records.map(record => ({
-          date: new Date(record.data_registro).toLocaleDateString('pt-BR'),
-          pa: `${record.pressao_arterial_sistolica}/${record.pressao_arterial_diastolica}`,
-          uf: record.uf_total ? `${(record.uf_total / 1000).toFixed(1)}L` : 'N/A',
-          glicose: record.concentracao_glicose ? `${record.concentracao_glicose} mg/dL` : 'N/A',
-          status: "Normal"
-        })));
-      } else {
-        setRecentRecords([]);
-      }
-
-        const upcomingData = await getUpcomingReminders();
-          setRemindersData(upcomingData.reminders.map(r => ({
-            title: r.titulo,
-            time: new Date(r.data_hora).toLocaleString('pt-BR'),
-            icon: Clock,
-            color: "reminder-primary"
-          })));
-
-    } catch (err) {
-      console.error('Erro ao carregar dados:', err);
-      
-      if (err.error?.includes('Token') || err.error?.includes('necessário')) {
-        sessionStorage.clear();
-        navigate('/login');
-      } else {
-        setStats([
-          { title: "Pressão Arterial", value: 'N/A', unit: "mmHg", icon: Heart, trend: "stable", trendIcon: '→', color: "stat-success" },
-          { title: "UF Total", value: 'N/A', unit: "L", icon: Droplet, trend: "stable", trendIcon: '→', color: "stat-info" },
-          { title: "Glicose", value: 'N/A', unit: "mg/dL", icon: Activity, trend: "stable", trendIcon: '→', color: "stat-primary" },
-          { title: "Tempo Permanência", value: 'N/A', unit: "horas", icon: Clock, trend: "stable", trendIcon: '→', color: "stat-warning" },
-        ]);
-        setRecentRecords([]);
-      }
-    }
-    
-    
-    
-    
-    
-    
-    
+  const loadRemindersData = async () => {
     try {
       const upcomingData = await getUpcomingReminders();
-      if (upcomingData && upcomingData.reminders) {
-        setRemindersData(upcomingData.reminders); // ← Apenas salvar os dados sem transformar
-      } else {
-        setRemindersData([]);
-      }
+      setRemindersData(upcomingData?.reminders || []);
     } catch (err) {
       console.error('Erro ao carregar lembretes:', err);
       setRemindersData([]);
     }
+  };
 
-
-
-
-
-
-
+  const handleLoadError = (err) => {
+    console.error('Erro ao carregar dados:', err);
     
+    if (shouldRedirectToLogin(err)) {
+      sessionStorage.clear();
+      navigate('/login');
+    } else {
+      setStats(getDefaultStats());
+      setRecentRecords([]);
+    }
+  };
+
+  const loadDashboardData = async () => {
+    try {
+      await loadStatsData();
+      await loadRecordsData();
+      await loadRemindersData();
+    } catch (err) {
+      handleLoadError(err);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -194,50 +191,67 @@ const PatientDashboard = () => {
     }));
   };
 
+  const validateForm = () => {
+    if (!formData.pressaoSistolica || !formData.pressaoDiastolica) {
+      setError('Pressão arterial é obrigatória');
+      return false;
+    }
+    return true;
+  };
+
+  const resetForm = () => {
+    setFormData({
+      pressaoSistolica: '',
+      pressaoDiastolica: '',
+      drenagemInicial: '',
+      ufTotal: '',
+      tempoPermanencia: '',
+      glicose: '',
+      dextrose: '',
+      observacoes: ''
+    });
+  };
+
+  const handleSubmitSuccess = async () => {
+    setSuccess('Registro salvo com sucesso!');
+    
+    await loadDashboardData();
+    await loadPatientProfile();
+    
+    setTimeout(() => {
+      setShowModal(false);
+      setSuccess('');
+      resetForm();
+    }, 1500);
+  };
+
+  const handleSubmitError = (err) => {
+    console.error('Erro completo:', err);
+    const errorMessage = err.error || err.message || 'Erro ao salvar registro';
+    setError(errorMessage);
+    
+    if (err.error?.includes('Token') || err.error?.includes('autenticação')) {
+      setTimeout(() => {
+        sessionStorage.clear();
+        navigate('/login');
+      }, 2000);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.pressaoSistolica || !formData.pressaoDiastolica) {
-      setError('Pressão arterial é obrigatória');
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
     setError('');
     setSuccess('');
 
     try {
-      const response = await createDialysisRecord(formData);
-      setSuccess('Registro salvo com sucesso!');
-      
-      await loadDashboardData();
-      await loadPatientProfile();
-      
-      setTimeout(() => {
-        setShowModal(false);
-        setSuccess('');
-        setFormData({
-          pressaoSistolica: '',
-          pressaoDiastolica: '',
-          drenagemInicial: '',
-          ufTotal: '',
-          tempoPermanencia: '',
-          glicose: '',
-          dextrose: '',
-          observacoes: ''
-        });
-      }, 1500);
+      await createDialysisRecord(formData);
+      await handleSubmitSuccess();
     } catch (err) {
-      console.error('Erro completo:', err);
-      const errorMessage = err.error || err.message || 'Erro ao salvar registro';
-      setError(errorMessage);
-      
-      if (err.error?.includes('Token') || err.error?.includes('autenticação')) {
-        setTimeout(() => {
-          sessionStorage.clear();
-          navigate('/login');
-        }, 2000);
-      }
+      handleSubmitError(err);
     } finally {
       setLoading(false);
     }
@@ -262,26 +276,22 @@ const PatientDashboard = () => {
           </div>
           
           <div className="header-right">
-            {/* <button className="icon-button">
-              <Bell className="icon" />
-              <span className="notification-badge">3</span>
-            </button> */}
             <button 
-            onClick={() => navigate('/perfil')}
-            style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '10px',
-              border: 'none',
-              background: '#f3f4f6',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <User size={20} color="#6b7280" strokeWidth={2} />
-          </button>
+              onClick={() => navigate('/perfil')}
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                border: 'none',
+                background: '#f3f4f6',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <User size={20} color="#6b7280" strokeWidth={2} />
+            </button>
 
             <button className="icon-button" onClick={handleLogout}>
               <LogOut className="icon" />
@@ -442,23 +452,6 @@ const PatientDashboard = () => {
             })}
           </div>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
           <div className="content-grid">
             
             {detailedStats?.averages && (
@@ -615,7 +608,6 @@ const PatientDashboard = () => {
               </div>
               <div className="card-body">
                 <div className="actions-list">
-            
                   <button 
                     className="action-button"
                     onClick={() => setShowSymptomsModal(true)}
@@ -625,12 +617,12 @@ const PatientDashboard = () => {
                   </button>
                 
                   <button 
-                      className="action-button"
-                      onClick={() => setShowRemindersModal(true)}
-                    >
-                      <Clock className="icon-small" />
-                      Ver Lembretes
-                    </button>
+                    className="action-button"
+                    onClick={() => setShowRemindersModal(true)}
+                  >
+                    <Clock className="icon-small" />
+                    Ver Lembretes
+                  </button>
                   <button 
                     className="action-button"
                     onClick={() => setShowChartsModal(true)}
@@ -638,99 +630,74 @@ const PatientDashboard = () => {
                     <TrendingUp className="icon-small" />
                     Visualizar Gráficos
                   </button>
-
                 </div>
               </div>
             </div>
           </div>
-          
 
-
-
-
-
-
-
-
-
-        <div className="card reminders-card">
-          <div className="card-header">
-            <div>
-              <h2 className="card-title">Próximos Lembretes</h2>
-              <p className="card-description">Não esqueça de suas atividades</p>
+          <div className="card reminders-card">
+            <div className="card-header">
+              <div>
+                <h2 className="card-title">Próximos Lembretes</h2>
+                <p className="card-description">Não esqueça de suas atividades</p>
+              </div>
+            </div>
+            <div className="card-body">
+              {remindersData.length > 0 ? (
+                <div className="reminders-grid">
+                  {remindersData.map((reminder, i) => {
+                    const getTipoIcon = (tipo) => {
+                      switch (tipo) {
+                        case 'medicacao': return Activity;
+                        case 'dialise': return Heart;
+                        case 'consulta': return Heart;
+                        default: return Clock;
+                      }
+                    };
+                    
+                    const Icon = getTipoIcon(reminder.tipo);
+                    
+                    const formatarData = (dataHora) => {
+                      if (!dataHora) return 'Data não definida';
+                      
+                      try {
+                        const data = new Date(dataHora);
+                        if (isNaN(data.getTime())) return `Data inválida: ${dataHora}`;
+                        
+                        const dia = String(data.getDate()).padStart(2, '0');
+                        const mes = String(data.getMonth() + 1).padStart(2, '0');
+                        const hora = String(data.getHours()).padStart(2, '0');
+                        const minuto = String(data.getMinutes()).padStart(2, '0');
+                        
+                        return `${dia}/${mes} às ${hora}:${minuto}`;
+                      } catch (error) {
+                        console.error('Erro ao formatar data:', error);
+                        return `Erro: ${dataHora}`;
+                      }
+                    };
+                    
+                    return (
+                      <div key={i} className="reminder-item">
+                        <div className="reminder-icon-wrapper reminder-primary">
+                          <Icon className="reminder-icon" />
+                        </div>
+                        <div className="reminder-content">
+                          <p className="reminder-title">{reminder.titulo}</p>
+                          <p className="reminder-time">
+                            {formatarData(reminder.data_hora)}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
+                  Nenhum lembrete próximo nos próximos 2 dias
+                </p>
+              )}
             </div>
           </div>
-          <div className="card-body">
-            {remindersData.length > 0 ? (
-              <div className="reminders-grid">
-                {remindersData.map((reminder, i) => {
-                  
-                  const getTipoIcon = (tipo) => {
-                    switch (tipo) {
-                      case 'medicacao': return Activity;
-                      case 'dialise': return Heart;
-                      case 'consulta': return Heart;
-                      default: return Clock;
-                    }
-                  };
-                  
-                  const Icon = getTipoIcon(reminder.tipo);
-                  
-                  // Formatar data de forma segura
-                  const formatarData = (dataHora) => {
-                    console.log('Tentando formatar:', dataHora);
-                    
-                    if (!dataHora) {
-                      console.log('Data vazia');
-                      return 'Data não definida';
-                    }
-                    
-                    try {
-                      const data = new Date(dataHora);
-                      // console.log('Data criada:', data);
-                      // console.log('getTime:', data.getTime());
-                      
-                      if (isNaN(data.getTime())) {
-                        console.log('Data é NaN');
-                        return `Data inválida: ${dataHora}`;
-                      }
-                      
-                      const dia = String(data.getDate()).padStart(2, '0');
-                      const mes = String(data.getMonth() + 1).padStart(2, '0');
-                      const hora = String(data.getHours()).padStart(2, '0');
-                      const minuto = String(data.getMinutes()).padStart(2, '0');
-                      
-                      return `${dia}/${mes} às ${hora}:${minuto}`;
-                    } catch (error) {
-                      console.error('Erro ao formatar data:', error);
-                      return `Erro: ${dataHora}`;
-                    }
-                  };
-                  
-                  return (
-                    <div key={i} className="reminder-item">
-                      <div className="reminder-icon-wrapper reminder-primary">
-                        <Icon className="reminder-icon" />
-                      </div>
-                      <div className="reminder-content">
-                        <p className="reminder-title">{reminder.titulo}</p>
-                        <p className="reminder-time">
-                          {formatarData(reminder.data_hora)}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
-                Nenhum lembrete próximo nos próximos 2 dias
-              </p>
-            )}
-          </div>
-        </div>
-
-
         </div>
       </main>
 
@@ -967,31 +934,30 @@ const PatientDashboard = () => {
             </div>
           </div>
         </div>
-      )};
+      )}
+      
       {showRemindersModal && (
         <RemindersModal
           isOpen={showRemindersModal}
           onClose={() => setShowRemindersModal(false)}
         />
-      )};
+      )}
+      
       {showSymptomsModal && (
         <SymptomsModal
           isOpen={showSymptomsModal}
           onClose={() => setShowSymptomsModal(false)}
           onSymptomRegistered={loadDashboardData}
         />
-      )};
+      )}
 
       {showChartsModal && (
         <ChartsModal
           isOpen={showChartsModal}
           onClose={() => setShowChartsModal(false)}
         />
-      )};
-      {/* <MessagingComponent userRole="paciente" /> */}
-
+      )}
     </div>
-    
   );
 };
 

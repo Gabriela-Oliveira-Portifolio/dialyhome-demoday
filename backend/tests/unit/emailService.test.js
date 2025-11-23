@@ -176,6 +176,7 @@ describe('EmailService', () => {
       await expect(emailService.sendAlertEmail(alertData)).rejects.toThrow('SMTP error');
     });
 
+    // test desabilitado temporariamente
     test.skip('deve incluir emojis no HTML', async () => {
       const alertData = {
         to: 'paciente@test.com',
@@ -205,7 +206,7 @@ describe('EmailService', () => {
       expect(emailCall.to).toBe('test@example.com');
       expect(emailCall.subject).toContain('Teste');
     });
-
+    // test desabilitado temporariamente
     test.skip('deve incluir DialCare no email', async () => {
       await emailService.sendTestEmail('test@example.com');
 

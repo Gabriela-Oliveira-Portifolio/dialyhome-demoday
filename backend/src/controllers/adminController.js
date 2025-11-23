@@ -410,51 +410,6 @@ const adminController = {
     }
   },
 
-  // getPatientDoctorRelations: async (req, res) => {
-  //   try {
-  //     const result = await db.query(`
-  //       SELECT 
-  //         p.id as paciente_id,
-  //         u_pac.nome as paciente_nome,
-  //         u_pac.email as paciente_email,
-  //         m.id as medico_id,
-  //         u_med.nome as medico_nome,
-  //         u_med.email as medico_email,
-  //         med.crm,
-  //         p.data_inicio_tratamento
-  //       FROM pacientes p
-  //       JOIN usuarios u_pac ON p.usuario_id = u_pac.id
-  //       LEFT JOIN medicos m ON p.medico_responsavel_id = m.id
-  //       LEFT JOIN usuarios u_med ON m.usuario_id = u_med.id
-  //       LEFT JOIN medicos med ON m.id = med.id
-  //       WHERE u_pac.ativo = true
-  //       ORDER BY u_pac.nome
-  //     `);
-
-  //     // Buscar lista de médicos disponíveis
-  //     const doctors = await db.query(`
-  //       SELECT 
-  //         m.id,
-  //         u.nome,
-  //         u.email,
-  //         m.crm,
-  //         m.especialidade
-  //       FROM medicos m
-  //       JOIN usuarios u ON m.usuario_id = u.id
-  //       WHERE u.ativo = true
-  //       ORDER BY u.nome
-  //     `);
-
-  //     res.json({ 
-  //       relations: result.rows,
-  //       availableDoctors: doctors.rows
-  //     });
-  //   } catch (error) {
-  //     console.error('Erro ao buscar relações:', error);
-  //     res.status(500).json({ error: 'Erro ao buscar relações médico-paciente' });
-  //   }
-  // },
-
   assignDoctorToPatient: async (req, res) => {
     try {
       const { paciente_id, medico_id } = req.body;

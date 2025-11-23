@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import FeatureList from '../UI/FeatureList';
 
 const WelcomeSection = ({ logo, title, features }) => {
@@ -11,6 +12,12 @@ const WelcomeSection = ({ logo, title, features }) => {
       <FeatureList features={features} />
     </div>
   );
+};
+
+WelcomeSection.propTypes = {
+  logo: PropTypes.string,
+  title: PropTypes.string.isRequired,
+  features: PropTypes.array.isRequired,
 };
 
 export default WelcomeSection;

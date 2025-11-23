@@ -311,6 +311,7 @@ describe('ModalEnviarAlerta', () => {
       expect(screen.queryByText('Sessão de Diálise *')).not.toBeInTheDocument();
     });
 
+    // test desabilitado temporariamente
     it.skip('deve alternar prioridade para "alta"', async () => {
       render(
         <ModalEnviarAlerta 
@@ -612,6 +613,7 @@ describe('ModalEnviarAlerta', () => {
       });
     });
 
+    // test desabilitado temporariamente
     it.skip('deve fechar modal após envio bem-sucedido', async () => {
       // Uso de fake timers
       vi.useFakeTimers();
@@ -742,6 +744,8 @@ describe('ModalEnviarAlerta', () => {
       expect(mockOnClose).toHaveBeenCalled();
     });
 
+
+    // test desabilitado temporariamente
     it.skip('deve fechar ao clicar no overlay', async () => {
       render(
         <ModalEnviarAlerta 
@@ -778,6 +782,7 @@ describe('ModalEnviarAlerta', () => {
       expect(mockOnClose).not.toHaveBeenCalled();
     });
 
+    // test desabilitado temporariamente
     it.skip('não deve permitir fechar durante loading', async () => {
       let resolvePromise;
       doctorService.sendPatientAlert.mockReturnValue(
@@ -900,6 +905,7 @@ describe('ModalEnviarAlerta', () => {
       });
     });
 
+    // test desabilitado temporariamente
     it.skip('deve resetar para prioridade "media" por padrão', async () => {
       const { rerender } = render(
         <ModalEnviarAlerta 
@@ -1164,6 +1170,7 @@ describe('ModalEnviarAlerta', () => {
       });
     });
 
+    // test desabilitado temporariamente
     it.skip('deve formatar data corretamente no select de sessões', async () => {
       render(
         <ModalEnviarAlerta 

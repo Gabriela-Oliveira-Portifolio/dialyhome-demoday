@@ -44,6 +44,7 @@ beforeEach(() => {
 
 describe('Authentication Header Logic', () => {
 
+    // test desabilitado temporariamente
     it.skip('deve usar o token do sessionStorage se estiver presente', async () => {
         mockSessionStorageGetItem.mockReturnValue(MOCK_TOKEN);
         mockLocalStorageGetItem.mockReturnValue(null);
@@ -57,6 +58,7 @@ describe('Authentication Header Logic', () => {
         );
     });
 
+    // test desabilitado temporariamente
     it.skip('deve usar o token do localStorage se o sessionStorage estiver vazio', async () => {
         mockSessionStorageGetItem.mockReturnValue(null);
         mockLocalStorageGetItem.mockReturnValue(MOCK_TOKEN);
@@ -69,6 +71,7 @@ describe('Authentication Header Logic', () => {
         );
     });
 
+    // test desabilitado temporariamente
     it.skip('não deve incluir header de Authorization se nenhum token for encontrado', async () => {
         mockSessionStorageGetItem.mockReturnValue(null);
         mockLocalStorageGetItem.mockReturnValue(null);

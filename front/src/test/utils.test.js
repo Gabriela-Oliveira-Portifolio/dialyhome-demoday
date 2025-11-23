@@ -34,6 +34,7 @@ describe('cn utility function', () => {
     expect(result).toBe('base-class array-class-1 array-class-2 final-class');
   });
 
+  // test desabilitado temporariamente
   it.skip('deve resolver conflitos dentro de múltiplas entradas', () => {
     const result = cn(
       'w-full',
