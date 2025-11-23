@@ -744,31 +744,4 @@ describe('DoctorDashboard', () => {
     });
   });
 
-  // ==================== TESTES DE RESPONSIVIDADE ====================
-  describe('Comportamento Responsivo', () => {
-    // it('deve renderizar cards de estatísticas em grid', async () => {
-    //   renderWithRouter(<DoctorDashboard />);
-
-    //   await waitFor(() => screen.getByText('Total de Pacientes'));
-
-    //   const statsContainer = screen.getByText('Total de Pacientes').closest('div').parentElement;
-    //   expect(statsContainer).toHaveStyle({
-    //     display: 'grid'
-    //   });
-    // });
-
-    it('deve aplicar hover nos cards de paciente', async () => {
-      renderWithRouter(<DoctorDashboard />);
-
-      await waitFor(() => screen.getByText('Maria Santos'));
-
-      const patientCard = screen.getByText('Maria Santos').closest('div');
-      
-      // Simula hover
-      if (patientCard && patientCard.onMouseOver) {
-        const event = { currentTarget: patientCard };
-        patientCard.onMouseOver(event);
-      }
-    });
-  });
 });
