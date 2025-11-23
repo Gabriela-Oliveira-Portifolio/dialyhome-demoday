@@ -81,7 +81,7 @@ jobs:
 
     - name: Run frontend tests with coverage
       working-directory: ./front
-      run: npm test -- --coverage --watchAll=false || echo "Frontend tests failed, continuing..."
+      run: npm run test:coverage || echo "Frontend tests failed, continuing..."
       continue-on-error: true
 
     - name: Show frontend coverage
