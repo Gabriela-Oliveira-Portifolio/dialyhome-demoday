@@ -776,10 +776,7 @@ const RelationsView = ({ relations, onReload }) => {
 
   const loadDoctors = async () => {
     try {
-      console.log('🔍 Carregando médicos disponíveis...');
       const data = await adminService.getPatientDoctorRelations();
-      console.log('📦 Dados recebidos:', data);
-      console.log('👨‍⚕️ Médicos disponíveis:', data.availableDoctors);
       setAvailableDoctors(data.availableDoctors || []);
     } catch (err) {
       console.error('❌ Erro ao carregar médicos:', err);

@@ -7,17 +7,10 @@ const { enviarAlerta, listarAlertasEnviados, buscarAlerta, obterEstatisticas } =
 router.use(authenticateToken);
 router.use(authorizeRole(['medico']));
 
-// ROTAS CORRIGIDAS
-// POST /api/medico/alertas/enviar
+// rotas
 router.post('/enviar', enviarAlerta);
-
-// GET /api/medico/alertas/enviados
 router.get('/enviados', listarAlertasEnviados);
-
-// GET /api/medico/alertas/estatisticas
-router.get('/estatisticas', obterEstatisticas);  // ✅ CORRIGIDO
-
-// GET /api/medico/alertas/:id
-router.get('/:id', buscarAlerta);  // ✅ CORRIGIDO
+router.get('/estatisticas', obterEstatisticas); 
+router.get('/:id', buscarAlerta);  
 
 module.exports = router;

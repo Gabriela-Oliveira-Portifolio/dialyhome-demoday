@@ -2,10 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/database');
 
-
 const saltRounds = Number.parseInt(process.env.BCRYPT_SALT_ROUNDS, 10) || 10;
-
-// Blacklist em memória (poderia ser no Redis para produção)
 const blacklistedTokens = [];
 
 // Funções auxiliares

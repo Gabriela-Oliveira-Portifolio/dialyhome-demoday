@@ -9,7 +9,7 @@ const authenticateToken = async (req, res, next) => {
     return res.status(401).json({ error: 'Token de acesso necessário' });
   }
 
-  // Em ambiente de teste, pular verificação de blacklist
+  // quando o ambiente for de teste náo entra no if
   if (process.env.NODE_ENV !== 'test') {
     // Verifica se o token está na blacklist
     const blacklisted = await db.query(

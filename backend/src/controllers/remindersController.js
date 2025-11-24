@@ -1,7 +1,7 @@
 const db = require('../config/database');
 
 const remindersController = {
-  // Buscar todos os lembretes do usuário
+  // Buscar todos os lembretes do usuário - medicamentos e tal
   getReminders: async (req, res) => {
     try {
       const userId = req.user.id;
@@ -34,8 +34,6 @@ const remindersController = {
         WHERE paciente_id = $1 AND ativo = true
         ORDER BY data_hora ASC
       `;
-
-      const params = [pacienteId];
 
       if (limit) {
         query += ` LIMIT ${Number.parseInt(limit, 10)}`;
@@ -171,7 +169,7 @@ const remindersController = {
     }
   },
 
-  // Deletar lembrete (soft delete)
+  // Deletar lembrete
   deleteReminder: async (req, res) => {
     try {
       const userId = req.user.id;

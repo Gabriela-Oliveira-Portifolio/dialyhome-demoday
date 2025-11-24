@@ -1,8 +1,7 @@
 const bcrypt = require("bcrypt");
 const db = require('../config/database');
-const {checkAdmin } = require("../middleware/auth");
 
-// GET /api/users/profile
+// api perfil usuario
 const getProfile = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -10,7 +9,6 @@ const getProfile = async (req, res) => {
 
     if (!user.rows.length) return res.status(404).json({ error: "Usuário não encontrado" });
 
-    // Se tiver tabelas específicas para paciente/medico
     let details = {};
     if (user.rows[0].tipo === "paciente" || user.rows[0].tipo_usuario === "paciente") {
       const paciente = await db.query("SELECT * FROM pacientes WHERE usuario_id = $1", [userId]);
@@ -39,7 +37,6 @@ const updateUsuariosTable = async (userId, nome, email) => {
      WHERE id = $3`,
     [nome || null, email || null, userId]
   );
-  console.log('✅ Tabela usuarios atualizada');
 };
 
 const buildPacientesUpdate = (data) => {
@@ -56,12 +53,13 @@ const buildPacientesUpdate = (data) => {
     altura: altura !== undefined ? parseFloat(altura) || null : undefined
   };
 
-  Object.entries(fieldsMap).forEach(([field, value]) => {
+  for (const [field, value] of Object.entries(fieldsMap)) {
     if (value !== undefined) {
       updateFields.push(`${field} = $${paramIndex++}`);
       updateValues.push(value);
     }
-  });
+  }
+
 
   return { updateFields, updateValues, paramIndex };
 };
@@ -74,11 +72,8 @@ const updatePacientesTable = async (userId, data) => {
   updateValues.push(userId);
   const query = `UPDATE pacientes SET ${updateFields.join(', ')} WHERE usuario_id = $${paramIndex}`;
   
-  console.log('🔄 Query de atualização:', query);
-  console.log('🔄 Valores:', updateValues);
   
   await db.query(query, updateValues);
-  console.log('✅ Tabela pacientes atualizada');
 };
 
 const getUpdatedProfile = async (userId, isPaciente) => {
@@ -107,15 +102,12 @@ const getUpdatedProfile = async (userId, isPaciente) => {
   );
 };
 
-// PUT /api/users/profile
+// atualizar o perfil do usuario
 const updateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
     const { nome, email } = req.body;
     const isPaciente = req.user.tipo_usuario === "paciente";
-
-    console.log('📝 Atualizando perfil para usuário:', userId);
-    console.log('📦 Dados recebidos:', req.body);
 
     await updateUsuariosTable(userId, nome, email);
 
@@ -124,8 +116,6 @@ const updateProfile = async (req, res) => {
     }
 
     const updated = await getUpdatedProfile(userId, isPaciente);
-
-    console.log('✅ Perfil atualizado com sucesso');
 
     res.json({
       message: "Perfil atualizado com sucesso",
@@ -137,13 +127,11 @@ const updateProfile = async (req, res) => {
   }
 };
 
-// PUT /api/users/change-password
+// mudar senha
 const changePassword = async (req, res) => {
   try {
     const userId = req.user.id;
     const { currentPassword, newPassword } = req.body;
-
-    console.log('🔐 Alterando senha para usuário:', userId);
 
     // Validações
     if (!currentPassword || !newPassword) {
@@ -175,8 +163,6 @@ const changePassword = async (req, res) => {
       [hashedPassword, userId]
     );
 
-    console.log('✅ Senha alterada com sucesso');
-
     res.json({ message: "Senha alterada com sucesso" });
   } catch (error) {
     console.error("❌ Erro ao alterar senha:", error);
@@ -184,7 +170,7 @@ const changePassword = async (req, res) => {
   }
 };
 
-// GET /api/users/:id (admin only)
+// pesquisa de usuarios
 const getUserById = async (req, res) => {
   try {
     const userId = req.params.id;
@@ -201,7 +187,7 @@ const getUserById = async (req, res) => {
   }
 };
 
-// PUT /api/users/:id/toggle-status (admin only)
+// alterar ativo ou inativo usuario
 const toggleUserStatus = async (req, res) => {
   try {
     if (!req.user) {
@@ -214,7 +200,7 @@ const toggleUserStatus = async (req, res) => {
 
     const userId = Number.parseInt(req.params.id);
     
-    if (isNaN(userId)) {
+    if (Number.isNaN(userId)) {
       return res.status(400).json({ error: "ID inválido" });
     }
 
@@ -243,7 +229,7 @@ const toggleUserStatus = async (req, res) => {
   }
 };
 
-// DELETE /api/users/:id (admin only)
+// Deletar um usuário
 const deleteUser = async (req, res) => {
   try {
     if (req.user.tipo_usuario !== 'admin') {
@@ -252,7 +238,7 @@ const deleteUser = async (req, res) => {
 
     const userId = req.params.id;
     
-    // Soft delete com anonimização
+    // anonimização de dados
     await db.query(
       `UPDATE usuarios 
        SET ativo = false,

@@ -129,9 +129,7 @@ const PatientDashboard = () => {
   const loadPatientProfile = async () => {
     try {
       const profileData = await getPatientInfo();
-      setPatientInfo(profileData.patient);
-      console.log('Perfil do paciente:', profileData.patient);
-    } catch (err) {
+      setPatientInfo(profileData.patient);    } catch (err) {
       console.error('Erro ao carregar perfil:', err);
     }
   };
@@ -139,7 +137,6 @@ const PatientDashboard = () => {
   const loadStatsData = async () => {
     const statsData = await getDetailedStats(30);
     setDetailedStats(statsData);
-    console.log('Estatísticas:', statsData);
 
     const statsArray = buildStatsFromData(statsData);
     setStats(statsArray);

@@ -261,7 +261,6 @@ const UserProfile = () => {
     setError('');
     try {
       const response = await getUserProfile();
-      console.log('Resposta completa do getUserProfile:', response);
       
       const user = response.user || response.patient || response.doctor || response.data;
       
@@ -275,7 +274,6 @@ const UserProfile = () => {
                    response.tipo_usuario ||
                    'paciente';
       
-      console.log('Tipo de usuário detectado:', tipo);
       setUserType(tipo);
 
       const data = {
@@ -324,20 +322,20 @@ const UserProfile = () => {
   };
 
   const formatCPF = (value) => {
-    const numbers = value.replace(/\D/g, '');
+    const numbers = value.replaceAll(/\D/g, '');
     return numbers
       .replace(/(\d{3})(\d)/, '$1.$2')
       .replace(/(\d{3})(\d)/, '$1.$2')
       .replace(/(\d{3})(\d{1,2})/, '$1-$2')
-      .replace(/(-\d{2})\d+?$/, '$1');
+      .replace(/(-\d{2})\d+$/, '$1');
   };
 
   const formatPhone = (value) => {
-    const numbers = value.replace(/\D/g, '');
+    const numbers = value.replaceAll(/\D/g, '');
     return numbers
       .replace(/(\d{2})(\d)/, '($1) $2')
       .replace(/(\d{5})(\d)/, '$1-$2')
-      .replace(/(-\d{4})\d+?$/, '$1');
+      .replace(/(-\d{4})\d+$/, '$1');
   };
 
   const handleCPFChange = (e) => {
@@ -362,12 +360,12 @@ const UserProfile = () => {
     }
 
     if (userType === 'paciente') {
-      if (profileData.peso_inicial && (parseFloat(profileData.peso_inicial) < 20 || parseFloat(profileData.peso_inicial) > 300)) {
+      if (profileData.peso_inicial && (Number.parseFloat(profileData.peso_inicial) < 20 || Number.parseFloat(profileData.peso_inicial) > 300)) {
         setError('Peso deve estar entre 20 e 300 kg');
         return false;
       }
 
-      if (profileData.altura && (parseFloat(profileData.altura) < 0.5 || parseFloat(profileData.altura) > 2.5)) {
+      if (profileData.altura && (Number.parseFloat(profileData.altura) < 0.5 || Number.parseFloat(profileData.altura) > 2.5)) {
         setError('Altura deve estar entre 0,5 e 2,5 metros');
         return false;
       }

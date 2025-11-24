@@ -1,8 +1,6 @@
-// backend/src/services/emailService.js
-
 const nodemailer = require('nodemailer');
 
-// ==================== CONFIGURAÇÃO ====================
+// config para mandar email - utilizando o nodemailer
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -17,8 +15,6 @@ const transporter = nodemailer.createTransport({
 transporter.verify((error, success) => {
   if (error) {
     console.error('❌ Erro na configuração do email:', error);
-  } else {
-    console.log('✅ Servidor de email pronto para enviar mensagens');
   }
 });
 
@@ -41,16 +37,11 @@ const PRIORITY_CONFIG = {
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
-// ==================== TEMPLATES ====================
-
-/**
- * Gera o HTML do cabeçalho do email
- */
 const getEmailHeader = () => `
 <!-- Header -->
 <div style="background-color: #ffffff; padding: 48px 80px; border-bottom: 3px solid #14b8a6;">
   <h1 style="color: #14b8a6; margin: 0; font-size: 32px; font-weight: 600; letter-spacing: -0.3px;">
-    DialCare
+    Dialyhome
   </h1>
   <p style="color: #6b7280; margin: 8px 0 0 0; font-size: 14px;">
     Sistema de Monitoramento de Diálise
@@ -58,9 +49,7 @@ const getEmailHeader = () => `
 </div>
 `;
 
-/**
- * Gera o HTML do badge de prioridade
- */
+// Prioridade
 const getPriorityBadge = (priority) => {
   const config = PRIORITY_CONFIG[priority] || PRIORITY_CONFIG.media;
   return `
@@ -73,9 +62,7 @@ const getPriorityBadge = (priority) => {
 `;
 };
 
-/**
- * Gera o HTML das informações da sessão
- */
+// Sessão Info
 const getSessionInfoHtml = (sessionInfo) => {
   if (!sessionInfo) return '';
   
@@ -103,14 +90,12 @@ const getSessionInfoHtml = (sessionInfo) => {
 `;
 };
 
-/**
- * Gera o HTML do rodapé do email
- */
+// rodape
 const getEmailFooter = () => `
 <!-- Footer -->
 <div style="background-color: #f9fafb; padding: 32px 80px; text-align: center; border-top: 1px solid #e5e7eb;">
   <p style="color: #6b7280; font-size: 13px; margin: 0 0 6px 0;">
-    DialCare - Sistema de Monitoramento de Diálise
+    Dialyhome - Sistema de Monitoramento de Diálise
   </p>
   <p style="color: #9ca3af; font-size: 12px; margin: 0;">
     © ${new Date().getFullYear()} Todos os direitos reservados
@@ -118,9 +103,7 @@ const getEmailFooter = () => `
 </div>
 `;
 
-/**
- * Gera o template HTML completo do email de alerta
- */
+// alerta
 const getAlertEmailHtml = ({ patientName, doctorName, title, message, priority, sessionInfo }) => {
   const config = PRIORITY_CONFIG[priority] || PRIORITY_CONFIG.media;
   
@@ -194,7 +177,7 @@ const getAlertEmailText = ({ patientName, doctorName, title, message, priority, 
   const config = PRIORITY_CONFIG[priority] || PRIORITY_CONFIG.media;
   
   let text = `
-DIALCARE - Sistema de Monitoramento de Diálise
+Dialyhome - Sistema de Monitoramento de Diálise
 
 Prioridade: ${config.label}
 
@@ -229,11 +212,9 @@ Se você tiver dúvidas, entre em contato com sua equipe médica.
   return text;
 };
 
-// ==================== FUNÇÕES PRINCIPAIS ====================
+// Funções
 
-/**
- * Envia email de alerta para o paciente
- */
+// Envia email de alerta
 const sendAlertEmail = async ({ to, patientName, doctorName, title, message, priority, sessionInfo }) => {
   try {
     const config = PRIORITY_CONFIG[priority] || PRIORITY_CONFIG.media;
@@ -264,8 +245,6 @@ const sendAlertEmail = async ({ to, patientName, doctorName, title, message, pri
       html: htmlContent,
       priority: priority === 'alta' ? 'high' : 'normal'
     });
-
-    console.log('✅ Email enviado com sucesso:', info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('❌ Erro ao enviar email:', error);
@@ -324,7 +303,6 @@ const sendTestEmail = async (to) => {
       html: testHtml
     });
 
-    console.log('✅ Email de teste enviado:', info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('❌ Erro ao enviar email de teste:', error);

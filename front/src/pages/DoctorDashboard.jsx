@@ -106,7 +106,6 @@ const DoctorDashboard = () => {
   };
 
   const handleEnviarAlerta = (paciente) => {
-    console.log('Abrindo modal para paciente:', paciente);
     setPatientForAlert(paciente);
     setModalOpen(true);
   };

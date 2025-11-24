@@ -22,7 +22,6 @@ const Login = () => {
 
     try {
       const data = await login(email, password);
-      console.log('Resposta do backend:', data);
 
       // ✅ MUDANÇA: Usar localStorage ao invés de sessionStorage
       localStorage.setItem('accessToken', data.accessToken);
@@ -33,8 +32,6 @@ const Login = () => {
       sessionStorage.setItem('accessToken', data.accessToken);
       sessionStorage.setItem('refreshToken', data.refreshToken);
       sessionStorage.setItem('user', JSON.stringify(data.user));
-
-      console.log('✅ Token salvo:', data.accessToken.substring(0, 20) + '...');
 
       // Redireciona baseado no tipo de usuário
       if (data.user.tipo_usuario === 'paciente') {
@@ -74,7 +71,7 @@ const Login = () => {
           </div>
           
           <h2 className="main-title">
-            Sistema de Controle de - TESTE DEPLOY<br/>
+            Sistema de Controle de - <br/>
             <span className="gradient-text">Diálise Peritoneal</span>
           </h2>
           

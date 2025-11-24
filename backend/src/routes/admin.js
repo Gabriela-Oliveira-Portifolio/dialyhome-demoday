@@ -31,7 +31,7 @@ router.get('/reports', adminController.getSystemReports);
 router.get('/backup/status', adminController.getBackupStatus);
 router.post('/backup/trigger', adminController.triggerBackup);
 
-// ==================== NOVAS ROTAS PARA GRÁFICOS ====================
+// Rotas para gráficos
 router.get('/analytics/user-growth', adminController.getUserGrowthData);
 router.get('/analytics/doctor-workload', adminController.getDoctorWorkload);
 router.get('/analytics/dialysis-pattern', adminController.getDialysisWeeklyPattern);

@@ -7,7 +7,7 @@ const severityToValue = {
 };
 
 const symptomsController = {
-  // Buscar sintomas pré-definidos
+  // Buscar sintomas pré-definidos - cadastrei os sintomas direto pelo banco
   getPredefinedSymptoms: async (req, res) => {
     try {
       const result = await db.query(
@@ -140,7 +140,7 @@ const symptomsController = {
 
       const pacienteId = patientResult.rows[0].id;
 
-      // Criar um registro de diálise "sintoma isolado" apenas com sintomas
+      // Criar um registro de diálise "sintoma isolado" apenas com sintomas -- isso declinou, agora tudo ue isso gera eu ignoro
       const dialysisRecord = await db.query(
         `INSERT INTO registros_dialise (
           paciente_id,
@@ -225,16 +225,12 @@ const symptomsController = {
     }
   },
 
-  // --------------------------------------------------------
-  // FUNÇÃO NOVA: Buscar histórico de sintomas para o DOUTOR
-  // --------------------------------------------------------
+  //hisorico de sintomas
   getDoctorSymptomsHistory: async (req, res) => {
     try {
-      const patientId = req.params.patientId; // ID do paciente na URL
-      const days = Number.parseInt(req.query.days || 30); // Dias de filtro (ex: 30)
-      
-      // Opcional: Aqui você pode adicionar a lógica para garantir que o req.user.id (doutor)
-      // tem permissão para acessar este pacienteId.
+      const patientId = req.params.patientId; // ID do paciente
+      const days = Number.parseInt(req.query.days || 30); // Dias de filtro
+
 
       if (!patientId) {
         return res.status(400).json({ error: 'ID do paciente é obrigatório' });
@@ -255,7 +251,7 @@ const symptomsController = {
       );
 
       if (result.rows.length === 0) {
-        // Retornar 200 com array vazio se não houver dados, conforme esperado pelo frontend
+        // Retornar 200 com array vazio se não houver dados
         return res.json([]); 
       }
 
@@ -314,15 +310,14 @@ const symptomsController = {
 
   getSymptomsDailyTrend: async (req, res) => {
         try {
-            // O ID do paciente é necessário, seja via URL (para Doutor) ou via JWT (para Paciente)
-            const patientId = req.params.patientId || req.user.paciente_id; // Ajuste conforme sua autenticação
+            const patientId = req.params.patientId || req.user.paciente_id;
             const days = Number.parseInt(req.query.days || 30); 
 
             if (!patientId) {
                 return res.status(400).json({ error: 'ID do paciente é obrigatório' });
             }
 
-            // 1. Busca os sintomas dos últimos 'days' dias
+            // Busca os sintomas dos últimos dias
             const result = await db.query(
                 `SELECT 
                     TO_CHAR(rd.data_registro, 'YYYY-MM-DD') as data_formatada,
@@ -337,7 +332,6 @@ const symptomsController = {
                 [patientId, days]
             );
 
-            // 2. Processamento e Agrupamento dos dados (JavaScript)
             const dailyData = result.rows.reduce((acc, row) => {
                 const date = row.data_formatada;
 
@@ -356,19 +350,19 @@ const symptomsController = {
                 return acc;
             }, {});
 
-            // 3. Formatação final para o Gráfico
+            // Formatação para o Gráfico
             const formattedData = Object.keys(dailyData).map(date => {
                 const data = dailyData[date];
                 const avgSeverity = data.symptomsCount > 0 
                     ? (data.totalSeverity / data.symptomsCount) 
                     : 0;
 
-                // Encontra a severidade máxima para esse dia
+                // Encontra a severidade máxima para a data
                 const maxSeverityValue = data.rawSeverities.length > 0 
                     ? Math.max(...data.rawSeverities) 
                     : 0;
                 
-                // Converte o valor numérico de volta para a string para rótulos (opcional)
+                // Converte o valor numérico de volta para a string para rótulos
                 const maxSeverityLabel = Object.keys(severityToValue).find(
                     key => severityToValue[key] === maxSeverityValue
                 ) || 'N/A';
@@ -377,12 +371,12 @@ const symptomsController = {
                     date: date, // 'YYYY-MM-DD'
                     frequency: data.symptomsCount, // Número total de sintomas registrados no dia
                     averageSeverity: Number.parseFloat(avgSeverity.toFixed(2)), // Média da severidade
-                    maxSeverity: maxSeverityValue, // O valor numérico máximo (1=leve, 3=grave)
+                    maxSeverity: maxSeverityValue, // O valor numérico máximo
                     maxSeverityLabel: maxSeverityLabel // O rótulo da severidade máxima
                 };
             });
             
-            // 4. Preenche as datas que faltam com dados vazios (frequência 0, severidade 0)
+            // Preenche as datas que faltam com dados vazios 0
             const filledData = fillMissingDates(formattedData, days);
 
 
@@ -394,7 +388,7 @@ const symptomsController = {
         }
     },
     
-    // Funções auxiliares (pode ser definida no topo ou em um utilitário)
+    // Funções auxiliares dos sintomas
     fillMissingDates: (data, days) => {
         const currentDate = new Date();
         const filledData = {};
@@ -413,11 +407,12 @@ const symptomsController = {
             };
         }
 
-        data.forEach(item => {
-            if (filledData[item.date]) {
-                filledData[item.date] = item;
-            }
-        });
+        for (const item of data) {
+              if (filledData[item.date]) {
+                  filledData[item.date] = item;
+              }
+          }
+
 
         // Ordenar por data
         return Object.values(filledData).sort((a, b) => new Date(a.date) - new Date(b.date));

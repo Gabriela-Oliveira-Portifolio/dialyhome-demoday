@@ -1,7 +1,7 @@
 const db = require('../config/database');
 const { checkAdmin, checkDoctor } = require("../middleware/auth");
 
-// ============= FUNÇÕES AUXILIARES =============
+// helpers do controller paciente
 const helpers = {
   // Buscar paciente por ID
   async findPatient(patientId) {
@@ -84,7 +84,7 @@ const helpers = {
   }
 };
 
-// ============= CONTROLLER =============
+// Controller paciente
 const patientController = {
   // Buscar perfil completo do paciente (próprio paciente)
   getProfile: async (req, res) => {
@@ -261,7 +261,7 @@ const patientController = {
     }
   },
 
-  // GET /api/patients (médicos/admin)
+  // api pacientes medico
   getAllPatients: async (req, res) => {
     try {
       if (!helpers.checkDoctorOrAdmin(req.user, res)) return;
@@ -290,7 +290,7 @@ const patientController = {
     }
   },
 
-  // GET /api/patients/:id
+  // api paciente por id
   getPatientById: async (req, res) => {
     try {
       const patient = await helpers.findPatient(req.params.id);
@@ -327,7 +327,7 @@ const patientController = {
     }
   },
 
-  // POST /api/patients (admin/médico)
+  // api admin medico
   createPatient: async (req, res) => {
     try {
       if (!helpers.checkDoctorOrAdmin(req.user, res)) return;
@@ -360,7 +360,7 @@ const patientController = {
     }
   },
 
-  // PUT /api/patients/:id
+  // atualizar paciente
   updatePatient: async (req, res) => {
     try {
       const patient = await helpers.findPatient(req.params.id);
@@ -392,7 +392,7 @@ const patientController = {
     }
   },
 
-  // GET /api/patients/:id/medical-data
+  // medico dados paciente
   getMedicalData: async (req, res) => {
     try {
       if (!helpers.checkDoctorOrAdmin(req.user, res)) return;
@@ -420,7 +420,7 @@ const patientController = {
     }
   },
 
-  // PUT /api/patients/:id/medical-data
+  // atualizar dados médicos paciente
   updateMedicalData: async (req, res) => {
     try {
       if (!helpers.checkDoctorOrAdmin(req.user, res)) return;
@@ -452,7 +452,7 @@ const patientController = {
     }
   },
 
-  // GET /api/patients/:id/dialysis-history
+  // hist[orico diálise paciente
   getDialysisHistory: async (req, res) => {
     try {
       const patient = await helpers.findPatient(req.params.id);
@@ -475,7 +475,7 @@ const patientController = {
     }
   },
 
-  // PUT /api/patients/:id/assign-doctor
+  // atribuir médico paciente
   assignDoctor: async (req, res) => {
     try {
       if (!helpers.checkAdminOnly(req.user, res)) return;
