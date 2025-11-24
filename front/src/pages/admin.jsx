@@ -1,6 +1,6 @@
 import adminService from '../services/adminService';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Users, UserPlus, Activity, Shield, FileText, Database,
   TrendingUp, AlertCircle, CheckCircle, Search,

@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Send, AlertCircle, CheckCircle, Mail, Calendar, FileText } from 'lucide-react';
-import { sendPatientAlert } from '../../services/doctor';
-import { getPatientDialysisHistory } from '../../services/doctor';
+import { sendPatientAlert, getPatientDialysisHistory } from '../../services/doctor';
 
 // ===============================
 // COMPONENTES AUXILIARES

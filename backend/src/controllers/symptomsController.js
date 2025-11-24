@@ -231,7 +231,7 @@ const symptomsController = {
   getDoctorSymptomsHistory: async (req, res) => {
     try {
       const patientId = req.params.patientId; // ID do paciente na URL
-      const days = parseInt(req.query.days || 30); // Dias de filtro (ex: 30)
+      const days = Number.parseInt(req.query.days || 30); // Dias de filtro (ex: 30)
       
       // Opcional: Aqui você pode adicionar a lógica para garantir que o req.user.id (doutor)
       // tem permissão para acessar este pacienteId.
@@ -316,7 +316,7 @@ const symptomsController = {
         try {
             // O ID do paciente é necessário, seja via URL (para Doutor) ou via JWT (para Paciente)
             const patientId = req.params.patientId || req.user.paciente_id; // Ajuste conforme sua autenticação
-            const days = parseInt(req.query.days || 30); 
+            const days = Number.parseInt(req.query.days || 30); 
 
             if (!patientId) {
                 return res.status(400).json({ error: 'ID do paciente é obrigatório' });
@@ -376,7 +376,7 @@ const symptomsController = {
                 return {
                     date: date, // 'YYYY-MM-DD'
                     frequency: data.symptomsCount, // Número total de sintomas registrados no dia
-                    averageSeverity: parseFloat(avgSeverity.toFixed(2)), // Média da severidade
+                    averageSeverity: Number.parseFloat(avgSeverity.toFixed(2)), // Média da severidade
                     maxSeverity: maxSeverityValue, // O valor numérico máximo (1=leve, 3=grave)
                     maxSeverityLabel: maxSeverityLabel // O rótulo da severidade máxima
                 };

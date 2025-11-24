@@ -94,7 +94,7 @@ const analyticsHelpers = {
     const symptomColors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'];
     return result.rows.map((symptom, index) => ({
       name: symptom.sintomas.substring(0, 30) + (symptom.sintomas.length > 30 ? '...' : ''),
-      value: parseInt(symptom.count),
+      value: Number.parseInt(symptom.count),
       color: symptomColors[index] || '#6b7280'
     }));
   },
@@ -1111,10 +1111,10 @@ const getDashboardStats = async (req, res) => {
     `, [medico_id]);
 
     res.json({
-      totalPatients: parseInt(totalPatients.rows[0].total),
-      unreadAlerts: parseInt(unreadAlerts.rows[0].total),
-      sessionsToday: parseInt(sessionsToday.rows[0].total),
-      patientsAtRisk: parseInt(patientsAtRisk.rows[0].total)
+      totalPatients: Number.parseInt(totalPatients.rows[0].total),
+      unreadAlerts: Number.parseInt(unreadAlerts.rows[0].total),
+      sessionsToday: Number.parseInt(sessionsToday.rows[0].total),
+      patientsAtRisk: Number.parseInt(patientsAtRisk.rows[0].total)
     });
   } catch (error) {
     console.error('Erro ao buscar estatísticas do dashboard:', error);
@@ -1179,12 +1179,12 @@ const getPatientReport = async (req, res) => {
       patient: patientResult.rows[0],
       period: { startDate, endDate },
       statistics: {
-        totalSessions: parseInt(stats.rows[0].total_sessoes) || 0,
+        totalSessions: Number.parseInt(stats.rows[0].total_sessoes) || 0,
         averageSystolic: stats.rows[0].media_sistolica ? Math.round(stats.rows[0].media_sistolica) : null,
         averageDiastolic: stats.rows[0].media_diastolica ? Math.round(stats.rows[0].media_diastolica) : null,
         averageUF: stats.rows[0].media_uf ? (stats.rows[0].media_uf / 1000).toFixed(1) : null,
         averageGlucose: stats.rows[0].media_glicose ? Math.round(stats.rows[0].media_glicose) : null,
-        sessionsWithSymptoms: parseInt(stats.rows[0].sessoes_com_sintomas) || 0
+        sessionsWithSymptoms: Number.parseInt(stats.rows[0].sessoes_com_sintomas) || 0
       },
       dialysisRecords: dialysisRecords.rows,
       medications: medications.rows,
@@ -1224,7 +1224,7 @@ const getPatientAnalytics = async (req, res) => {
 
     // Data de início baseada no período
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - parseInt(days));
+    startDate.setDate(startDate.getDate() - Number.parseInt(days));
 
     // Buscar todos os dados necessários
     const [
@@ -1242,9 +1242,9 @@ const getPatientAnalytics = async (req, res) => {
     ]);
 
     // Calcular métricas
-    const totalSessions = parseInt(sessionFrequency.total);
-    const sessionsWithSymptoms = parseInt(sessionFrequency.with_symptoms);
-    const expectedSessions = Math.floor(parseInt(days) / 7) * 3;
+    const totalSessions = Number.parseInt(sessionFrequency.total);
+    const sessionsWithSymptoms = Number.parseInt(sessionFrequency.with_symptoms);
+    const expectedSessions = Math.floor(Number.parseInt(days) / 7) * 3;
     const complianceScore = Math.min(100, (totalSessions / expectedSessions) * 100);
     const symptomsScore = Math.max(0, 100 - (sessionsWithSymptoms / totalSessions * 100));
     const symptomsRatio = sessionsWithSymptoms / totalSessions;
@@ -1289,11 +1289,11 @@ const getPatientAnalytics = async (req, res) => {
       sessionFrequency: {
         total: totalSessions,
         expected: expectedSessions,
-        lastWeek: parseInt(sessionFrequency.last_week),
+        lastWeek: Number.parseInt(sessionFrequency.last_week),
         withSymptoms: sessionsWithSymptoms
       },
       symptomsDistribution,
-      complianceScore: parseInt(complianceScore),
+      complianceScore: Number.parseInt(complianceScore),
       trends: {
         pressure: pressureTrend,
         uf: ufTrend,
@@ -1380,8 +1380,8 @@ const getGeneralReport = async (req, res) => {
           )
       `, [patient.id, startDate, endDate]);
 
-      const sessionCount = parseInt(sessions.rows[0].count) || 0;
-      const alertCount = parseInt(alerts.rows[0].count) || 0;
+      const sessionCount = Number.parseInt(sessions.rows[0].count) || 0;
+      const alertCount = Number.parseInt(alerts.rows[0].count) || 0;
 
       generalStats.totalSessions += sessionCount;
       generalStats.totalAlerts += alertCount;

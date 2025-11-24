@@ -38,25 +38,13 @@ const remindersController = {
       const params = [pacienteId];
 
       if (limit) {
-        query += ` LIMIT ${parseInt(limit, 10)}`;
+        query += ` LIMIT ${Number.parseInt(limit, 10)}`;
       }
 
       if (offset) {
-        query += ` OFFSET ${parseInt(offset, 10)}`;
+        query += ` OFFSET ${Number.parseInt(offset, 10)}`;
       }
 
-
-      // if (limit) {
-      //   query += ` LIMIT ${params.length + 1}`;
-      //   params.push(parseInt(limit));
-      // }
-
-      // if (offset) {
-      //   query += ` OFFSET ${params.length + 1}`;
-      //   params.push(parseInt(offset));
-      // }
-
-      // const result = await db.query(query, params);
       const result = await db.query(query, [pacienteId]);
 
       res.json({ 

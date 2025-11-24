@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   User, Lock, Heart, ArrowLeft, Save, Eye, EyeOff,
   Phone, MapPin, Weight, Ruler, CreditCard, AlertCircle,
-  CheckCircle, Bell, LogOut
+  CheckCircle, LogOut
 } from 'lucide-react';
 import { getPatientInfo } from '../services/patient';
 import { updatePatientProfile, changePassword } from '../services/Userservice';

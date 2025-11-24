@@ -1,8 +1,8 @@
-import React from "react";
 import { Activity, Droplet, Heart, Clock, TrendingUp, FileText, Plus, Bell, User, LogOut } from "lucide-react";
 import './PatientDashboard.css';
 
 const PatientDashboard = () => {
+
   const stats = [
     { 
       title: "Pressão Arterial", 
@@ -52,6 +52,7 @@ const PatientDashboard = () => {
 
   return (
     <div className="dashboard-container">
+
       {/* Header/Navbar */}
       <header className="dashboard-header">
         <div className="header-content">
@@ -63,7 +64,7 @@ const PatientDashboard = () => {
               <span className="logo-text">DialCare</span>
             </div>
           </div>
-          
+
           <div className="header-right">
             <button className="icon-button">
               <Bell className="icon" />
@@ -82,7 +83,7 @@ const PatientDashboard = () => {
       {/* Main Content */}
       <main className="dashboard-main">
         <div className="dashboard-wrapper">
-          
+
           {/* Welcome Section */}
           <div className="welcome-section">
             <div className="welcome-text">
@@ -125,7 +126,7 @@ const PatientDashboard = () => {
 
           {/* Main Content Grid */}
           <div className="content-grid">
-            
+
             {/* Recent Records */}
             <div className="card card-large">
               <div className="card-header">
@@ -134,10 +135,11 @@ const PatientDashboard = () => {
                   <p className="card-description">Últimos parâmetros registrados</p>
                 </div>
               </div>
+
               <div className="card-body">
                 <div className="records-list">
-                  {recentRecords.map((record, i) => (
-                    <div key={i} className="record-item">
+                  {recentRecords.map((record) => (
+                    <div key={record.date} className="record-item">
                       <div className="record-info">
                         <p className="record-date">{record.date}</p>
                         <div className="record-details">
@@ -167,6 +169,7 @@ const PatientDashboard = () => {
                   <p className="card-description">Acesso rápido às funcionalidades</p>
                 </div>
               </div>
+
               <div className="card-body">
                 <div className="actions-list">
                   <button className="action-button">
@@ -188,6 +191,7 @@ const PatientDashboard = () => {
                 </div>
               </div>
             </div>
+
           </div>
 
           {/* Upcoming Reminders */}
@@ -198,12 +202,13 @@ const PatientDashboard = () => {
                 <p className="card-description">Não esqueça de suas atividades</p>
               </div>
             </div>
+
             <div className="card-body">
               <div className="reminders-grid">
-                {reminders.map((reminder, i) => {
+                {reminders.map((reminder) => {
                   const Icon = reminder.icon;
                   return (
-                    <div key={i} className="reminder-item">
+                    <div key={reminder.title} className="reminder-item">
                       <div className={`reminder-icon-wrapper ${reminder.color}`}>
                         <Icon className="reminder-icon" />
                       </div>
@@ -216,10 +221,12 @@ const PatientDashboard = () => {
                 })}
               </div>
             </div>
+
           </div>
 
         </div>
       </main>
+
     </div>
   );
 };

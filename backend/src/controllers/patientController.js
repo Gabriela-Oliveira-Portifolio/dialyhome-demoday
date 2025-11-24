@@ -143,7 +143,7 @@ const patientController = {
   getStats: async (req, res) => {
     try {
       const userId = req.user.id;
-      const days = parseInt(req.query.days) || 30;
+      const days = Number.parseInt(req.query.days) || 30;
 
       const pacienteId = await helpers.findPatientIdByUserId(userId);
       
@@ -215,7 +215,7 @@ const patientController = {
 
       res.json({
         summary: {
-          total_registros: parseInt(statsData.total_registros) || 0,
+          total_registros: Number.parseInt(statsData.total_registros) || 0,
           dias_periodo: days,
           primeira_sessao: statsData.primeira_sessao,
           ultima_sessao: statsData.ultima_sessao
@@ -266,8 +266,8 @@ const patientController = {
     try {
       if (!helpers.checkDoctorOrAdmin(req.user, res)) return;
 
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 20;
+      const page = Number.parseInt(req.query.page) || 1;
+      const limit = Number.parseInt(req.query.limit) || 20;
       const offset = (page - 1) * limit;
       const orderBy = req.query.orderBy || "nome";
 

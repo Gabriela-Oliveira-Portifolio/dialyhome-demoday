@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Heart, Activity, Droplet, FileText, Calendar, 
-  ArrowLeft, Filter, Download,
-  AlertCircle, CheckCircle, Bell, User, LogOut
+  ArrowLeft, Filter, AlertCircle, CheckCircle, User, LogOut
 } from 'lucide-react';
 import { getPatientRecords } from '../services/dialysis';
 import { getSymptomsHistory } from '../services/symptoms';

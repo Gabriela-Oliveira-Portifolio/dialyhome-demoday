@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { X, TrendingUp, Activity, Heart, Droplet, Clock } from 'lucide-react';
 import { getPatientRecords } from '../../services/dialysis';

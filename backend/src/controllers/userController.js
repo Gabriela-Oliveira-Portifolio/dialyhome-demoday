@@ -212,7 +212,7 @@ const toggleUserStatus = async (req, res) => {
       return res.status(403).json({ error: "Acesso negado" });
     }
 
-    const userId = parseInt(req.params.id);
+    const userId = Number.parseInt(req.params.id);
     
     if (isNaN(userId)) {
       return res.status(400).json({ error: "ID inválido" });

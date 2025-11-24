@@ -44,19 +44,19 @@ const createRecord = async (req, res) => {
 
     // Converter valores para o formato correto do banco
     // Litros para mililitros (INTEGER)
-    const drenagemMl = drenagemInicial ? Math.round(parseFloat(drenagemInicial) * 1000) : null;
-    const ufMl = ufTotal ? Math.round(parseFloat(ufTotal) * 1000) : null;
+    const drenagemMl = drenagemInicial ? Math.round(Number.parseFloat(drenagemInicial) * 1000) : null;
+    const ufMl = ufTotal ? Math.round(Number.parseFloat(ufTotal) * 1000) : null;
     
     // Horas para minutos (INTEGER)
-    const tempoMinutos = tempoPermanencia ? Math.round(parseFloat(tempoPermanencia) * 60) : null;
+    const tempoMinutos = tempoPermanencia ? Math.round(Number.parseFloat(tempoPermanencia) * 60) : null;
     
     // Pressão arterial (INTEGER)
-    const pressaoSist = parseInt(pressaoSistolica);
-    const pressaoDiast = parseInt(pressaoDiastolica);
+    const pressaoSist = Number.parseInt(pressaoSistolica);
+    const pressaoDiast = Number.parseInt(pressaoDiastolica);
     
     // Glicose e dextrose (DECIMAL)
-    const glicoseNum = glicose ? parseFloat(glicose) : null;
-    const dextroseNum = dextrose ? parseFloat(dextrose) : null;
+    const glicoseNum = glicose ? Number.parseFloat(glicose) : null;
+    const dextroseNum = dextrose ? Number.parseFloat(dextrose) : null;
 
     console.log('Valores convertidos:', {
       pressaoSist,
@@ -84,13 +84,13 @@ const createRecord = async (req, res) => {
       RETURNING *`,
       [
         pacienteId,
-        parseInt(pressaoSistolica),
-        parseInt(pressaoDiastolica),
+        Number.parseInt(pressaoSistolica),
+        Number.parseInt(pressaoDiastolica),
         drenagemMl,
         ufMl,
         tempoMinutos,
-        glicose ? parseFloat(glicose) : null,
-        dextrose ? parseFloat(dextrose) : null,
+        glicose ? Number.parseFloat(glicose) : null,
+        dextrose ? Number.parseFloat(dextrose) : null,
         observacoes || null
       ]
     );
@@ -115,8 +115,8 @@ const createRecord = async (req, res) => {
 const getRecords = async (req, res) => {
   try {
     const userId = req.user.id;
-    const limit = parseInt(req.query.limit) || 10;
-    const offset = parseInt(req.query.offset) || 0;
+    const limit = Number.parseInt(req.query.limit) || 10;
+    const offset = Number.parseInt(req.query.offset) || 0;
 
     // Buscar paciente_id
     const patientResult = await db.query(

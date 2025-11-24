@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Activity, Droplet, Heart, Clock, TrendingUp, FileText, Plus, User, LogOut, X, Save, Calendar, Weight, Ruler } from "lucide-react";
 import { createDialysisRecord, getPatientRecords } from '../services/dialysis';

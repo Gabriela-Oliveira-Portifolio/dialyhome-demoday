@@ -1,6 +1,6 @@
 // PatientDetailPage.jsx - Criar em src/pages/PatientDetailPage.jsx
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Activity, Heart, AlertCircle,

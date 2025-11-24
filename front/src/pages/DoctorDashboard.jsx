@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, Heart, Activity, AlertCircle, FileText, Bell, User, LogOut, Search, Eye, Calendar, Clock, X, ClipboardList, Pill, TrendingDown, BarChart3 } from 'lucide-react';
 import { getDoctorProfile, getPatients, getDashboardStats, getNotifications, markNotificationAsRead, getPatientDetails } from '../services/doctor';

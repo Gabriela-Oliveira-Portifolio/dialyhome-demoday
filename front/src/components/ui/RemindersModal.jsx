@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Clock, Plus, X, Trash2, Edit2, Calendar, Bell } from 'lucide-react';
+import  { useState, useEffect } from 'react';
+import { Plus, X, Trash2, Calendar, Bell } from 'lucide-react';
 import { getReminders, createReminder, deleteReminder } from '../../services/reminder';
 
 const RemindersModal = ({ isOpen, onClose }) => {
