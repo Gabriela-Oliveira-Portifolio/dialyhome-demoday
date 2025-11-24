@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import WelcomeSection from '../../components/login/WelcomeSection';
+import WelcomeSection from '../../../excluir/WelcomeSection';
 import React from 'react';
 
 // 1. Mock do componente FeatureList, pois é uma dependência externa.

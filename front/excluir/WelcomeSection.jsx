@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import FeatureList from '../UI/FeatureList';
+import FeatureList from '../src/components/UI/FeatureList';
 
 const WelcomeSection = ({ logo, title, features }) => {
   return (
