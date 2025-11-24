@@ -8,7 +8,7 @@ export const login = async (email, password) => {
       email,
       senha: password // mapeando password do React para senha do backend
     });
-    return response.data; // { accessToken, refreshToken, user }
+    return response.data;
   } catch (error) {
     throw error.response?.data || { error: 'Erro ao fazer login' };
   }

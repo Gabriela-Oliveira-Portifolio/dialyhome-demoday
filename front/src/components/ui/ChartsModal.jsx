@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { X, TrendingUp, Activity, Heart, Droplet, Clock } from 'lucide-react';
 import { getPatientRecords } from '../../services/dialysis';
 import { getDetailedStats } from '../../services/patient';
@@ -13,14 +14,15 @@ const ChartsModal = ({ isOpen, onClose }) => {
     if (isOpen) {
       loadChartsData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, selectedPeriod]);
 
   const loadChartsData = async () => {
     setLoading(true);
     try {
-      const [records, stats] = await Promise.all([
+      const [records] = await Promise.all([
         getPatientRecords(100),
-        getDetailedStats(parseInt(selectedPeriod))
+        getDetailedStats(Number.parseInt(selectedPeriod, 10))
       ]);
 
       // Processar dados para os gráficos
@@ -42,7 +44,15 @@ const ChartsModal = ({ isOpen, onClose }) => {
     );
 
     // Limitar aos últimos N registros baseado no período
-    const limit = selectedPeriod === '7' ? 7 : selectedPeriod === '30' ? 30 : 90;
+    let limit;
+    if (selectedPeriod === '7') {
+      limit = 7;
+    } else if (selectedPeriod === '30') {
+      limit = 30;
+    } else {
+      limit = 90;
+    }
+    
     const limited = sorted.slice(-limit);
 
     return {
@@ -204,9 +214,7 @@ const ChartsModal = ({ isOpen, onClose }) => {
         }}>
           {loading ? (
             <LoadingState />
-          ) : !chartsData ? (
-            <EmptyState />
-          ) : (
+          ) : chartsData ? (
             <>
               {activeChart === 'pressao' && <PressaoChart data={chartsData} />}
               {activeChart === 'uf' && <UFChart data={chartsData} />}
@@ -214,11 +222,18 @@ const ChartsModal = ({ isOpen, onClose }) => {
               {activeChart === 'tempo' && <TempoChart data={chartsData} />}
               {activeChart === 'todos' && <OverviewCharts data={chartsData} />}
             </>
+          ) : (
+            <EmptyState />
           )}
         </div>
       </div>
     </div>
   );
+};
+
+ChartsModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired
 };
 
 // Componente de Tab
@@ -246,6 +261,13 @@ const ChartTab = ({ active, onClick, icon: Icon, label }) => (
   </button>
 );
 
+ChartTab.propTypes = {
+  active: PropTypes.bool.isRequired,
+  onClick: PropTypes.func.isRequired,
+  icon: PropTypes.elementType.isRequired,
+  label: PropTypes.string.isRequired
+};
+
 // Gráfico de Pressão Arterial
 const PressaoChart = ({ data }) => {
   const maxValue = Math.max(...data.pressaoSistolica, ...data.pressaoDiastolica);
@@ -267,7 +289,7 @@ const PressaoChart = ({ data }) => {
           {/* Grid lines */}
           {[0, 25, 50, 75, 100].map((percent) => (
             <line
-              key={percent}
+              key={`grid-${percent}`}
               x1="0"
               y1={(chartHeight * percent) / 100}
               x2="100%"
@@ -311,7 +333,7 @@ const PressaoChart = ({ data }) => {
             const y = chartHeight - (val / maxValue) * chartHeight;
             return (
               <circle
-                key={`sist-${i}`}
+                key={`sist-point-${i}-${val}`}
                 cx={`${x}%`}
                 cy={y}
                 r="4"
@@ -326,7 +348,7 @@ const PressaoChart = ({ data }) => {
             const y = chartHeight - (val / maxValue) * chartHeight;
             return (
               <circle
-                key={`diast-${i}`}
+                key={`diast-point-${i}-${val}`}
                 cx={`${x}%`}
                 cy={y}
                 r="4"
@@ -345,7 +367,7 @@ const PressaoChart = ({ data }) => {
           color: '#6b7280'
         }}>
           {data.labels.map((label, i) => (
-            <span key={i}>{label}</span>
+            <span key={`label-${i}-${label}`}>{label}</span>
           ))}
         </div>
 
@@ -400,9 +422,17 @@ const PressaoChart = ({ data }) => {
   );
 };
 
+PressaoChart.propTypes = {
+  data: PropTypes.shape({
+    labels: PropTypes.arrayOf(PropTypes.string).isRequired,
+    pressaoSistolica: PropTypes.arrayOf(PropTypes.number).isRequired,
+    pressaoDiastolica: PropTypes.arrayOf(PropTypes.number).isRequired
+  }).isRequired
+};
+
 // Gráfico de UF
 const UFChart = ({ data }) => {
-  const maxValue = Math.max(...data.ufTotal.map(v => parseFloat(v)));
+  const maxValue = Math.max(...data.ufTotal.map(v => Number.parseFloat(v)));
   const chartHeight = 300;
 
   return (
@@ -418,10 +448,10 @@ const UFChart = ({ data }) => {
       }}>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', height: `${chartHeight}px` }}>
           {data.ufTotal.map((val, i) => {
-            const height = (parseFloat(val) / maxValue) * 100;
+            const height = (Number.parseFloat(val) / maxValue) * 100;
             return (
               <div
-                key={i}
+                key={`uf-bar-${i}-${val}`}
                 style={{
                   flex: 1,
                   display: 'flex',
@@ -457,12 +487,19 @@ const UFChart = ({ data }) => {
           color: '#6b7280'
         }}>
           {data.labels.map((label, i) => (
-            <span key={i} style={{ flex: 1, textAlign: 'center' }}>{label}</span>
+            <span key={`uf-label-${i}-${label}`} style={{ flex: 1, textAlign: 'center' }}>{label}</span>
           ))}
         </div>
       </div>
     </div>
   );
+};
+
+UFChart.propTypes = {
+  data: PropTypes.shape({
+    labels: PropTypes.arrayOf(PropTypes.string).isRequired,
+    ufTotal: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.number])).isRequired
+  }).isRequired
 };
 
 // Gráfico de Glicose
@@ -537,7 +574,7 @@ const GlicoseChart = ({ data }) => {
             const y = chartHeight - ((val - minValue) / (maxValue - minValue)) * chartHeight;
             return (
               <circle
-                key={i}
+                key={`glicose-point-${i}-${val}`}
                 cx={`${x}%`}
                 cy={y}
                 r="4"
@@ -555,12 +592,19 @@ const GlicoseChart = ({ data }) => {
           color: '#6b7280'
         }}>
           {data.labels.map((label, i) => (
-            <span key={i}>{label}</span>
+            <span key={`glicose-label-${i}-${label}`}>{label}</span>
           ))}
         </div>
       </div>
     </div>
   );
+};
+
+GlicoseChart.propTypes = {
+  data: PropTypes.shape({
+    labels: PropTypes.arrayOf(PropTypes.string).isRequired,
+    glicose: PropTypes.arrayOf(PropTypes.number).isRequired
+  }).isRequired
 };
 
 // Gráfico de Tempo
@@ -578,7 +622,7 @@ const TempoChart = ({ data }) => (
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
         {data.tempo.map((val, i) => (
           <div
-            key={i}
+            key={`tempo-card-${i}-${val}`}
             style={{
               flex: '1 1 calc(20% - 1rem)',
               minWidth: '100px',
@@ -603,13 +647,21 @@ const TempoChart = ({ data }) => (
   </div>
 );
 
+TempoChart.propTypes = {
+  data: PropTypes.shape({
+    labels: PropTypes.arrayOf(PropTypes.string).isRequired,
+    tempo: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.number])).isRequired
+  }).isRequired
+};
+
 // Visão Geral
 const OverviewCharts = ({ data }) => {
   const calculateAverage = (arr) => {
     const validValues = arr.filter(v => v > 0);
-    return validValues.length > 0
-      ? (validValues.reduce((a, b) => parseFloat(a) + parseFloat(b), 0) / validValues.length).toFixed(1)
-      : 0;
+    if (validValues.length === 0) return 0;
+    
+    const sum = validValues.reduce((a, b) => Number.parseFloat(a) + Number.parseFloat(b), 0);
+    return (sum / validValues.length).toFixed(1);
   };
 
   const stats = [
@@ -665,7 +717,7 @@ const OverviewCharts = ({ data }) => {
           const Icon = stat.icon;
           return (
             <div
-              key={i}
+              key={`stat-card-${i}-${stat.label}`}
               style={{
                 padding: '1.5rem',
                 background: 'white',
@@ -701,6 +753,16 @@ const OverviewCharts = ({ data }) => {
       </div>
     </div>
   );
+};
+
+OverviewCharts.propTypes = {
+  data: PropTypes.shape({
+    pressaoSistolica: PropTypes.arrayOf(PropTypes.number).isRequired,
+    pressaoDiastolica: PropTypes.arrayOf(PropTypes.number).isRequired,
+    ufTotal: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.number])).isRequired,
+    glicose: PropTypes.arrayOf(PropTypes.number).isRequired,
+    tempo: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.number])).isRequired
+  }).isRequired
 };
 
 // Loading State

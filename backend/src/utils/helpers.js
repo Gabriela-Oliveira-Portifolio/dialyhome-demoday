@@ -23,6 +23,7 @@ function verifyToken(token){
     try{
         return jwt.verify(token, process.env.JTW_SECRET);
     } catch (error) {
+        console.error("Erro ao verificar token:", error.message);
         return null;
     }
 }

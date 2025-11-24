@@ -11,7 +11,7 @@ const getAuthHeader = () => {
     sessionStorage.getItem('accessToken')
   ];
 
-  const token = tokenSources.find(t => t);
+  const token = tokenSources.find(Boolean);
 
   if (token) {
     console.log("✅ Token encontrado:", token.substring(0, 20) + "...");
