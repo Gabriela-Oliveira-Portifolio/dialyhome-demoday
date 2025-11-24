@@ -1,13 +1,8 @@
-// backend/src/controllers/doctorController.js - VERSÃO REFATORADA
-
 const db = require('../config/database');
 const bcrypt = require('bcrypt');
 const emailService = require('../services/emailService');
 
-// ===============================
-// FUNÇÕES AUXILIARES PARA ANALYTICS
-// ===============================
-
+// Funções auxiliares para controllers
 const analyticsHelpers = {
   // Buscar dados de pressão arterial
   async fetchPressureData(patientId, startDate) {
@@ -149,13 +144,13 @@ const analyticsHelpers = {
     let status, insight;
     if (avgSystolic < 90 || avgDiastolic < 60) {
       status = 'Baixa';
-      insight = 'Pressão arterial abaixo do ideal. Considere revisar medicações hipotensoras.';
+      insight = 'Pressão arterial abaixo do ideal.';
     } else if (avgSystolic > 140 || avgDiastolic > 90) {
       status = 'Alta';
-      insight = 'Pressão arterial elevada. Recomenda-se ajuste no tratamento anti-hipertensivo.';
+      insight = 'Pressão arterial elevada.';
     } else {
       status = 'Controlada';
-      insight = 'Pressão arterial dentro dos parâmetros ideais. Manter tratamento atual.';
+      insight = 'Pressão arterial dentro dos parâmetros ideais.';
     }
 
     return {
@@ -262,8 +257,8 @@ const analyticsHelpers = {
     if (pressureTrend.average.systolic > 140 || pressureTrend.average.diastolic > 90) {
       recommendations.push({
         priority: 'high',
-        title: 'Ajuste na Medicação Anti-Hipertensiva',
-        description: 'A pressão arterial está consistentemente elevada. Considere aumentar a dose ou adicionar um novo anti-hipertensivo.'
+        title: 'Ajuste',
+        description: 'A pressão arterial está consistentemente elevada. Consulte um médico com velocidade'
       });
     }
 
@@ -272,13 +267,13 @@ const analyticsHelpers = {
       recommendations.push({
         priority: 'medium',
         title: 'Volume de Ultrafiltração Baixo',
-        description: 'O volume de UF está abaixo do esperado. Verifique se há retenção hídrica ou ajuste o peso seco.'
+        description: 'O volume de UF está abaixo do esperado. Consulte um médico com velocidade.'
       });
     } else if (ufTrend.average > 3500) {
       recommendations.push({
         priority: 'medium',
         title: 'Volume de Ultrafiltração Alto',
-        description: 'UF elevado pode indicar excesso de ganho de peso interdialítico. Reforçar orientações sobre controle hídrico.'
+        description: 'UF elevado pode indicar excesso de ganho de peso interdialítico. Consulte um médico com velocidade.'
       });
     }
 
@@ -287,7 +282,7 @@ const analyticsHelpers = {
       recommendations.push({
         priority: 'high',
         title: 'Controle Glicêmico Inadequado',
-        description: 'Glicemia acima da meta. Revisar medicação hipoglicemiante e reforçar orientação nutricional.'
+        description: 'Glicemia acima da meta. Revisar medicação hipoglicemiante (caso tenha) e reforçar orientação nutricional. Consulte um médico com velocidade'
       });
     }
 
@@ -296,7 +291,7 @@ const analyticsHelpers = {
       recommendations.push({
         priority: 'high',
         title: 'Baixa Aderência ao Tratamento',
-        description: 'Paciente faltando a sessões programadas. Investigar barreiras e reforçar importância da regularidade.'
+        description: 'Paciente faltando a sessões programadas. Reforçar a importância do tratamento e acompanhamento regular.'
       });
     }
 
@@ -333,9 +328,7 @@ const analyticsHelpers = {
   }
 };
 
-// ===============================
-// HELPERS GERAIS
-// ===============================
+// helpers desse arquivo
 
 const helpers = {
   // Buscar ID do médico
@@ -357,9 +350,7 @@ const helpers = {
   }
 };
 
-// ===============================
-// CONTROLLERS
-// ===============================
+// Controle Doctor
 
 // Perfil do médico
 const getProfile = async (req, res) => {
@@ -387,9 +378,6 @@ const updateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
     const { crm, telefone, endereco, especialidade } = req.body;
-
-    console.log('📝 Atualizando perfil do médico:', userId);
-    console.log('📦 Dados recebidos:', req.body);
 
     // Verificar se o médico existe
     const doctorCheck = await db.query(
@@ -428,13 +416,10 @@ const updateProfile = async (req, res) => {
       return res.status(400).json({ error: 'Nenhum campo para atualizar' });
     }
 
-    // Adicionar o userId como último parâmetro
     updateValues.push(userId);
     
     const query = `UPDATE medicos SET ${updateFields.join(', ')} WHERE usuario_id = $${paramIndex} RETURNING *`;
-    
-    console.log('🔄 Query de atualização:', query);
-    console.log('🔄 Valores:', updateValues);
+  
 
     await db.query(query, updateValues);
 
@@ -446,8 +431,6 @@ const updateProfile = async (req, res) => {
       WHERE m.usuario_id = $1
     `, [userId]);
 
-    console.log('✅ Perfil do médico atualizado com sucesso');
-
     res.json({
       message: 'Perfil atualizado com sucesso',
       doctor: updatedProfile.rows[0]
@@ -458,13 +441,11 @@ const updateProfile = async (req, res) => {
   }
 };
 
-// Alterar senha do médico
+// Alterar senha perfil Medico
 const changePassword = async (req, res) => {
   try {
     const userId = req.user.id;
     const { currentPassword, newPassword } = req.body;
-
-    console.log('🔐 Alterando senha para médico:', userId);
 
     // Validações
     if (!currentPassword || !newPassword) {
@@ -499,8 +480,6 @@ const changePassword = async (req, res) => {
       'UPDATE usuarios SET senha_hash = $1, data_atualizacao = CURRENT_TIMESTAMP WHERE id = $2',
       [hashedPassword, userId]
     );
-
-    console.log('✅ Senha alterada com sucesso');
 
     res.json({ message: 'Senha alterada com sucesso' });
   } catch (error) {
@@ -553,9 +532,6 @@ const getPatientDetails = async (req, res) => {
   try {
     const { patientId } = req.params;
     
-    console.log('=== DEBUG getPatientDetails ===');
-    console.log('Patient ID:', patientId);
-    console.log('User ID:', req.user.id);
     
     const medico_id = await helpers.getDoctorId(req.user.id);
     
@@ -563,9 +539,6 @@ const getPatientDetails = async (req, res) => {
       console.error('Médico não encontrado para usuario_id:', req.user.id);
       return res.status(404).json({ error: 'Médico não encontrado' });
     }
-
-    console.log('Medico ID:', medico_id);
-
     // Buscar dados do paciente
     const patientQuery = `
       SELECT 
@@ -578,15 +551,12 @@ const getPatientDetails = async (req, res) => {
       WHERE p.id = $1 AND p.medico_responsavel_id = $2
     `;
     
-    console.log('Executando query de paciente...');
     const patientResult = await db.query(patientQuery, [patientId, medico_id]);
 
     if (patientResult.rows.length === 0) {
       console.error('Paciente não encontrado ou não pertence ao médico');
       return res.status(404).json({ error: 'Paciente não encontrado' });
     }
-
-    console.log('Paciente encontrado:', patientResult.rows[0].nome);
 
     // Últimos 10 registros de diálise
     const dialysisQuery = `
@@ -596,9 +566,7 @@ const getPatientDetails = async (req, res) => {
       LIMIT 10
     `;
     
-    console.log('Buscando registros de diálise...');
     const dialysisResult = await db.query(dialysisQuery, [patientId]);
-    console.log('Registros de diálise encontrados:', dialysisResult.rows.length);
 
     // Medicamentos ativos
     const medicationsQuery = `
@@ -607,9 +575,7 @@ const getPatientDetails = async (req, res) => {
       ORDER BY nome
     `;
     
-    console.log('Buscando medicamentos...');
     const medicationsResult = await db.query(medicationsQuery, [patientId]);
-    console.log('Medicamentos encontrados:', medicationsResult.rows.length);
 
     // Estatísticas do último mês
     const statsQuery = `
@@ -624,9 +590,7 @@ const getPatientDetails = async (req, res) => {
         AND data_registro >= CURRENT_DATE - INTERVAL '30 days'
     `;
     
-    console.log('Buscando estatísticas...');
     const statsResult = await db.query(statsQuery, [patientId]);
-    console.log('Estatísticas calculadas');
 
     const response = {
       patient: patientResult.rows[0],
@@ -635,15 +599,10 @@ const getPatientDetails = async (req, res) => {
       stats: statsResult.rows[0]
     };
 
-    console.log('=== Resposta final ===');
-    console.log('Patient:', response.patient.nome);
-    console.log('Recent dialysis records:', response.recentDialysis.length);
-    console.log('Medications:', response.medications.length);
-    console.log('Stats:', response.stats);
 
     res.json(response);
   } catch (error) {
-    console.error('=== ERRO em getPatientDetails ===');
+    console.error('=== ERRO em getPatientDetails  AAAAAAAAAAAAAAAAAAAAAAA===');
     console.error('Erro completo:', error);
     console.error('Stack trace:', error.stack);
     res.status(500).json({ 
@@ -784,7 +743,7 @@ const sendAlert = async (req, res) => {
   try {
     const { patientId } = req.params;
     
-    // Aceita ambos os formatos (inglês e português)
+    // ESTÁ ASSIM POR CONTA DE UM CONFLITO DE COMPATIBILIDADE QUE EU FIZ
     const {
       title, titulo,
       message, mensagem,
@@ -798,11 +757,6 @@ const sendAlert = async (req, res) => {
     const alertTitle = titulo || title;
     const alertMessage = mensagem || message;
     const alertPriority = prioridade || priority;
-
-    console.log('=== ENVIANDO ALERTA ===');
-    console.log('Patient ID:', patientId);
-    console.log('Doctor ID:', doctorId);
-    console.log('Dados:', { alertTitle, alertMessage, alertPriority });
 
     // Validações
     if (!alertTitle || !alertMessage || !alertPriority) {
@@ -824,7 +778,6 @@ const sendAlert = async (req, res) => {
     }
 
     const doctor = doctorResult.rows[0];
-    console.log('Médico encontrado:', doctor.nome);
 
     // Buscar paciente e verificar acesso
     const patientResult = await db.query(`
@@ -841,7 +794,6 @@ const sendAlert = async (req, res) => {
     }
 
     const patient = patientResult.rows[0];
-    console.log('Paciente encontrado:', patient.nome);
 
     // Criar notificação no banco de dados
     const notificationResult = await db.query(`
@@ -862,8 +814,6 @@ const sendAlert = async (req, res) => {
       alertPriority
     ]);
 
-    console.log('✅ Notificação criada no banco:', notificationResult.rows[0].id);
-
     // Enviar email usando o emailService
     let emailSent = false;
     try {
@@ -878,7 +828,6 @@ const sendAlert = async (req, res) => {
       });
 
       emailSent = true;
-      console.log('✅ Email enviado com sucesso para:', patient.email);
     } catch (emailError) {
       console.error('❌ Erro ao enviar email:', emailError);
     }
@@ -912,10 +861,6 @@ const sendAlertToPatient = async (req, res) => {
       tipo_alerta = 'geral',
       enviar_email = false
     } = req.body;
-
-    console.log('=== ENVIANDO ALERTA ===');
-    console.log('Patient ID:', patientId);
-    console.log('Dados:', { titulo, mensagem, prioridade, tipo_alerta, enviar_email });
 
     // Validações
     if (!titulo || !mensagem) {
@@ -971,8 +916,6 @@ const sendAlertToPatient = async (req, res) => {
       prioridade
     ]);
 
-    console.log('Notificação criada:', notificationResult.rows[0].id);
-
     // Enviar email se solicitado
     let emailSent = false;
     if (enviar_email && patient.email) {
@@ -988,10 +931,8 @@ const sendAlertToPatient = async (req, res) => {
         });
 
         emailSent = true;
-        console.log('Email enviado com sucesso para:', patient.email);
       } catch (emailError) {
         console.error('Erro ao enviar email:', emailError);
-        // Não falhar a requisição se o email falhar
       }
     }
 
@@ -1040,7 +981,7 @@ const getNotifications = async (req, res) => {
   }
 };
 
-// Marcar notificação como lida
+// Marcar notificação como lida -- Não utilizado
 const markNotificationAsRead = async (req, res) => {
   try {
     const { id } = req.params;
@@ -1196,17 +1137,11 @@ const getPatientReport = async (req, res) => {
   }
 };
 
-// ===============================
-// Analytics estratégicos do paciente (SIMPLIFICADO)
-// ===============================
+// pdf médico paciente
 const getPatientAnalytics = async (req, res) => {
   try {
     const { patientId } = req.params;
     const { days = 30 } = req.query;
-    
-    console.log('=== GERANDO ANALYTICS ===');
-    console.log('Patient ID:', patientId);
-    console.log('Período:', days, 'dias');
     
     // Verificar acesso do médico ao paciente
     const medico_id = await helpers.getDoctorId(req.user.id);
@@ -1310,7 +1245,6 @@ const getPatientAnalytics = async (req, res) => {
       }
     };
 
-    console.log('✅ Analytics gerados com sucesso');
     
     res.json(analyticsData);
     

@@ -28,7 +28,7 @@ const fs = mockFs;
 const { exec } = { exec: mockExec };
 const cron = mockCron;
 
-const BackupService = require('../../src/utils/backupService');
+const BackupService = require('./backupService');
 
 describe('BackupService', () => {
   let backupService;

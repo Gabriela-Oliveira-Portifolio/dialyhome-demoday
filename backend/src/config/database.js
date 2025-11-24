@@ -1,7 +1,7 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// Usar CONNECTION_STRING se disponível, senão usar variáveis individuais
+// Usar o CONNECTION_STRING se estiver disponivel, senão usar variáveis individuais
 const pool = process.env.CONNECTION_STRING
   ? new Pool({
       connectionString: process.env.CONNECTION_STRING,

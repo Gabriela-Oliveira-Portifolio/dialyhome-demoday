@@ -1,6 +1,3 @@
-// src/controllers/alertaMedicoController.js
-// Controller para gerenciar alertas médicos enviados por email
-  // NÃO É AQUI QUE O ALERTA É ENVIADO
 const db = require('../config/database');
 const nodemailer = require('nodemailer');
 
@@ -13,7 +10,7 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// Verificar configuração do email ao inicializar
+// Verificar configuração do email
 transporter.verify((error, success) => {
   if (error) {
     console.error('❌ Erro na configuração do email:', error);
@@ -22,15 +19,8 @@ transporter.verify((error, success) => {
   }
 });
 
-/**
- * Envia um alerta por email para o paciente
- * POST /api/doctor/alerta/enviar
- */
 const enviarAlerta = async (req, res) => {
   try {
-    console.log('=== ENVIAR ALERTA DEBUG ===');
-    console.log('User:', req.user);
-    console.log('Body:', req.body);
 
     const { paciente_id, mensagem, email } = req.body;
     const userId = req.user.id;
@@ -44,7 +34,7 @@ const enviarAlerta = async (req, res) => {
 
     if (mensagem.trim().length < 10) {
       return res.status(400).json({
-        error: 'A mensagem deve ter no mínimo 10 caracteres'
+        error: 'A mensagem deve ser maior que 10 caracteres'
       });
     }
 
@@ -56,7 +46,7 @@ const enviarAlerta = async (req, res) => {
       });
     }
 
-    // 1. Buscar informações do médico
+    // Buscar informações do médico
     const medicoResult = await db.query(
       `SELECT m.id, m.crm, m.especialidade, u.nome 
        FROM medicos m
@@ -72,7 +62,7 @@ const enviarAlerta = async (req, res) => {
     const medico = medicoResult.rows[0];
     console.log('Médico encontrado:', medico);
 
-    // 2. Buscar informações do paciente
+    // Buscar informações do paciente
     const pacienteResult = await db.query(
       `SELECT p.id, u.nome, u.email
        FROM pacientes p
@@ -88,7 +78,7 @@ const enviarAlerta = async (req, res) => {
     const paciente = pacienteResult.rows[0];
     console.log('Paciente encontrado:', paciente);
 
-    // 3. Verificar se o paciente pertence ao médico
+    // Verificar se o paciente pertence ao médico
     const vinculoResult = await db.query(
       'SELECT id FROM pacientes WHERE id = $1 AND medico_responsavel_id = $2',
       [paciente_id, medico.id]
@@ -100,7 +90,7 @@ const enviarAlerta = async (req, res) => {
       });
     }
 
-    // 4. Sanitizar a mensagem (prevenir XSS)
+    // Sanitizar a mensagem (prevenir XSS)
     const mensagemSanitizada = mensagem
       .trim()
       .replaceAll(/</g, '&lt;')
@@ -109,7 +99,7 @@ const enviarAlerta = async (req, res) => {
       .replaceAll(/'/g, '&#x27;')
       .replaceAll(/\//g, '&#x2F;');
 
-    // 5. Criar notificação no banco de dados
+    // Criar notificação no banco de dados - tabela guia para saber quais emais foram enviados
     const notificacaoResult = await db.query(
       `INSERT INTO notificacoes (
         usuario_destinatario_id,
@@ -131,7 +121,7 @@ const enviarAlerta = async (req, res) => {
     const notificacao = notificacaoResult.rows[0];
     console.log('Notificação criada:', notificacao);
 
-    // 6. Preparar e enviar o email
+    // Preparar e enviar o email
     const htmlTemplate = criarTemplateEmail({
       nomePaciente: paciente.nome,
       nomeMedico: medico.nome,
@@ -142,11 +132,11 @@ const enviarAlerta = async (req, res) => {
 
     const mailOptions = {
       from: {
-        name: 'DialCare - Sistema de Monitoramento',
+        name: 'DialyHome - Sistema de Monitoramento',
         address: process.env.SMTP_USER
       },
       to: email,
-      subject: '🏥 Novo Alerta do seu Médico - DialCare',
+      subject: '🏥 Novo Alerta do seu Médico - DialyHome',
       html: htmlTemplate,
       text: criarTextoSimples(paciente.nome, medico.nome, mensagemSanitizada)
     };
@@ -162,7 +152,7 @@ const enviarAlerta = async (req, res) => {
       // Continua mesmo se o email falhar
     }
 
-    // 7. Registrar no log de auditoria
+    // Registrar no log de auditoria
     await db.query(
       `INSERT INTO logs_auditoria (
         usuario_id,
@@ -204,10 +194,6 @@ const enviarAlerta = async (req, res) => {
   }
 };
 
-/**
- * Lista os alertas enviados pelo médico
- * GET /api/doctor/alerta/enviados
- */
 const listarAlertasEnviados = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -226,7 +212,6 @@ const listarAlertasEnviados = async (req, res) => {
 
     const medicoId = medicoResult.rows[0].id;
 
-    // Construir query
     let query = `
       SELECT 
         n.id,
@@ -292,10 +277,6 @@ const listarAlertasEnviados = async (req, res) => {
   }
 };
 
-/**
- * Busca um alerta específico
- * GET /api/doctor/alerta/:id
- */
 const buscarAlerta = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -334,10 +315,8 @@ const buscarAlerta = async (req, res) => {
   }
 };
 
-/**
- * Obtém estatísticas de alertas
- * GET /api/doctor/alerta/estatisticas
- */
+
+// Não utilizado por enquanto - melhoria futura
 const obterEstatisticas = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -399,181 +378,180 @@ const obterEstatisticas = async (req, res) => {
   }
 };
 
-/**
- * Cria o template HTML do email
- */
-function criarTemplateEmail({ nomePaciente, nomeMedico, especialidade, crm, mensagem }) {
-  const mensagemFormatada = mensagem.replaceAll(/\n/g, '<br>');
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
-  return `
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Alerta Médico - DialCare</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      line-height: 1.6;
-      color: #333;
-      margin: 0;
-      padding: 0;
-      background-color: #f5f5f5;
-    }
-    .container {
-      max-width: 600px;
-      margin: 20px auto;
-      background-color: #fff;
-      border-radius: 15px;
-      overflow: hidden;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    }
-    .header {
-      background: linear-gradient(135deg, #14b8a6 0%, #10b981 100%);
-      color: white;
-      padding: 40px 30px;
-      text-align: center;
-    }
-    .header h1 {
-      margin: 10px 0;
-      font-size: 28px;
-      font-weight: 700;
-    }
-    .icon {
-      font-size: 48px;
-      margin-bottom: 10px;
-    }
-    .content {
-      padding: 40px 30px;
-    }
-    .greeting {
-      color: #111827;
-      font-size: 18px;
-      margin-bottom: 20px;
-    }
-    .alert-box {
-      background: linear-gradient(135deg, #fef3c7 0%, #fef9e7 100%);
-      border-left: 4px solid #f59e0b;
-      padding: 20px;
-      margin: 25px 0;
-      border-radius: 8px;
-    }
-    .doctor-name {
-      color: #111827;
-      font-size: 18px;
-      font-weight: 700;
-      display: block;
-      margin-bottom: 5px;
-    }
-    .doctor-specialty {
-      color: #6b7280;
-      font-size: 14px;
-      display: block;
-      margin-bottom: 15px;
-    }
-    .message-content {
-      color: #1f2937;
-      background: white;
-      padding: 15px;
-      border-radius: 6px;
-      line-height: 1.7;
-      font-size: 15px;
-    }
-    .button {
-      display: inline-block;
-      background: linear-gradient(135deg, #14b8a6 0%, #10b981 100%);
-      color: white !important;
-      padding: 14px 35px;
-      text-decoration: none;
-      border-radius: 10px;
-      font-weight: 600;
-      font-size: 15px;
-      margin: 20px 0;
-    }
-    .footer {
-      background: #f9fafb;
-      text-align: center;
-      padding: 25px 30px;
-      border-top: 1px solid #e5e7eb;
-      font-size: 13px;
-      color: #6b7280;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <div class="icon">🏥</div>
-      <h1>DialCare</h1>
-      <p>Sistema de Monitoramento de Diálise</p>
-    </div>
 
-    <div class="content">
-      <div class="greeting">
-        Olá, <strong>${nomePaciente}</strong>!
-      </div>
+// function criarTemplateEmail({ nomePaciente, nomeMedico, especialidade, crm, mensagem }) {
+//   const mensagemFormatada = mensagem.replaceAll(/\n/g, '<br>');
+//   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+//   return `
+// <!DOCTYPE html>
+// <html lang="pt-BR">
+// <head>
+//   <meta charset="UTF-8">
+//   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+//   <title>Alerta Médico - DialCare</title>
+//   <style>
+//     body {
+//       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+//       line-height: 1.6;
+//       color: #333;
+//       margin: 0;
+//       padding: 0;
+//       background-color: #f5f5f5;
+//     }
+//     .container {
+//       max-width: 600px;
+//       margin: 20px auto;
+//       background-color: #fff;
+//       border-radius: 15px;
+//       overflow: hidden;
+//       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+//     }
+//     .header {
+//       background: linear-gradient(135deg, #14b8a6 0%, #10b981 100%);
+//       color: white;
+//       padding: 40px 30px;
+//       text-align: center;
+//     }
+//     .header h1 {
+//       margin: 10px 0;
+//       font-size: 28px;
+//       font-weight: 700;
+//     }
+//     .icon {
+//       font-size: 48px;
+//       margin-bottom: 10px;
+//     }
+//     .content {
+//       padding: 40px 30px;
+//     }
+//     .greeting {
+//       color: #111827;
+//       font-size: 18px;
+//       margin-bottom: 20px;
+//     }
+//     .alert-box {
+//       background: linear-gradient(135deg, #fef3c7 0%, #fef9e7 100%);
+//       border-left: 4px solid #f59e0b;
+//       padding: 20px;
+//       margin: 25px 0;
+//       border-radius: 8px;
+//     }
+//     .doctor-name {
+//       color: #111827;
+//       font-size: 18px;
+//       font-weight: 700;
+//       display: block;
+//       margin-bottom: 5px;
+//     }
+//     .doctor-specialty {
+//       color: #6b7280;
+//       font-size: 14px;
+//       display: block;
+//       margin-bottom: 15px;
+//     }
+//     .message-content {
+//       color: #1f2937;
+//       background: white;
+//       padding: 15px;
+//       border-radius: 6px;
+//       line-height: 1.7;
+//       font-size: 15px;
+//     }
+//     .button {
+//       display: inline-block;
+//       background: linear-gradient(135deg, #14b8a6 0%, #10b981 100%);
+//       color: white !important;
+//       padding: 14px 35px;
+//       text-decoration: none;
+//       border-radius: 10px;
+//       font-weight: 600;
+//       font-size: 15px;
+//       margin: 20px 0;
+//     }
+//     .footer {
+//       background: #f9fafb;
+//       text-align: center;
+//       padding: 25px 30px;
+//       border-top: 1px solid #e5e7eb;
+//       font-size: 13px;
+//       color: #6b7280;
+//     }
+//   </style>
+// </head>
+// <body>
+//   <div class="container">
+//     <div class="header">
+//       <div class="icon">🏥</div>
+//       <h1>DialyHome</h1>
+//       <p>Sistema de Monitoramento de Diálise</p>
+//     </div>
+
+//     <div class="content">
+//       <div class="greeting">
+//         Olá, <strong>${nomePaciente}</strong>!
+//       </div>
       
-      <p style="color: #4b5563; font-size: 15px; margin-bottom: 20px;">
-        Você recebeu uma nova mensagem importante do seu médico através do sistema DialCare.
-      </p>
+//       <p style="color: #4b5563; font-size: 15px; margin-bottom: 20px;">
+//         Você recebeu uma nova mensagem importante do seu médico através do sistema DialCare.
+//       </p>
 
-      <div class="alert-box">
-        <span class="doctor-name">👨‍⚕️ ${nomeMedico}</span>
-        ${especialidade ? `<span class="doctor-specialty">${especialidade}${crm ? ` - CRM ${crm}` : ''}</span>` : ''}
+//       <div class="alert-box">
+//         <span class="doctor-name">👨‍⚕️ ${nomeMedico}</span>
+//         ${especialidade ? `<span class="doctor-specialty">${especialidade}${crm ? ` - CRM ${crm}` : ''}</span>` : ''}
         
-        <strong style="color: #374151; display: block; margin-bottom: 10px;">📋 Mensagem do Médico:</strong>
-        <div class="message-content">
-          ${mensagemFormatada}
-        </div>
-      </div>
+//         <strong style="color: #374151; display: block; margin-bottom: 10px;">📋 Mensagem do Médico:</strong>
+//         <div class="message-content">
+//           ${mensagemFormatada}
+//         </div>
+//       </div>
 
-      <center>
-        <a href="${frontendUrl}/dashboard" class="button">
-          🔗 Acessar Meu Painel
-        </a>
-      </center>
+//       <center>
+//         <a href="${frontendUrl}/dashboard" class="button">
+//           🔗 Acessar Meu Painel
+//         </a>
+//       </center>
 
-      <p style="text-align: center; color: #6b7280; font-size: 14px; margin-top: 20px;">
-        Você pode visualizar este alerta através do sistema DialCare.
-      </p>
-    </div>
+//       <p style="text-align: center; color: #6b7280; font-size: 14px; margin-top: 20px;">
+//         Você pode visualizar este alerta através do sistema DialCare.
+//       </p>
+//     </div>
 
-    <div class="footer">
-      <p><strong>DialCare - Sistema de Monitoramento de Diálise</strong></p>
-      <p>Este é um email automático. Por favor, não responda diretamente a este email.</p>
-      <p>© ${new Date().getFullYear()} DialCare. Todos os direitos reservados.</p>
-    </div>
-  </div>
-</body>
-</html>
-  `;
-}
+//     <div class="footer">
+//       <p><strong>DialCare - Sistema de Monitoramento de Diálise</strong></p>
+//       <p>Este é um email automático. Por favor, não responda diretamente a este email.</p>
+//       <p>© ${new Date().getFullYear()} DialCare. Todos os direitos reservados.</p>
+//     </div>
+//   </div>
+// </body>
+// </html>
+//   `;
+// }
 
-/**
- * Cria versão em texto simples do email
- */
-function criarTextoSimples(nomePaciente, nomeMedico, mensagem) {
-  return `
-DialCare - Alerta Médico
+// /**
+//  * Cria versão em texto simples do email
+//  */
+// function criarTextoSimples(nomePaciente, nomeMedico, mensagem) {
+//   return `
+// DialCare - Alerta Médico
 
-Olá, ${nomePaciente}!
+// Olá, ${nomePaciente}!
 
-Você recebeu uma nova mensagem do seu médico:
+// Você recebeu uma nova mensagem do seu médico:
 
-Dr(a). ${nomeMedico}
+// Dr(a). ${nomeMedico}
 
-Mensagem:
-${mensagem}
+// Mensagem:
+// ${mensagem}
 
----
-Acesse o painel do DialCare para visualizar este alerta:
-${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard
+// ---
+// Acesse o painel do DialCare para visualizar este alerta:
+// ${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard
 
-Este é um email automático. Não responda a este email.
-  `;
-}
+// Este é um email automático. Não responda a este email.
+//   `;
+// }
 
 module.exports = {
   enviarAlerta,

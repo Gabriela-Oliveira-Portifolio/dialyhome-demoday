@@ -1,4 +1,4 @@
-const db = require('../config/database');
+const db = require('../src/config/database');
 
 class AuditLogger {
   static async log(userId, table, operation, oldData = null, newData = null, req = null) {

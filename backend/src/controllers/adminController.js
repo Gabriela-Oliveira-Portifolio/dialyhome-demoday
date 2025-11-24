@@ -1,9 +1,10 @@
-// backend/src/controllers/adminController.js
 const db = require('../config/database');
 const bcrypt = require('bcrypt');
 
 const adminController = {
-  // ==================== DASHBOARD ====================
+
+
+  // Parte do Dash
   getDashboardStats: async (req, res) => {
     try {
       // Total de usuários por tipo
@@ -57,7 +58,7 @@ const adminController = {
         LIMIT 10
       `);
 
-      // Calcular saúde do sistema (uptime fictício - em produção usar métricas reais)
+      // Calcular saúde do sistema  -- Melhoria futura: integrar com monitoramento real - até então valores estão MOCADOS
       const systemHealth = 98.5;
 
       res.json({
@@ -79,7 +80,7 @@ const adminController = {
     }
   },
 
-  // ==================== GERENCIAMENTO DE USUÁRIOS ====================
+  // Gerenciamento dos usuários
   getAllUsers: async (req, res) => {
     try {
       const { tipo, search, page = 1, limit = 20 } = req.query;
@@ -214,7 +215,7 @@ const adminController = {
       const userId = userResult.rows[0].id;
 
       // Criar registro específico baseado no tipo
-      if (tipo_usuario === 'paciente') {
+      if (tipo_usuario === 'paciente') { // tipo paciente
         await db.query(
           `INSERT INTO pacientes (
             usuario_id, cpf, data_nascimento, telefone, 
@@ -231,7 +232,7 @@ const adminController = {
             extraData.medico_responsavel_id || null
           ]
         );
-      } else if (tipo_usuario === 'medico') {
+      } else if (tipo_usuario === 'medico') { // tipo médico
         await db.query(
           `INSERT INTO medicos (usuario_id, crm, especialidade, telefone_contato)
            VALUES ($1, $2, $3, $4)`,
@@ -338,7 +339,7 @@ const adminController = {
     try {
       const { id } = req.params;
 
-      // Soft delete
+      // Deletar usuario (soft delete) marcando como inativo
       const result = await db.query(
         'UPDATE usuarios SET ativo = false WHERE id = $1 RETURNING *',
         [id]
@@ -362,7 +363,7 @@ const adminController = {
     }
   },
 
-  // ==================== VINCULAÇÃO MÉDICO-PACIENTE ====================
+  // Vinculação médico-paciente
     getPatientDoctorRelations: async (req, res) => {
     try {
       // Buscar relações paciente-médico
@@ -385,7 +386,7 @@ const adminController = {
         ORDER BY u_pac.nome
       `);
 
-      // Buscar lista de médicos disponíveis (ADICIONADO!)
+      // Buscar lista de médicos disponíveis
       const doctors = await db.query(`
         SELECT 
           m.id,
@@ -418,7 +419,7 @@ const adminController = {
         return res.status(400).json({ error: 'ID do paciente é obrigatório' });
       }
 
-      // Permitir desvinculação (medico_id = null)
+      // Permitir desvinculação médico paciente
       const result = await db.query(
         `UPDATE pacientes 
          SET medico_responsavel_id = $1
@@ -446,7 +447,7 @@ const adminController = {
     }
   },
 
-  // ==================== AUDITORIA ====================
+  // auditoria
   getAuditLogs: async (req, res) => {
     try {
       const { page = 1, limit = 50, usuario_id, operacao } = req.query;
@@ -500,7 +501,7 @@ const adminController = {
     }
   },
 
-  // ==================== RELATÓRIOS ====================
+  // relatórios
   getSystemReports: async (req, res) => {
     try {
       const { tipo, data_inicio, data_fim } = req.query;
@@ -542,7 +543,7 @@ const adminController = {
     }
   },
 
-  // ==================== BACKUP ====================
+  // backup do banco de dados -- valores ainda mokados
   getBackupStatus: async (req, res) => {
     try {
       // Simulação de backups - em produção, implementar lógica real
@@ -565,9 +566,6 @@ const adminController = {
 
   triggerBackup: async (req, res) => {
     try {
-      // Aqui você implementaria a lógica real de backup
-      // Por exemplo, usando pg_dump
-
       // Log de auditoria
       await db.query(
         `INSERT INTO logs_auditoria (usuario_id, tabela_afetada, operacao, dados_novos)
@@ -586,7 +584,6 @@ const adminController = {
   try {
     const { meses = 6 } = req.query;
     
-    // ✅ CORREÇÃO: Usar prepared statement
     const result = await db.query(`
       SELECT 
         DATE_TRUNC('month', data_criacao) as mes,
@@ -681,7 +678,7 @@ const adminController = {
     }
   },
 
-  // Taxa de adesão ao tratamento (registros por paciente)
+  // Taxa de adesão ao tratamento (registros por paciente) - com base em valores fixos da minha opinião
   getTreatmentAdherence: async (req, res) => {
     try {
       const result = await db.query(`
@@ -773,7 +770,7 @@ const adminController = {
     try {
       const insights = [];
 
-      // 1. Verificar pacientes sem registros recentes
+      // Verificar pacientes sem registros recentes
       const inactivePatients = await db.query(`
         SELECT COUNT(*) as total
         FROM pacientes p
@@ -792,7 +789,7 @@ const adminController = {
         });
       }
 
-      // 2. Verificar médicos sobrecarregados
+      // Verificar médicos sobrecarregados
       const overloadedDoctors = await db.query(`
         SELECT COUNT(*) as total
         FROM (
@@ -815,7 +812,7 @@ const adminController = {
         });
       }
 
-      // 3. Verificar crescimento de usuários
+      // Verificar crescimento de usuários
       const userGrowth = await db.query(`
         SELECT 
           COUNT(*) FILTER (WHERE data_criacao >= CURRENT_DATE - INTERVAL '30 days') as mes_atual,
@@ -836,7 +833,7 @@ const adminController = {
         });
       }
 
-      // 4. Pacientes sem médico vinculado
+      // Pacientes sem médico vinculado
       const unassignedPatients = await db.query(`
         SELECT COUNT(*) as total
         FROM pacientes p

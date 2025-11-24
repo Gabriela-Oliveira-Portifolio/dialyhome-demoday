@@ -3,7 +3,7 @@ import adminService from '../services/adminService';
 import { useState, useEffect } from 'react';
 import { 
   Users, UserPlus, Activity, Shield, FileText, Database,
-  TrendingUp, AlertCircle, CheckCircle, Search,
+  AlertCircle, CheckCircle, Search,
   RefreshCw, Settings, LogOut,
   BarChart3, PieChart, X, Save, Edit, Trash2
 } from 'lucide-react';
@@ -464,20 +464,20 @@ const DashboardView = ({ stats }) => {
           subtitle="Total de diálises"
           color="#8b5cf6"
         />
-        <StatCard
+        {/* <StatCard
           icon={AlertCircle}
           title="Alertas"
           value={stats.recentAlerts}
           subtitle="Não lidos"
           color="#f59e0b"
-        />
-        <StatCard
+        /> */}
+        {/* <StatCard
           icon={TrendingUp}
           title="Saúde do Sistema"
           value={`${stats.systemHealth}%`}
           subtitle="Uptime"
           color="#10b981"
-        />
+        /> */}
       </div>
 
       {/* Recent Activity */}
@@ -525,8 +525,8 @@ DashboardView.propTypes = {
     totalPatients: PropTypes.number,
     totalDoctors: PropTypes.number,
     totalRecords: PropTypes.number,
-    recentAlerts: PropTypes.number,
-    systemHealth: PropTypes.number,
+    // recentAlerts: PropTypes.number,
+    // systemHealth: PropTypes.number,
     recentActivity: PropTypes.arrayOf(PropTypes.object)
   })
 };

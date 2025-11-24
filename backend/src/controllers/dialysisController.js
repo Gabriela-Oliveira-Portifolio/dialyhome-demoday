@@ -3,9 +3,6 @@ const db = require('../config/database');
 // Criar novo registro de diálise
 const createRecord = async (req, res) => {
   try {
-    console.log('=== CREATE RECORD DEBUG ===');
-    console.log('User:', req.user);
-    console.log('Body:', req.body);
     
     const userId = req.user.id;
     
@@ -15,14 +12,11 @@ const createRecord = async (req, res) => {
       [userId]
     );
 
-    console.log('Patient result:', patientResult.rows);
-
     if (patientResult.rows.length === 0) {
       return res.status(404).json({ error: 'Paciente não encontrado' });
     }
 
     const pacienteId = patientResult.rows[0].id;
-    console.log('Paciente ID:', pacienteId);
 
     const {
       pressaoSistolica,
@@ -35,14 +29,13 @@ const createRecord = async (req, res) => {
       observacoes
     } = req.body;
 
-    console.log('Dados recebidos:', req.body);
 
     // Validações básicas
     if (!pressaoSistolica || !pressaoDiastolica) {
       return res.status(400).json({ error: 'Pressão arterial é obrigatória' });
     }
 
-    // Converter valores para o formato correto do banco
+    // Converter valores para o banco
     // Litros para mililitros (INTEGER)
     const drenagemMl = drenagemInicial ? Math.round(Number.parseFloat(drenagemInicial) * 1000) : null;
     const ufMl = ufTotal ? Math.round(Number.parseFloat(ufTotal) * 1000) : null;
@@ -95,7 +88,6 @@ const createRecord = async (req, res) => {
       ]
     );
 
-    console.log('Registro criado:', result.rows[0]);
 
     res.status(201).json({
       message: 'Registro criado com sucesso',
