@@ -75,6 +75,7 @@ const Login = () => {
             <span className="gradient-text">Diálise Peritoneal</span>
           </h2>
           
+          
           <p className="subtitle">
             Monitoramento completo e seguro para tratamento domiciliar, sua saude na palma de sua mão
           </p>
