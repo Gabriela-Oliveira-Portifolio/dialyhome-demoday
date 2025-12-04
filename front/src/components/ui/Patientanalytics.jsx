@@ -511,13 +511,13 @@ const PatientAnalytics = ({ patientId, patientName }) => {
         </div>
       </div>
 
-      {/* Botão de Exportar */}
+      {/* Botão de Exportar
       <div style={{
         marginTop: '1.5rem',
         textAlign: 'center'
       }}>
         <button
-          onClick={() => {/* Implementar exportação */}}
+          onClick={() => {/* Implementar exportação /}}
           style={{
             padding: '1rem 2rem',
             background: 'linear-gradient(90deg, #14b8a6 0%, #10b981 100%)',
@@ -536,7 +536,7 @@ const PatientAnalytics = ({ patientId, patientName }) => {
           <Download size={20} />
           Exportar Análise Completa
         </button>
-      </div>
+      </div> */}
     </div>
   );
 };
